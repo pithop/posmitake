@@ -39,3 +39,5 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+Cahier des Charges Application Caisse FoodTech.txt
+supabase_schema.sql

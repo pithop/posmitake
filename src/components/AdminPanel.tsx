@@ -1,0 +1,323 @@
+"use client";
+
+import { useSystemStore } from '@/store/useStore';
+import { formatPrice } from '@/lib/utils';
+import { useState, useEffect, useMemo } from 'react';
+import { Settings, X, RotateCcw, LayoutDashboard, History, Package, Search, Save, Edit2 } from 'lucide-react';
+import { Product } from '@/types';
+import { cn } from '@/lib/utils';
+
+type Tab = 'dashboard' | 'history' | 'products';
+
+export function AdminPanel() {
+    const { dailyRevenue, orderHistory, resetDaily, products, updateProduct, seedProducts } = useSystemStore();
+    const [isOpen, setIsOpen] = useState(false);
+    const [activeTab, setActiveTab] = useState<Tab>('dashboard');
+    const [isClient, setIsClient] = useState(false);
+
+    // Product Management State
+    const [productSearch, setProductSearch] = useState('');
+    const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+    const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
+
+    useEffect(() => {
+        setIsClient(true);
+    }, []);
+
+    if (!isClient) return null;
+
+    const handleReset = () => {
+        if (confirm('ATTENTION: Cela va effacer le chiffre d\'affaires et l\'historique du jour. Continuer ?')) {
+            resetDaily();
+        }
+    };
+
+    const handleSaveProduct = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!editingProduct) return;
+        updateProduct(editingProduct.id, {
+            name: editingProduct.name,
+            price: Number(editingProduct.price),
+        });
+        setEditingProduct(null);
+    };
+
+    const filteredProducts = products.filter(p =>
+        p.name.toLowerCase().includes(productSearch.toLowerCase()) ||
+        p.id.includes(productSearch)
+    );
+
+    return (
+        <>
+            <button
+                onClick={() => setIsOpen(true)}
+                className="fixed bottom-6 left-6 px-5 py-3 bg-black/40 backdrop-blur-xl border border-white/10 text-white rounded-full hover:bg-white/10 hover:scale-105 active:scale-95 transition-all z-50 shadow-2xl flex items-center space-x-3 group"
+            >
+                <div className="p-1.5 bg-zinc-800 rounded-full group-hover:bg-red-600 transition-colors">
+                    <Settings size={16} className="text-zinc-400 group-hover:text-white transition-colors" />
+                </div>
+                <span className="font-medium text-sm tracking-wide pr-1">ADMIN</span>
+            </button>
+
+            {isOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-md p-4 animate-in fade-in duration-200">
+                    <div className="w-full max-w-5xl h-[85vh] bg-[#09090b] border border-zinc-800 rounded-3xl shadow-2xl flex overflow-hidden">
+
+                        {/* Sidebar */}
+                        <div className="w-64 bg-zinc-900/50 border-r border-zinc-800 flex flex-col p-4">
+                            <div className="mb-8 px-2">
+                                <h2 className="text-xl font-bold text-white tracking-tight">Admin Panel</h2>
+                                <p className="text-zinc-500 text-xs">Mitake POS v1.1</p>
+                            </div>
+
+                            <nav className="space-y-2 flex-1">
+                                <button
+                                    onClick={() => setActiveTab('dashboard')}
+                                    className={cn(
+                                        "w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-colors text-sm font-medium",
+                                        activeTab === 'dashboard' ? "bg-white text-black" : "text-zinc-400 hover:bg-zinc-800 hover:text-white"
+                                    )}
+                                >
+                                    <LayoutDashboard size={18} />
+                                    <span>Dashboard</span>
+                                </button>
+                                <button
+                                    onClick={() => setActiveTab('history')}
+                                    className={cn(
+                                        "w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-colors text-sm font-medium",
+                                        activeTab === 'history' ? "bg-white text-black" : "text-zinc-400 hover:bg-zinc-800 hover:text-white"
+                                    )}
+                                >
+                                    <History size={18} />
+                                    <span>Historique</span>
+                                </button>
+                                <button
+                                    onClick={() => setActiveTab('products')}
+                                    className={cn(
+                                        "w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-colors text-sm font-medium",
+                                        activeTab === 'products' ? "bg-white text-black" : "text-zinc-400 hover:bg-zinc-800 hover:text-white"
+                                    )}
+                                >
+                                    <Package size={18} />
+                                    <span>Produits</span>
+                                </button>
+                            </nav>
+
+                            <div className="mt-auto pt-4 border-t border-zinc-800">
+                                <button onClick={() => setIsOpen(false)} className="w-full flex items-center justify-center space-x-2 p-3 text-zinc-400 hover:text-white transition-colors">
+                                    <X size={18} />
+                                    <span>Fermer</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Content Area */}
+                        <div className="flex-1 overflow-hidden flex flex-col bg-black/20">
+
+                            {/* Dashboard Tab */}
+                            {activeTab === 'dashboard' && (
+                                <div className="p-8 overflow-y-auto h-full">
+                                    <h3 className="text-2xl font-bold text-white mb-6">Aperçu de la journée</h3>
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                                        <div className="bg-zinc-900/50 border border-zinc-800 p-6 rounded-2xl">
+                                            <p className="text-zinc-400 text-sm font-medium">Chiffre d'Affaires</p>
+                                            <p className="text-4xl font-bold text-green-500 mt-2">{formatPrice(dailyRevenue)}</p>
+                                        </div>
+                                        <div className="bg-zinc-900/50 border border-zinc-800 p-6 rounded-2xl">
+                                            <p className="text-zinc-400 text-sm font-medium">Commandes</p>
+                                            <p className="text-4xl font-bold text-white mt-2">{orderHistory.length}</p>
+                                        </div>
+                                        <div className="bg-zinc-900/50 border border-zinc-800 p-6 rounded-2xl">
+                                            <p className="text-zinc-400 text-sm font-medium">Panier Moyen</p>
+                                            <p className="text-4xl font-bold text-blue-500 mt-2">
+                                                {orderHistory.length > 0 ? formatPrice(dailyRevenue / orderHistory.length) : formatPrice(0)}
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <div className="bg-red-950/10 border border-red-900/20 p-6 rounded-2xl">
+                                        <h4 className="text-red-500 font-bold mb-2">Zone de Danger</h4>
+                                        <p className="text-zinc-400 text-sm mb-4">Réinitialiser toutes les données de la journée. Cette action est irréversible.</p>
+                                        <button
+                                            onClick={handleReset}
+                                            className="flex items-center space-x-2 bg-red-900/20 text-red-500 hover:bg-red-900/40 px-4 py-2 rounded-lg transition-colors border border-red-900/30"
+                                        >
+                                            <RotateCcw size={16} />
+                                            <span>Reset Journée</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* History Tab */}
+                            {activeTab === 'history' && (
+                                <div className="flex flex-col h-full">
+                                    <div className="p-6 border-b border-zinc-800">
+                                        <h3 className="text-2xl font-bold text-white">Historique des Commandes</h3>
+                                    </div>
+                                    <div className="flex-1 overflow-y-auto p-6">
+                                        <div className="space-y-4">
+                                            {orderHistory.length === 0 ? (
+                                                <div className="text-center text-zinc-500 py-10">Aucune commande aujourd'hui</div>
+                                            ) : (
+                                                orderHistory.map((order) => (
+                                                    <div key={order.id} className="bg-zinc-900/30 border border-zinc-800 rounded-xl overflow-hidden transition-all">
+                                                        <div
+                                                            onClick={() => setExpandedOrderId(expandedOrderId === order.id ? null : order.id)}
+                                                            className="p-4 flex justify-between items-center cursor-pointer hover:bg-zinc-800/50 transition-colors"
+                                                        >
+                                                            <div>
+                                                                <div className="flex items-center space-x-3">
+                                                                    <span className="font-mono font-bold text-white bg-zinc-800 px-2 py-1 rounded">{order.id}</span>
+                                                                    <span className="text-zinc-400 text-sm">
+                                                                        {new Date(order.timestamp).toLocaleTimeString()}
+                                                                    </span>
+                                                                </div>
+                                                                <p className="text-zinc-500 text-sm mt-1">{order.items.length} articles</p>
+                                                            </div>
+                                                            <div className="text-right">
+                                                                <p className="text-xl font-bold text-white">{formatPrice(order.total)}</p>
+                                                                <p className="text-green-500 text-xs font-medium">Payé</p>
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Order Details */}
+                                                        {expandedOrderId === order.id && (
+                                                            <div className="bg-zinc-950/50 border-t border-zinc-800 p-4 space-y-3 animate-in slide-in-from-top-2 duration-200">
+                                                                {order.items.map((item, idx) => (
+                                                                    <div key={idx} className="flex justify-between items-start text-sm">
+                                                                        <div className="flex space-x-3">
+                                                                            <span className="font-bold text-zinc-400">{item.quantity}x</span>
+                                                                            <div>
+                                                                                <p className="text-zinc-200 font-medium">{item.menuItem.name}</p>
+                                                                                {item.selectedModifiers && item.selectedModifiers.length > 0 && (
+                                                                                    <div className="text-zinc-500 text-xs mt-0.5 space-y-0.5">
+                                                                                        {item.selectedModifiers.map((mod, mIdx) => (
+                                                                                            <span key={mIdx} className="block">+ {mod.name}</span>
+                                                                                        ))}
+                                                                                    </div>
+                                                                                )}
+                                                                            </div>
+                                                                        </div>
+                                                                        <span className="text-zinc-400">{formatPrice(item.totalPrice)}</span>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                ))
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Products Tab */}
+                            {activeTab === 'products' && (
+                                <div className="flex flex-col h-full">
+                                    <div className="p-6 border-b border-zinc-800 flex justify-between items-center">
+                                        <div className="flex items-center space-x-4">
+                                            <h3 className="text-2xl font-bold text-white">Gestion Produits</h3>
+                                            <button
+                                                onClick={() => {
+                                                    if (confirm('Voulez-vous synchroniser les produits actuels vers la base de données ?')) {
+                                                        seedProducts();
+                                                    }
+                                                }}
+                                                className="text-xs bg-zinc-800 hover:bg-zinc-700 text-zinc-300 px-3 py-1.5 rounded-lg border border-zinc-700 transition-colors"
+                                            >
+                                                Synchroniser DB
+                                            </button>
+                                        </div>
+                                        <div className="relative w-64">
+                                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={16} />
+                                            <input
+                                                type="text"
+                                                placeholder="Rechercher..."
+                                                value={productSearch}
+                                                onChange={(e) => setProductSearch(e.target.value)}
+                                                className="w-full bg-zinc-900 border border-zinc-800 rounded-lg py-2 pl-9 pr-4 text-sm text-white focus:outline-none focus:border-zinc-700"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="flex-1 overflow-y-auto p-6">
+                                        <div className="grid grid-cols-1 gap-3">
+                                            {filteredProducts.map((product) => (
+                                                <div key={product.id} className="bg-zinc-900/30 border border-zinc-800 rounded-xl p-4 flex justify-between items-center group hover:bg-zinc-900/50 transition-colors">
+                                                    <div className="flex items-center space-x-4">
+                                                        {product.image && (
+                                                            <img src={product.image} alt="" className="w-10 h-10 rounded-lg object-cover bg-zinc-800" />
+                                                        )}
+                                                        <div>
+                                                            <p className="font-medium text-white">{product.name}</p>
+                                                            <p className="text-zinc-500 text-xs">{product.category}</p>
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex items-center space-x-6">
+                                                        <p className="font-bold text-white">{formatPrice(product.price)}</p>
+                                                        <button
+                                                            onClick={() => setEditingProduct(product)}
+                                                            className="p-2 text-zinc-500 hover:text-white hover:bg-zinc-800 rounded-lg transition-colors"
+                                                        >
+                                                            <Edit2 size={18} />
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Edit Product Modal */}
+                    {editingProduct && (
+                        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-sm">
+                            <div className="w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-2xl p-6 shadow-2xl">
+                                <h3 className="text-xl font-bold text-white mb-4">Modifier Produit</h3>
+                                <form onSubmit={handleSaveProduct} className="space-y-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-zinc-400 mb-1">Nom</label>
+                                        <input
+                                            type="text"
+                                            value={editingProduct.name}
+                                            onChange={(e) => setEditingProduct({ ...editingProduct, name: e.target.value })}
+                                            className="w-full bg-black border border-zinc-800 rounded-lg p-3 text-white focus:outline-none focus:border-white/20"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-zinc-400 mb-1">Prix (€)</label>
+                                        <input
+                                            type="number"
+                                            step="0.01"
+                                            value={editingProduct.price}
+                                            onChange={(e) => setEditingProduct({ ...editingProduct, price: Number(e.target.value) })}
+                                            className="w-full bg-black border border-zinc-800 rounded-lg p-3 text-white focus:outline-none focus:border-white/20"
+                                        />
+                                    </div>
+                                    <div className="flex space-x-3 pt-4">
+                                        <button
+                                            type="button"
+                                            onClick={() => setEditingProduct(null)}
+                                            className="flex-1 py-3 rounded-xl bg-zinc-800 text-zinc-300 hover:bg-zinc-700 font-medium"
+                                        >
+                                            Annuler
+                                        </button>
+                                        <button
+                                            type="submit"
+                                            className="flex-1 py-3 rounded-xl bg-white text-black hover:bg-zinc-200 font-bold flex items-center justify-center space-x-2"
+                                        >
+                                            <Save size={18} />
+                                            <span>Enregistrer</span>
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            )}
+        </>
+    );
+}
