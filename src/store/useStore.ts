@@ -236,7 +236,7 @@ export const useSystemStore = create<SystemState>()(
                     alert('Base de données synchronisée avec succès !');
                 } catch (error) {
                     console.error('Supabase Seed Error:', error);
-                    alert('Erreur lors de la synchronisation: ' + error.message);
+                    alert('Erreur lors de la synchronisation: ' + (error as any).message);
                 } finally {
                     set({ isSyncing: false });
                 }
