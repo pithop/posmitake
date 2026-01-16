@@ -1,11 +1,11 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import { CartItem, Product, ModifierOption, Order } from '@/types';
+import { CartItem, Product, ModifierOption, Order, Payment } from '@/types';
 import { supabase } from '@/lib/supabase';
 import menuData from '@/data/menu_data.json';
 
-// Cast JSON data to Product[]
-const initialProducts: Product[] = menuData as unknown as Product[];
+// Initialize with empty array to enforce DB as source of truth
+const initialProducts: Product[] = [];
 
 interface CartState {
     items: CartItem[];
@@ -22,7 +22,7 @@ interface SystemState {
     orderIdCounter: number;
     products: Product[];
     isSyncing: boolean;
-    checkout: () => Promise<void>;
+    checkout: (payments: Payment[]) => Promise<void>;
     resetDaily: () => void;
     updateProduct: (id: string, updates: Partial<Product>) => Promise<void>;
     fetchProducts: () => Promise<void>;
@@ -115,7 +115,7 @@ export const useSystemStore = create<SystemState>()(
             products: initialProducts,
             isSyncing: false,
 
-            checkout: async () => {
+            checkout: async (payments: Payment[]) => {
                 const cartState = useCartStore.getState();
                 if (cartState.items.length === 0) return;
 
@@ -125,6 +125,8 @@ export const useSystemStore = create<SystemState>()(
                     items: [...cartState.items],
                     total: cartState.total,
                     timestamp: Date.now(),
+                    status: 'completed',
+                    payments: payments
                 };
 
                 // Optimistic update (Local)
@@ -145,6 +147,8 @@ export const useSystemStore = create<SystemState>()(
                                 id: orderId,
                                 total: newOrder.total,
                                 status: 'completed',
+                                payment_method: payments[0].method, // Primary method for legacy support
+                                payment_details: payments, // New JSONB column for full details
                                 created_at: new Date(newOrder.timestamp).toISOString()
                             });
 
@@ -273,6 +277,8 @@ export const useSystemStore = create<SystemState>()(
                             id: order.id,
                             total: order.total,
                             timestamp: new Date(order.created_at).getTime(),
+                            status: order.status as 'completed' | 'pending' | 'cancelled' || 'completed',
+                            payments: order.payment_details || [], // Assuming we fetch this column
                             items: items
                                 .filter(item => item.order_id === order.id)
                                 .map(item => ({

@@ -41,3 +41,7 @@ yarn-error.log*
 next-env.d.ts
 Cahier des Charges Application Caisse FoodTech.txt
 supabase_schema.sql
+
+# documentation / research
+french restaurant payment methods explained.md
+

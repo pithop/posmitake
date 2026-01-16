@@ -217,27 +217,42 @@ export function AdminPanel() {
                                 <div className="flex flex-col h-full">
                                     <div className="p-6 border-b border-zinc-800 flex justify-between items-center">
                                         <div className="flex items-center space-x-4">
-                                            <h3 className="text-2xl font-bold text-white">Gestion Produits</h3>
-                                            <button
-                                                onClick={() => {
-                                                    if (confirm('Voulez-vous synchroniser les produits actuels vers la base de données ?')) {
-                                                        seedProducts();
-                                                    }
-                                                }}
-                                                className="text-xs bg-zinc-800 hover:bg-zinc-700 text-zinc-300 px-3 py-1.5 rounded-lg border border-zinc-700 transition-colors"
-                                            >
-                                                Synchroniser DB
-                                            </button>
-                                        </div>
-                                        <div className="relative w-64">
-                                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={16} />
-                                            <input
-                                                type="text"
-                                                placeholder="Rechercher..."
-                                                value={productSearch}
-                                                onChange={(e) => setProductSearch(e.target.value)}
-                                                className="w-full bg-zinc-900 border border-zinc-800 rounded-lg py-2 pl-9 pr-4 text-sm text-white focus:outline-none focus:border-zinc-700"
-                                            />
+                                            <div className="flex items-center space-x-2">
+                                                <h3 className="text-2xl font-bold text-white">Gestion Produits</h3>
+                                                <button
+                                                    onClick={async () => {
+                                                        if (confirm('ATTENTION: Cela va écraser/mettre à jour tous les produits dans la base de données avec les fichiers JSON (Kyo + Mitake). Continuer ?')) {
+                                                            const { seedDatabase } = await import('@/lib/seeder');
+                                                            const result = await seedDatabase();
+
+                                                            let message = 'Résultat de la synchronisation :\n';
+                                                            if (result.success) {
+                                                                message += `✅ Total Produits: ${result.count}\n`;
+                                                                message += `🏷️ Dont Mitake: ${result.mitakeCount}\n`;
+                                                            } else {
+                                                                message += `❌ Erreur: ${result.error?.message || 'Inconnue'}\n`;
+                                                            }
+
+                                                            alert(message);
+                                                            window.location.reload();
+                                                        }
+                                                    }}
+                                                    className="text-xs bg-red-900/30 hover:bg-red-900/50 text-red-300 px-3 py-1.5 rounded-lg border border-red-800 transition-colors flex items-center space-x-1"
+                                                >
+                                                    <Save size={14} />
+                                                    <span>Full Seed (JSON -&gt; DB)</span>
+                                                </button>
+                                            </div>
+                                            <div className="relative w-64">
+                                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={16} />
+                                                <input
+                                                    type="text"
+                                                    placeholder="Rechercher..."
+                                                    value={productSearch}
+                                                    onChange={(e) => setProductSearch(e.target.value)}
+                                                    className="w-full bg-zinc-900 border border-zinc-800 rounded-lg py-2 pl-9 pr-4 text-sm text-white focus:outline-none focus:border-zinc-700"
+                                                />
+                                            </div>
                                         </div>
                                     </div>
                                     <div className="flex-1 overflow-y-auto p-6">
