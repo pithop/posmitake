@@ -1,16 +1,14 @@
-"use client";
-
 import { useSystemStore } from '@/store/useStore';
 import { formatPrice } from '@/lib/utils';
 import { useState, useEffect, useMemo } from 'react';
-import { Settings, X, RotateCcw, LayoutDashboard, History, Package, Search, Save, Edit2 } from 'lucide-react';
+import { Settings, X, RotateCcw, LayoutDashboard, History, Package, Search, Save, Edit2, WifiOff, CloudUpload } from 'lucide-react';
 import { Product } from '@/types';
 import { cn } from '@/lib/utils';
 
 type Tab = 'dashboard' | 'history' | 'products';
 
 export function AdminPanel() {
-    const { dailyRevenue, orderHistory, resetDaily, products, updateProduct, seedProducts } = useSystemStore();
+    const { dailyRevenue, orderHistory, resetDaily, products, updateProduct, seedProducts, pendingOrders, syncPendingOrders } = useSystemStore();
     const [isOpen, setIsOpen] = useState(false);
     const [activeTab, setActiveTab] = useState<Tab>('dashboard');
     const [isClient, setIsClient] = useState(false);
@@ -134,6 +132,38 @@ export function AdminPanel() {
                                             </p>
                                         </div>
                                     </div>
+
+                                    {/* Offline / Pending Orders Section */}
+                                    {pendingOrders.length > 0 && (
+                                        <div className="bg-amber-950/10 border border-amber-900/20 p-6 rounded-2xl mb-8">
+                                            <div className="flex justify-between items-center">
+                                                <div>
+                                                    <h4 className="text-amber-500 font-bold mb-2 flex items-center gap-2">
+                                                        <WifiOff size={20} />
+                                                        <span>Synchronisation Requise</span>
+                                                    </h4>
+                                                    <p className="text-zinc-400 text-sm">
+                                                        {pendingOrders.length} commande(s) stockée(s) hors-ligne. Connectez-vous à internet pour les sauvegarder.
+                                                    </p>
+                                                </div>
+                                                <button
+                                                    onClick={async () => {
+                                                        if (!confirm('Assurez-vous d\'avoir une connexion internet active.')) return;
+                                                        const result = await syncPendingOrders();
+                                                        if (result.failed === 0) {
+                                                            alert(`Succès! ${result.success} commandes synchronisées.`);
+                                                        } else {
+                                                            alert(`Partiel: ${result.success} réussies, ${result.failed} échouées. Vérifiez votre connexion.`);
+                                                        }
+                                                    }}
+                                                    className="flex items-center space-x-2 bg-amber-600 hover:bg-amber-500 text-white px-5 py-3 rounded-xl transition-all shadow-lg hover:shadow-amber-900/20"
+                                                >
+                                                    <CloudUpload size={18} />
+                                                    <span className="font-bold">Synchroniser Maintenant</span>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
 
                                     <div className="bg-red-950/10 border border-red-900/20 p-6 rounded-2xl">
                                         <h4 className="text-red-500 font-bold mb-2">Zone de Danger</h4>

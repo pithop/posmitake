@@ -19,6 +19,7 @@ interface CartState {
 interface SystemState {
     dailyRevenue: number;
     orderHistory: Order[];
+    pendingOrders: Order[]; // Queue for offline orders
     orderIdCounter: number;
     products: Product[];
     isSyncing: boolean;
@@ -27,8 +28,10 @@ interface SystemState {
     updateProduct: (id: string, updates: Partial<Product>) => Promise<void>;
     fetchProducts: () => Promise<void>;
     seedProducts: () => Promise<void>;
+    syncPendingOrders: () => Promise<{ success: number; failed: number }>;
     initializeSync: () => void;
 }
+
 
 export const useCartStore = create<CartState>()(
     persist(
@@ -111,6 +114,7 @@ export const useSystemStore = create<SystemState>()(
         (set, get) => ({
             dailyRevenue: 0,
             orderHistory: [],
+            pendingOrders: [],
             orderIdCounter: 1,
             products: initialProducts,
             isSyncing: false,
@@ -171,12 +175,82 @@ export const useSystemStore = create<SystemState>()(
                         if (itemsError) throw itemsError;
 
                     } catch (error) {
-                        console.error('Supabase Sync Error:', error);
-                        // In a real app, we'd queue this for retry
+                        console.error('Supabase Sync Error (Offline?):', error);
+                        // Queue for retry
+                        set((state) => ({
+                            pendingOrders: [...state.pendingOrders, newOrder]
+                        }));
                     } finally {
                         set({ isSyncing: false });
                     }
+                } else {
+                    // No supabase client ? Queue it.
+                    set((state) => ({
+                        pendingOrders: [...state.pendingOrders, newOrder]
+                    }));
                 }
+            },
+
+            syncPendingOrders: async () => {
+                const pending = get().pendingOrders;
+                if (pending.length === 0) return { success: 0, failed: 0 };
+                if (!supabase) return { success: 0, failed: pending.length };
+
+                set({ isSyncing: true });
+                let successCount = 0;
+                let failedCount = 0;
+                const remainingOrders: Order[] = [];
+
+                for (const order of pending) {
+                    try {
+                        // Check if order already exists (idempotency)
+                        const { data: existing } = await supabase
+                            .from('pos_orders')
+                            .select('id')
+                            .eq('id', order.id)
+                            .single();
+
+                        if (!existing) {
+                            const { error: orderError } = await supabase
+                                .from('pos_orders')
+                                .insert({
+                                    id: order.id,
+                                    total: order.total,
+                                    status: 'completed',
+                                    payment_method: order.payments?.[0]?.method || 'cash',
+                                    payment_details: order.payments || [],
+                                    created_at: new Date(order.timestamp).toISOString()
+                                });
+
+                            if (orderError) throw orderError;
+
+                            const orderItems = order.items.map(item => ({
+                                order_id: order.id,
+                                product_id: item.menuItem.id,
+                                product_name: item.menuItem.name,
+                                quantity: item.quantity,
+                                unit_price: item.totalPrice / item.quantity,
+                                total_price: item.totalPrice,
+                                selected_modifiers: item.selectedModifiers
+                            }));
+
+                            const { error: itemsError } = await supabase
+                                .from('pos_order_items')
+                                .insert(orderItems);
+
+                            if (itemsError) throw itemsError;
+                        }
+
+                        successCount++;
+                    } catch (err) {
+                        console.error(`Failed to sync order ${order.id}:`, err);
+                        failedCount++;
+                        remainingOrders.push(order);
+                    }
+                }
+
+                set({ pendingOrders: remainingOrders, isSyncing: false });
+                return { success: successCount, failed: failedCount };
             },
 
             resetDaily: () => set({ dailyRevenue: 0, orderHistory: [], orderIdCounter: 1 }),
