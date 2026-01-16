@@ -56,9 +56,8 @@ export default function Home() {
       </div>
 
       {/* Right Column: Cart (Drawer on Mobile, Fixed on Desktop) */}
-      {/* Right Column: Cart (Drawer on Mobile, Fixed on Desktop) */}
       <div className={cn(
-        "fixed inset-y-0 right-0 z-40 w-full sm:w-[420px] lg:w-[400px] lg:static transition-transform duration-500 cubic-bezier(0.32, 0.72, 0, 1) shadow-2xl lg:shadow-none border-l border-white/5 bg-zinc-950/95 lg:bg-transparent backdrop-blur-xl lg:backdrop-blur-none",
+        "fixed inset-y-0 right-0 z-40 w-full sm:w-[420px] lg:w-[400px] lg:relative lg:translate-x-0 lg:shrink-0 transition-transform duration-500 cubic-bezier(0.32, 0.72, 0, 1) shadow-2xl lg:shadow-none border-l border-white/5 bg-zinc-950/95 lg:bg-transparent backdrop-blur-xl lg:backdrop-blur-none",
         isCartOpen ? "translate-x-0" : "translate-x-full lg:transform-none"
       )}>
         <CartSidebar />
