@@ -4,6 +4,7 @@ import "./globals.css";
 import { PowerSyncProvider } from "@/components/PowerSyncProvider";
 import { ClientLayout } from "@/components/ClientLayout";
 import { OrderAlertManager } from "@/components/OrderAlertManager";
+import { StockAlertManager } from "@/components/StockAlertManager";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const outfit = Outfit({ subsets: ["latin"], variable: "--font-outfit" });
@@ -30,6 +31,7 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={`${inter.variable} ${outfit.variable} font-sans antialiased`} suppressHydrationWarning>
         <OrderAlertManager />
+        <StockAlertManager />
         <PowerSyncProvider>
           <ClientLayout>
             {children}
