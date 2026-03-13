@@ -141,7 +141,7 @@ export function MenuGrid() {
         }
 
         return filtered;
-    }, [products, selectedCategory, searchQuery, isMitakeMode]);
+    }, [products, selectedCategory, searchQuery, isMitakeMode, deviceId]);
 
     return (
         <div className="flex flex-col h-full bg-gradient-to-b from-transparent to-black/20">
