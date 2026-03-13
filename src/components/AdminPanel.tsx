@@ -1,29 +1,52 @@
 import { useSystemStore } from '@/store/useStore';
 import { formatPrice } from '@/lib/utils';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Settings, X, RotateCcw, LayoutDashboard, History, Package, Search, Save, Edit2, WifiOff, CloudUpload, SlidersHorizontal, Monitor, Smartphone } from 'lucide-react';
 import { Product, Order } from '@/types';
 import { cn } from '@/lib/utils';
 import { useQuery, usePowerSync } from '@powersync/react';
+import { supabase } from '@/lib/supabase';
 
 type Tab = 'dashboard' | 'history' | 'products' | 'settings';
 
 export function AdminPanel() {
     const { dailyRevenue, resetDaily, deviceId, setDeviceId, uiZoomLevel, setUiZoomLevel } = useSystemStore();
 
-    // PowerSync Data
-    const { data: orderHistoryData = [] } = useQuery('SELECT * FROM pos_orders ORDER BY created_at DESC');
+    // PowerSync Data (local) — for products
     const { data: productsData = [] } = useQuery('SELECT * FROM pos_products');
 
-    const orderHistory: Order[] = useMemo(() => orderHistoryData.map((o: any) => ({
+    // Order history from SUPABASE (cross-device) instead of local-only SQLite
+    const [supabaseOrders, setSupabaseOrders] = useState<any[]>([]);
+    const [ordersLoading, setOrdersLoading] = useState(false);
+
+    const fetchOrdersFromSupabase = useCallback(async () => {
+        if (!supabase) return;
+        setOrdersLoading(true);
+        try {
+            const { data, error } = await supabase
+                .from('pos_orders')
+                .select('*')
+                .order('created_at', { ascending: false })
+                .limit(200);
+            if (!error && data) {
+                setSupabaseOrders(data);
+            }
+        } catch (e) {
+            console.error('[Admin] Failed to fetch orders from Supabase:', e);
+        }
+        setOrdersLoading(false);
+    }, []);
+
+    const orderHistory: Order[] = useMemo(() => supabaseOrders.map((o: any) => ({
         id: o.id,
         total: o.total,
         status: o.status,
         timestamp: new Date(o.created_at).getTime(),
         items: [],
-        paymentMethod: o.payment_details ? JSON.parse(o.payment_details)?.[0]?.method || 'card' : 'card',
-        payments: o.payment_details ? JSON.parse(o.payment_details) : []
-    })), [orderHistoryData]);
+        paymentMethod: o.payment_method || 'card',
+        sourceDevice: o.source_device || 'unknown',
+        payments: o.payment_details ? (typeof o.payment_details === 'string' ? JSON.parse(o.payment_details) : o.payment_details) : [],
+    })), [supabaseOrders]);
 
     const products: Product[] = useMemo(() => productsData.map((p: any) => ({
         id: p.id,
@@ -53,6 +76,13 @@ export function AdminPanel() {
     });
     const powersync = usePowerSync();
 
+    // Fetch orders when panel opens or tab changes to history
+    useEffect(() => {
+        if (isOpen && activeTab === 'history') {
+            fetchOrdersFromSupabase();
+        }
+    }, [isOpen, activeTab, fetchOrdersFromSupabase]);
+
     const filteredOrderHistory = useMemo(() => {
         if (!selectedHistoryDate) return orderHistory;
         return orderHistory.filter(o => {
@@ -68,11 +98,11 @@ export function AdminPanel() {
     }, []);
 
     useEffect(() => {
-        if (expandedOrderId && powersync) {
-            powersync.getAll('SELECT * FROM pos_order_items WHERE order_id = ?', [expandedOrderId])
-                .then(items => setExpandedOrderItems(items));
+        if (expandedOrderId && supabase) {
+            supabase.from('pos_order_items').select('*').eq('order_id', expandedOrderId)
+                .then(({ data }) => setExpandedOrderItems(data || []));
         }
-    }, [expandedOrderId, powersync]);
+    }, [expandedOrderId]);
 
     const updateProduct = async (id: string, updates: Partial<Product>) => {
         await powersync.execute('UPDATE pos_products SET name = ?, price = ? WHERE id = ?',
