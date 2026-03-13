@@ -9,6 +9,9 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@journeyapps/wa-sqlite": "^1.4.1",
+    "@powersync/react": "^1.8.2",
+    "@powersync/web": "^1.31.0",
     "@supabase/supabase-js": "^2.90.1",
     "clsx": "^2.1.1",
     "lucide-react": "^0.562.0",

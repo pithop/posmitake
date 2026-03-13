@@ -55,6 +55,26 @@ body {
   font-family: var(--font-sans), system-ui, sans-serif;
 }
 
+/* POS Screen Auto-Zoom Scaling */
+html {
+  font-size: 14px;
+  /* Default for mobile readability */
+}
+
+@media (min-width: 1024px) {
+  html {
+    font-size: 10px;
+    /* Scales down entire UI natively by ~38% on POS screens without breaking flexboxes */
+  }
+}
+
+@media (min-width: 1920px) {
+  html {
+    font-size: 14px;
+    /* Return to normal on very large HD monitors */
+  }
+}
+
 h1,
 h2,
 h3,

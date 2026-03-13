@@ -3,21 +3,23 @@
 import { MenuGrid } from '@/components/MenuGrid';
 import { CartSidebar } from '@/components/CartSidebar';
 import { AdminPanel } from '@/components/AdminPanel';
-import { useSystemStore } from '@/store/useStore';
+import { useCartStore, useSystemStore } from '@/store/useStore';
 import { useEffect, useState } from 'react';
-import { ShoppingBag, Menu, Wifi } from 'lucide-react';
+import { ShoppingBag, Menu, Wifi, X, ChevronRight } from 'lucide-react';
+import { formatPrice } from '@/lib/utils';
 import { cn } from '@/lib/utils';
 
 export default function Home() {
   const [isCartOpen, setIsCartOpen] = useState(false);
-  const initializeSync = useSystemStore((state) => state.initializeSync);
+  const { items, total } = useCartStore();
+  // PowerSync is initialized via Provider in layout.tsx
 
   useEffect(() => {
-    initializeSync();
-  }, [initializeSync]);
+    // No manual sync initialization needed
+  }, []);
 
   return (
-    <main className="flex h-screen w-screen overflow-hidden bg-background text-foreground selection:bg-primary/30">
+    <main className="flex h-screen w-screen overflow-hidden bg-background text-foreground selection:bg-primary/30" suppressHydrationWarning>
 
       {/* Mobile Header */}
       <div className="lg:hidden fixed top-0 left-0 right-0 h-16 glass-strong z-50 flex items-center justify-between px-6 border-b border-white/5">
@@ -29,7 +31,11 @@ export default function Home() {
           className="p-2.5 bg-secondary rounded-full text-foreground relative active:scale-95 transition-transform"
         >
           <ShoppingBag size={20} />
-          {/* Dot indicator could go here */}
+          {items.length > 0 && (
+            <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[9px] font-bold text-primary-foreground">
+              {items.length}
+            </span>
+          )}
         </button>
       </div>
 
@@ -55,19 +61,22 @@ export default function Home() {
         <MenuGrid />
       </div>
 
-      {/* Right Column: Cart (Drawer on Mobile, Fixed on Desktop) */}
+      {/* Right Column: Desktop Cart (Fixed Sidebar) */}
+      <div className="hidden lg:flex w-[400px] flex-none flex-col border-l border-white/5 bg-zinc-950/50 backdrop-blur-xl relative z-40">
+        <CartSidebar />
+      </div>
+
+      {/* Mobile Cart Drawer (Overlay) */}
       <div className={cn(
-        "fixed inset-y-0 right-0 z-40 w-full sm:w-[420px] lg:w-[400px] lg:relative lg:translate-x-0 lg:shrink-0 transition-transform duration-500 cubic-bezier(0.32, 0.72, 0, 1) shadow-2xl lg:shadow-none border-l border-white/5 bg-zinc-950/95 lg:bg-transparent backdrop-blur-xl lg:backdrop-blur-none",
-        isCartOpen ? "translate-x-0" : "translate-x-full lg:transform-none"
+        "fixed inset-y-0 right-0 z-50 w-full sm:w-[420px] lg:hidden transition-transform duration-500 cubic-bezier(0.32, 0.72, 0, 1) shadow-2xl bg-zinc-950/95 backdrop-blur-xl border-l border-white/5",
+        isCartOpen ? "translate-x-0" : "translate-x-full"
       )}>
         <CartSidebar />
-
-        {/* Mobile Close Button */}
         <button
           onClick={() => setIsCartOpen(false)}
-          className="lg:hidden absolute top-5 right-5 p-2 bg-black/50 backdrop-blur-md rounded-full text-white border border-white/10 active:scale-90 transition-transform"
+          className="absolute top-5 right-5 p-2 bg-black/50 backdrop-blur-md rounded-full text-white border border-white/10 active:scale-90 transition-transform"
         >
-          <Menu size={20} />
+          <X size={20} />
         </button>
       </div>
 
@@ -77,6 +86,27 @@ export default function Home() {
           className="fixed inset-0 bg-black/80 backdrop-blur-sm z-30 lg:hidden animate-fade-in"
           onClick={() => setIsCartOpen(false)}
         />
+      )}
+
+      {/* Mobile Floating Action Button (Only visible if >0 items and cart is closed) */}
+      {!isCartOpen && items.length > 0 && (
+        <div className="lg:hidden fixed bottom-6 left-6 right-6 z-40 animate-slide-up-fade">
+          <button
+            onClick={() => setIsCartOpen(true)}
+            className="w-full bg-emerald-500 hover:bg-emerald-400 text-black py-4 px-6 rounded-2xl flex items-center justify-between shadow-2xl active:scale-95 transition-transform"
+          >
+            <div className="flex items-center gap-3">
+              <div className="bg-black/20 w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm">
+                {items.length}
+              </div>
+              <span className="font-bold text-lg">Voir le panier</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="font-mono font-black text-xl">{formatPrice(total)}</span>
+              <ChevronRight size={24} className="opacity-50" />
+            </div>
+          </button>
+        </div>
       )}
 
       <AdminPanel />

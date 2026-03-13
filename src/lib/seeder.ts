@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { getPowerSyncDatabase } from './powersync/PowerSyncDb';
 import kyoMenuData from '@/data/menu_data.json';
 
 export async function seedDatabase() {
@@ -40,12 +41,27 @@ export async function seedDatabase() {
             };
         });
 
-        // 3. Upsert to Supabase
-        const { error } = await supabase
-            .from('pos_products')
-            .upsert(products, { onConflict: 'id' });
-
-        if (error) throw error;
+        // 3. Upsert to PowerSync Local DB
+        const db = getPowerSyncDatabase();
+        await db.writeTransaction(async (tx) => {
+            for (const p of products) {
+                await tx.execute(
+                    `INSERT OR REPLACE INTO pos_products (id, name, price, category, description, image, available, modifier_groups, tags)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                    [
+                        p.id,
+                        p.name,
+                        p.price,
+                        p.category, // Default 'General' handled in map above
+                        p.description || '',
+                        p.image,
+                        p.available ? 1 : 0,
+                        JSON.stringify(p.modifier_groups || []),
+                        JSON.stringify(p.tags || [])
+                    ]
+                );
+            }
+        });
 
         results.success = true;
         results.count = products.length;

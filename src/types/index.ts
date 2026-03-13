@@ -2,6 +2,7 @@ export interface ModifierOption {
     id: string;
     name: string;
     priceAdjustment: number;
+    quantity?: number; // Added for Phase 4 (e.g. 2x Oeuf)
 }
 
 export interface ModifierGroup {
@@ -30,6 +31,7 @@ export interface CartItem {
     selectedModifiers: ModifierOption[];
     quantity: number;
     totalPrice: number;
+    note?: string; // Added for Phase 4 (Allergies, custom prep)
 }
 
 export interface Order {
@@ -39,6 +41,7 @@ export interface Order {
     timestamp: number;
     status: 'completed' | 'pending' | 'cancelled';
     payments?: Payment[];
+    paymentMethod?: string;
 }
 
 export type PaymentMethodType =

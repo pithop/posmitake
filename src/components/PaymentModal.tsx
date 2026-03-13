@@ -1,9 +1,11 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
+import { useCartStore } from '@/store/useStore';
 import { formatPrice } from '@/lib/utils';
 import { Payment, PaymentMethodType } from '@/types';
-import { X, Plus, CreditCard, Banknote, Ticket, CheckCircle2, Trash2, Smartphone, Gift, FileSignature } from 'lucide-react';
+import { X, CreditCard, Banknote, Ticket, CheckCircle2, Trash2, Smartphone, Gift, FileSignature, Delete } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface PaymentModalProps {
@@ -13,56 +15,73 @@ interface PaymentModalProps {
     onConfirm: (payments: Payment[]) => void;
 }
 
-const PAYMENT_METHODS: { id: PaymentMethodType; label: string; icon: any }[] = [
-    { id: 'card', label: 'Carte Bancaire (CB)', icon: CreditCard },
-    { id: 'amex', label: 'American Express', icon: CreditCard },
-    { id: 'cash', label: 'Espèces', icon: Banknote },
-    { id: 'ticket_restaurant_card', label: 'Titre Resto (Carte)', icon: Ticket },
-    { id: 'ticket_restaurant_paper', label: 'Titre Resto (Papier)', icon: Ticket },
-    { id: 'cheque_vacances', label: 'Chèque Vacances', icon: Ticket },
-    { id: 'mobile_payment', label: 'Paiement Mobile (Lydia/Sunday)', icon: Smartphone },
-    { id: 'check', label: 'Chèque Bancaire', icon: FileSignature },
-    { id: 'gift_voucher', label: 'Chèque Cadeau', icon: Gift },
-    { id: 'other', label: 'Autre', icon: CheckCircle2 },
+const PAYMENT_METHODS: { id: PaymentMethodType; label: string; icon: any; color: string }[] = [
+    { id: 'card', label: 'Carte Bancaire', icon: CreditCard, color: 'bg-blue-500/10 text-blue-400 border-blue-500/30 hover:bg-blue-500/20' },
+    { id: 'ticket_restaurant_paper', label: 'Titre Resto', icon: Ticket, color: 'bg-orange-500/10 text-orange-400 border-orange-500/30 hover:bg-orange-500/20' },
+    { id: 'cheque_vacances', label: 'Chèque Vacances', icon: Ticket, color: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/30 hover:bg-yellow-500/20' },
+    { id: 'cash', label: 'Espèces', icon: Banknote, color: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20' },
 ];
 
 export function PaymentModal({ isOpen, totalAmount, onClose, onConfirm }: PaymentModalProps) {
+    const { items } = useCartStore();
     const [payments, setPayments] = useState<Payment[]>([]);
-    const [activeMethod, setActiveMethod] = useState<PaymentMethodType>('card');
+    const [inputAmount, setInputAmount] = useState<string>('');
+    const [mounted, setMounted] = useState(false);
 
-    // Reset state when opening
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+
     useEffect(() => {
         if (isOpen) {
-            setPayments([{ method: 'card', amount: totalAmount }]);
-            setActiveMethod('card');
+            setPayments([]);
+            setInputAmount('');
         }
     }, [isOpen, totalAmount]);
 
     const totalPaid = payments.reduce((sum, p) => sum + p.amount, 0);
-    const remaining = totalAmount - totalPaid;
-    const isComplete = Math.abs(remaining) < 0.01; // Float precision check
+    const remaining = Math.max(0, totalAmount - totalPaid);
+    const isComplete = remaining <= 0.001;
 
-    const handleAddPayment = () => {
-        if (remaining <= 0) return;
-        setPayments([...payments, { method: activeMethod, amount: remaining }]);
+    // Amount to display in the big counter
+    const displayAmount = inputAmount !== '' ? (parseFloat(inputAmount) || 0) : remaining;
+
+    const handleNumpad = (key: string) => {
+        if (isComplete) return;
+
+        if (key === 'C') {
+            setInputAmount('');
+        } else if (key === 'BACK') {
+            setInputAmount(prev => prev.slice(0, -1));
+        } else if (key === '.') {
+            if (!inputAmount.includes('.')) {
+                setInputAmount(prev => (prev === '' ? '0.' : prev + '.'));
+            }
+        } else {
+            if (inputAmount.includes('.')) {
+                const parts = inputAmount.split('.');
+                if (parts[1].length >= 2) return;
+            }
+            if (parseFloat(inputAmount + key) > 10000) return;
+            setInputAmount(prev => prev + key);
+        }
     };
 
-    const handleUpdateAmount = (index: number, amount: number) => {
-        const newPayments = [...payments];
-        newPayments[index].amount = amount;
-        setPayments(newPayments);
-    };
+    const handleAddPayment = (methodId: PaymentMethodType) => {
+        if (isComplete) return;
 
-    const handleUpdateMethod = (index: number, method: PaymentMethodType) => {
-        const newPayments = [...payments];
-        newPayments[index].method = method;
-        setPayments(newPayments);
+        const amountToAdd = displayAmount;
+        if (amountToAdd <= 0) return;
+
+        setPayments([...payments, { method: methodId, amount: amountToAdd }]);
+        setInputAmount('');
     };
 
     const handleRemovePayment = (index: number) => {
         const newPayments = [...payments];
         newPayments.splice(index, 1);
         setPayments(newPayments);
+        setInputAmount('');
     };
 
     const handleConfirm = () => {
@@ -72,101 +91,206 @@ export function PaymentModal({ isOpen, totalAmount, onClose, onConfirm }: Paymen
 
     if (!isOpen) return null;
 
-    return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
-            <div className="w-full max-w-md bg-card border border-white/10 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+    const numpadKeys = [
+        '1', '2', '3',
+        '4', '5', '6',
+        '7', '8', '9',
+        'C', '0', '.'
+    ];
 
-                {/* Header */}
-                <div className="p-6 border-b border-white/5 flex justify-between items-center bg-secondary/30">
-                    <div>
-                        <h2 className="text-xl font-heading font-bold text-foreground">Paiement</h2>
-                        <p className="text-sm text-muted-foreground">Total à payer: <span className="text-foreground font-bold">{formatPrice(totalAmount)}</span></p>
-                    </div>
-                    <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full transition-colors">
-                        <X size={20} className="text-muted-foreground" />
-                    </button>
-                </div>
+    if (!mounted || typeof document === 'undefined') return null;
 
-                {/* Body */}
-                <div className="p-6 flex-1 overflow-y-auto space-y-6">
+    return createPortal(
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 backdrop-blur-3xl animate-fade-in sm:p-6 touch-none">
+            <div className="w-full h-full max-w-[1400px] mx-auto flex flex-col lg:flex-row gap-0 lg:gap-6 bg-background sm:rounded-[2.5rem] overflow-hidden shadow-2xl border border-white/5 relative">
 
-                    {/* Payment Lines */}
-                    <div className="space-y-3">
-                        {payments.map((payment, index) => (
-                            <div key={index} className="flex items-center space-x-3 animate-fade-in">
-                                <div className="flex-1">
-                                    <select
-                                        value={payment.method}
-                                        onChange={(e) => handleUpdateMethod(index, e.target.value as PaymentMethodType)}
-                                        className="w-full bg-secondary border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground focus:ring-2 focus:ring-primary/50 outline-none appearance-none"
-                                    >
-                                        {PAYMENT_METHODS.map((m) => (
-                                            <option key={m.id} value={m.id} className="bg-zinc-900 text-white">
-                                                {m.label}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
-                                <div className="w-32 relative">
-                                    <input
-                                        type="number"
-                                        step="0.01"
-                                        value={payment.amount}
-                                        onChange={(e) => handleUpdateAmount(index, parseFloat(e.target.value) || 0)}
-                                        className="w-full bg-secondary border border-white/10 rounded-lg px-3 py-2 text-sm text-foreground text-right focus:ring-2 focus:ring-primary/50 outline-none font-mono font-bold"
-                                    />
-                                    <span className="absolute right-8 top-1/2 -translate-y-1/2 text-muted-foreground text-xs pointer-events-none">€</span>
-                                </div>
-                                {payments.length > 1 && (
-                                    <button
-                                        onClick={() => handleRemovePayment(index)}
-                                        className="p-2 text-muted-foreground hover:text-destructive transition-colors"
-                                    >
-                                        <Trash2 size={18} />
-                                    </button>
-                                )}
-                            </div>
-                        ))}
-                    </div>
+                {/* Close Button Mobile */}
+                <button onClick={onClose} className="absolute top-6 right-6 lg:hidden p-4 bg-white/10 hover:bg-white/20 rounded-full z-[110] backdrop-blur-md transition-all">
+                    <X size={28} className="text-white" />
+                </button>
 
-                    {/* Add Split Button */}
-                    {remaining > 0.01 && (
-                        <button
-                            onClick={handleAddPayment}
-                            className="w-full py-3 border border-dashed border-white/20 rounded-xl text-sm font-medium text-muted-foreground hover:text-foreground hover:border-white/40 hover:bg-white/5 transition-all flex items-center justify-center space-x-2"
-                        >
-                            <Plus size={16} />
-                            <span>Ajouter un moyen de paiement (Reste: {formatPrice(remaining)})</span>
+                {/* LEFT PANE: Summary */}
+                <div className="w-full lg:w-[400px] xl:w-[450px] bg-secondary/30 lg:rounded-[2rem] border-r lg:border border-white/5 flex flex-col h-1/2 lg:h-full shrink-0">
+                    {/* Header */}
+                    <div className="p-8 pb-6 flex items-center justify-between">
+                        <h2 className="text-3xl font-heading font-medium tracking-tight">Checkout</h2>
+                        <button onClick={onClose} className="hidden lg:flex p-3 hover:bg-white/10 rounded-full transition-colors bg-white/5 border border-white/5">
+                            <X size={24} className="text-muted-foreground hover:text-white" />
                         </button>
-                    )}
+                    </div>
 
-                    {/* Summary */}
-                    <div className="bg-secondary/30 rounded-xl p-4 space-y-2">
-                        <div className="flex justify-between text-sm">
-                            <span className="text-muted-foreground">Total Payé</span>
-                            <span className="font-bold text-emerald-500">{formatPrice(totalPaid)}</span>
+                    {/* Order Items (Mini Ticket) */}
+                    <div className="flex-1 overflow-y-auto px-6 py-4 border-b border-white/5 bg-black/20 no-scrollbar relative shadow-inner">
+                        <div className="space-y-3">
+                            {items.map((item) => (
+                                <div key={item.instanceId} className="flex justify-between items-start text-sm">
+                                    <div className="flex gap-3">
+                                        <div className="w-6 h-6 rounded-md bg-white/10 flex items-center justify-center font-bold text-xs text-white shrink-0">
+                                            {item.quantity}
+                                        </div>
+                                        <div>
+                                            <p className="font-medium text-white/90 leading-tight">{item.menuItem.name}</p>
+                                            {(item.selectedModifiers.length > 0 || item.note) && (
+                                                <div className="text-muted-foreground text-[11px] mt-1 space-y-0.5">
+                                                    {item.selectedModifiers.map(mod => (
+                                                        <p key={mod.id}>
+                                                            + {mod.quantity && mod.quantity > 1 ? `${mod.quantity}x ` : ''}{mod.name}
+                                                        </p>
+                                                    ))}
+                                                    {item.note && (
+                                                        <p className="text-yellow-500/80 italic mt-0.5 whitespace-pre-wrap">📝 {item.note}</p>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <span className="font-mono text-white/90 shrink-0 ml-4 font-bold">{formatPrice(item.totalPrice)}</span>
+                                </div>
+                            ))}
                         </div>
-                        <div className="flex justify-between text-sm">
-                            <span className="text-muted-foreground">Reste à payer</span>
-                            <span className={cn("font-bold", remaining > 0.01 ? "text-destructive" : "text-muted-foreground")}>
-                                {formatPrice(Math.max(0, remaining))}
+                    </div>
+
+                    {/* Totals */}
+                    <div className="px-8 py-6 space-y-4 border-b border-white/5">
+                        <div className="flex justify-between items-center text-lg text-muted-foreground">
+                            <span>Total commande</span>
+                            <span>{formatPrice(totalAmount)}</span>
+                        </div>
+                        <div className="flex justify-between items-center text-4xl font-bold font-mono tracking-tight">
+                            <span className="text-muted-foreground/80">Reste</span>
+                            <span className={cn(isComplete ? "text-emerald-500" : "text-white")}>
+                                {formatPrice(remaining)}
                             </span>
                         </div>
                     </div>
+
+                    {/* Payment Lines */}
+                    <div className="h-[200px] overflow-y-auto px-6 py-4 space-y-2 no-scrollbar bg-black/40">
+                        {payments.length === 0 && (
+                            <div className="h-full flex items-center justify-center text-muted-foreground/30 italic text-sm">
+                                Aucun encaissement...
+                            </div>
+                        )}
+                        {payments.map((p, i) => {
+                            const methodDef = PAYMENT_METHODS.find(m => m.id === p.method) || PAYMENT_METHODS[0];
+                            const Icon = methodDef.icon;
+                            return (
+                                <div key={i} className="flex items-center justify-between p-5 rounded-2xl bg-white/5 border border-white/10 animate-scale-up">
+                                    <div className="flex items-center gap-4">
+                                        <div className={cn("p-3 rounded-xl border border-white/5", methodDef.color.replace('border-', 'border-').split(' ')[0])}>
+                                            <Icon size={24} className={methodDef.color.split(' ')[1]} />
+                                        </div>
+                                        <span className="font-medium text-lg">{methodDef.label}</span>
+                                    </div>
+                                    <div className="flex items-center gap-5">
+                                        <span className="font-mono font-bold text-xl">{formatPrice(p.amount)}</span>
+                                        <button
+                                            onClick={() => handleRemovePayment(i)}
+                                            className="p-3 text-muted-foreground hover:text-red-500 hover:bg-red-500/10 transition-all rounded-full"
+                                        >
+                                            <Trash2 size={22} />
+                                        </button>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+
+                    {/* Footer / Confirm Action */}
+                    <div className="p-5 bg-black/60 backdrop-blur-md z-10 border-t border-white/5">
+                        {isComplete ? (
+                            <button
+                                onClick={handleConfirm}
+                                className="w-full py-6 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-2xl flex items-center justify-center gap-3 transition-all animate-scale-up shadow-[0_0_50px_rgba(16,185,129,0.2)] active:scale-95"
+                            >
+                                <CheckCircle2 size={32} />
+                                VALIDER LA COMMANDE
+                            </button>
+                        ) : (
+                            <div className="w-full py-6 rounded-2xl bg-white/5 text-muted-foreground/50 font-medium text-center text-xl border border-white/5 border-dashed">
+                                En attente du solde
+                            </div>
+                        )}
+                    </div>
                 </div>
 
-                {/* Footer */}
-                <div className="p-6 border-t border-white/5 bg-secondary/30">
-                    <button
-                        onClick={handleConfirm}
-                        disabled={!isComplete}
-                        className="w-full bg-primary hover:bg-red-500 disabled:bg-secondary disabled:text-muted-foreground disabled:cursor-not-allowed text-white font-bold py-4 rounded-xl shadow-lg shadow-primary/20 transition-all flex items-center justify-center space-x-2"
-                    >
-                        <CheckCircle2 size={20} />
-                        <span>Confirmer le paiement</span>
-                    </button>
+                {/* RIGHT PANE: Input & Actions */}
+                <div className="w-full lg:flex-1 flex flex-col h-1/2 lg:h-full relative overflow-y-auto lg:overflow-hidden p-6 lg:p-10 lg:pl-4">
+
+                    {/* Amount Input Screen */}
+                    <div className="w-full bg-black/40 rounded-[2rem] p-8 lg:p-12 border border-white/10 mb-8 flex items-center justify-between shadow-inner relative overflow-hidden group">
+                        <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-1000"></div>
+                        <div className="text-2xl lg:text-3xl text-muted-foreground font-medium relative z-10">
+                            Montant
+                        </div>
+                        <div className={cn(
+                            "text-6xl lg:text-8xl font-mono font-bold tracking-tighter transition-colors flex items-center gap-3 relative z-10",
+                            inputAmount !== '' ? "text-primary" : "text-white"
+                        )}>
+                            {displayAmount.toFixed(2)} <span className="text-4xl lg:text-6xl opacity-40 font-sans tracking-normal">€</span>
+                            {inputAmount !== '' && <div className="w-2 h-16 lg:h-20 bg-primary animate-pulse rounded-full ml-2"></div>}
+                        </div>
+                    </div>
+
+                    {/* Interactive Grid */}
+                    <div className={cn(
+                        "flex flex-col xl:flex-row gap-8 flex-1 transition-all duration-500",
+                        isComplete && "opacity-20 pointer-events-none blur-sm scale-95"
+                    )}>
+
+                        {/* Numpad */}
+                        <div className="w-full xl:w-[400px] grid grid-cols-3 gap-3 place-content-start shrink-0">
+                            {numpadKeys.map(key => (
+                                <button
+                                    key={key}
+                                    onClick={() => handleNumpad(key)}
+                                    className={cn("aspect-square bg-secondary/50 hover:bg-white/10 active:bg-white/20 border border-white/5 rounded-3xl text-3xl lg:text-4xl font-medium transition-all flex items-center justify-center font-mono hover:scale-[1.02] active:scale-95", key === 'C' ? "text-red-400" : "")}
+                                >
+                                    {key}
+                                </button>
+                            ))}
+                        </div>
+
+                        {/* Payment Methods */}
+                        <div className="w-full flex-1 grid grid-cols-2 md:grid-cols-3 xl:grid-cols-2 2xl:grid-cols-3 gap-3 place-content-start">
+                            {PAYMENT_METHODS.map(m => {
+                                const Icon = m.icon;
+                                return (
+                                    <button
+                                        key={m.id}
+                                        onClick={() => handleAddPayment(m.id)}
+                                        className={cn(
+                                            "aspect-square xl:aspect-auto xl:py-8 rounded-3xl border flex flex-col items-center justify-center gap-4 transition-all hover:scale-[1.02] active:scale-95 text-center px-4",
+                                            m.color
+                                        )}
+                                    >
+                                        <Icon size={40} className="mb-2" />
+                                        <span className="font-bold text-lg lg:text-xl leading-tight">{m.label}</span>
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </div>
+
+                    {/* Backspace floating overlay */}
+                    {!isComplete && (
+                        <div className="absolute top-[80px] lg:top-[100px] right-12 z-20">
+                            <button
+                                onClick={() => handleNumpad('BACK')}
+                                disabled={inputAmount === ''}
+                                className={cn(
+                                    "p-6 rounded-full transition-all shadow-2xl backdrop-blur-md active:scale-90",
+                                    inputAmount === '' ? "opacity-0 scale-50 pointer-events-none" : "opacity-100 scale-100 bg-white/15 hover:bg-white/25 text-white"
+                                )}
+                            >
+                                <Delete size={32} />
+                            </button>
+                        </div>
+                    )}
+
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body
     );
 }

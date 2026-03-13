@@ -1,18 +1,44 @@
 "use client";
 
 import { useState, useMemo, useRef, useEffect } from 'react';
-import { Product } from '@/types';
+import { Product, ModifierOption } from '@/types';
 import { ProductCard } from './ProductCard';
+import { ModifierModal } from './ModifierModal';
 import { useCartStore, useSystemStore } from '@/store/useStore';
 import { cn } from '@/lib/utils';
 import { Search } from 'lucide-react';
+import { useQuery } from '@powersync/react';
+import { seedDatabase } from '@/lib/seeder';
 
 export function MenuGrid() {
     const addToCart = useCartStore((state) => state.addToCart);
-    const products = useSystemStore((state) => state.products);
+    const deviceId = useSystemStore((state) => state.deviceId);
+
+    // PowerSync Integration
+    const { data: productsData = [] } = useQuery('SELECT * FROM pos_products');
+
+    const products: Product[] = useMemo(() => {
+        return productsData.map((p: any) => ({
+            id: p.id,
+            name: p.name,
+            price: p.price,
+            category: p.category,
+            description: p.description,
+            image: p.image,
+            available: p.available === 1 || p.available === true,
+            modifierGroups: p.modifier_groups ? JSON.parse(p.modifier_groups) : [],
+            tags: p.tags ? JSON.parse(p.tags) : []
+        }));
+    }, [productsData]);
+
     const [selectedCategory, setSelectedCategory] = useState<string>('All');
     const [searchQuery, setSearchQuery] = useState('');
     const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+    // Auto-seed to guarantee Shoyu and modifiers exist without user action
+    useEffect(() => {
+        seedDatabase().catch(console.error);
+    }, []);
 
     const categories = useMemo(() => {
         const cats = Array.from(new Set(products.map((p) => p.category)));
@@ -21,20 +47,62 @@ export function MenuGrid() {
 
     const [isMitakeMode, setIsMitakeMode] = useState(false);
 
+    // --- Modifier Modal State (lifted from ProductCard for reliability) ---
+    const [modalProduct, setModalProduct] = useState<Product | null>(null);
+
+    const handleOpenModal = (product: Product) => {
+        setModalProduct(product);
+    };
+
+    const handleModalClose = () => {
+        setModalProduct(null);
+    };
+
+    const handleModalConfirm = (modifiers: ModifierOption[], note: string) => {
+        if (modalProduct) {
+            addToCart(modalProduct, modifiers, note);
+        }
+        setModalProduct(null);
+    };
+
     const filteredProducts = useMemo(() => {
         let filtered = products;
 
-        // 1. Filter by Mitake Mode (Tags)
+        // 1. Tablet Strict Override
+        if (deviceId === 'tablette') {
+            const tabletAllowedNames = [
+                'classic',
+                'cha-shu',
+                'maze men',
+                'mazé men',
+                'shoyu'
+            ];
+            filtered = filtered.filter(p => {
+                const lowerName = p.name.toLowerCase();
+                return tabletAllowedNames.some(allowed => lowerName.includes(allowed));
+            });
+            // Apply search but nothing else
+            if (searchQuery) {
+                const query = searchQuery.toLowerCase();
+                filtered = filtered.filter((p) =>
+                    p.name.toLowerCase().includes(query) ||
+                    p.id.includes(query)
+                );
+            }
+            return filtered;
+        }
+
+        // 2. Filter by Mitake Mode (Tags)
         if (isMitakeMode) {
             filtered = filtered.filter(p => p.tags && p.tags.includes('mitake'));
         }
 
-        // 2. Filter by Category
+        // 3. Filter by Category
         if (selectedCategory !== 'All') {
             filtered = filtered.filter((p) => p.category === selectedCategory);
         }
 
-        // 3. Filter by Search
+        // 4. Filter by Search
         if (searchQuery) {
             const query = searchQuery.toLowerCase();
             filtered = filtered.filter((p) =>
@@ -65,49 +133,53 @@ export function MenuGrid() {
                     </div>
                 </div>
 
-                {/* Mitake Toggle */}
-                <div className="px-6 flex items-center justify-between mb-4">
-                    <div className="flex items-center space-x-3">
-                        <button
-                            onClick={() => setIsMitakeMode(!isMitakeMode)}
-                            className={cn(
-                                "relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-black",
-                                isMitakeMode ? "bg-primary" : "bg-zinc-700"
-                            )}
-                        >
-                            <span
+                {/* Mitake Toggle (Hidden on Tablet) */}
+                {deviceId !== 'tablette' && (
+                    <div className="px-6 flex items-center justify-between mb-4">
+                        <div className="flex items-center space-x-3">
+                            <button
+                                onClick={() => setIsMitakeMode(!isMitakeMode)}
                                 className={cn(
-                                    "inline-block h-4 w-4 transform rounded-full bg-white transition-transform",
-                                    isMitakeMode ? "translate-x-6" : "translate-x-1"
+                                    "relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-black",
+                                    isMitakeMode ? "bg-primary" : "bg-zinc-700"
                                 )}
-                            />
-                        </button>
-                        <span className={cn("text-sm font-medium transition-colors", isMitakeMode ? "text-white" : "text-zinc-500")}>
-                            Mode Mitake (Ramen)
-                        </span>
+                            >
+                                <span
+                                    className={cn(
+                                        "inline-block h-4 w-4 transform rounded-full bg-white transition-transform",
+                                        isMitakeMode ? "translate-x-6" : "translate-x-1"
+                                    )}
+                                />
+                            </button>
+                            <span className={cn("text-sm font-medium transition-colors", isMitakeMode ? "text-white" : "text-zinc-500")}>
+                                Mode Mitake (Ramen)
+                            </span>
+                        </div>
                     </div>
-                </div>
+                )}
 
-                {/* Categories */}
-                <div
-                    ref={scrollContainerRef}
-                    className="flex space-x-2 overflow-x-auto px-6 pb-4 no-scrollbar scroll-smooth mask-linear-fade"
-                >
-                    {categories.map((cat) => (
-                        <button
-                            key={cat}
-                            onClick={() => setSelectedCategory(cat)}
-                            className={cn(
-                                "px-5 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap transition-all duration-300 border",
-                                selectedCategory === cat
-                                    ? "bg-primary text-primary-foreground shadow-lg shadow-primary/25 scale-105"
-                                    : "bg-secondary/30 text-muted-foreground border-transparent hover:bg-secondary hover:text-foreground hover:border-white/10"
-                            )}
-                        >
-                            {cat === 'All' ? 'All Items' : cat}
-                        </button>
-                    ))}
-                </div>
+                {/* Categories (Hidden on Tablet) */}
+                {deviceId !== 'tablette' && (
+                    <div
+                        ref={scrollContainerRef}
+                        className="flex space-x-2 overflow-x-auto px-6 pb-4 no-scrollbar scroll-smooth mask-linear-fade"
+                    >
+                        {categories.map((cat) => (
+                            <button
+                                key={cat}
+                                onClick={() => setSelectedCategory(cat)}
+                                className={cn(
+                                    "px-5 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap transition-all duration-300 border",
+                                    selectedCategory === cat
+                                        ? "bg-primary text-primary-foreground shadow-lg shadow-primary/25 scale-105"
+                                        : "bg-secondary/30 text-muted-foreground border-transparent hover:bg-secondary hover:text-foreground hover:border-white/10"
+                                )}
+                            >
+                                {cat === 'All' ? 'All Items' : cat}
+                            </button>
+                        ))}
+                    </div>
+                )}
             </div>
 
             {/* Grid */}
@@ -118,18 +190,29 @@ export function MenuGrid() {
                         <p className="font-medium">No products found</p>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 pb-32 lg:pb-24">
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 pb-32 lg:pb-24">
                         {filteredProducts.map((product, idx) => (
                             <div key={product.id} className="animate-fade-in" style={{ animationDelay: `${idx * 50}ms` }}>
                                 <ProductCard
                                     product={product}
-                                    onAdd={(p, m) => addToCart(p, m)}
+                                    onAdd={(p, m, n) => addToCart(p, m, n)}
+                                    onOpenModal={handleOpenModal}
                                 />
                             </div>
                         ))}
                     </div>
                 )}
             </div>
+
+            {/* Single ModifierModal instance at MenuGrid level — lifted from ProductCard */}
+            {modalProduct && (
+                <ModifierModal
+                    product={modalProduct}
+                    isOpen={true}
+                    onClose={handleModalClose}
+                    onConfirm={handleModalConfirm}
+                />
+            )}
         </div>
     );
 }

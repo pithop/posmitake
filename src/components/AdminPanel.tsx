@@ -1,14 +1,42 @@
 import { useSystemStore } from '@/store/useStore';
 import { formatPrice } from '@/lib/utils';
 import { useState, useEffect, useMemo } from 'react';
-import { Settings, X, RotateCcw, LayoutDashboard, History, Package, Search, Save, Edit2, WifiOff, CloudUpload } from 'lucide-react';
-import { Product } from '@/types';
+import { Settings, X, RotateCcw, LayoutDashboard, History, Package, Search, Save, Edit2, WifiOff, CloudUpload, SlidersHorizontal, Monitor, Smartphone } from 'lucide-react';
+import { Product, Order } from '@/types';
 import { cn } from '@/lib/utils';
+import { useQuery, usePowerSync } from '@powersync/react';
 
-type Tab = 'dashboard' | 'history' | 'products';
+type Tab = 'dashboard' | 'history' | 'products' | 'settings';
 
 export function AdminPanel() {
-    const { dailyRevenue, orderHistory, resetDaily, products, updateProduct, seedProducts, pendingOrders, syncPendingOrders } = useSystemStore();
+    const { dailyRevenue, resetDaily, deviceId, setDeviceId, uiZoomLevel, setUiZoomLevel } = useSystemStore();
+
+    // PowerSync Data
+    const { data: orderHistoryData = [] } = useQuery('SELECT * FROM pos_orders ORDER BY created_at DESC');
+    const { data: productsData = [] } = useQuery('SELECT * FROM pos_products');
+
+    const orderHistory: Order[] = useMemo(() => orderHistoryData.map((o: any) => ({
+        id: o.id,
+        total: o.total,
+        status: o.status,
+        timestamp: new Date(o.created_at).getTime(),
+        items: [],
+        paymentMethod: o.payment_details ? JSON.parse(o.payment_details)?.[0]?.method || 'card' : 'card',
+        payments: o.payment_details ? JSON.parse(o.payment_details) : []
+    })), [orderHistoryData]);
+
+    const products: Product[] = useMemo(() => productsData.map((p: any) => ({
+        id: p.id,
+        name: p.name,
+        price: p.price,
+        category: p.category,
+        description: p.description,
+        image: p.image,
+        available: p.available === 1 || p.available === true,
+        modifierGroups: p.modifier_groups ? JSON.parse(p.modifier_groups) : [],
+        tags: p.tags ? JSON.parse(p.tags) : []
+    })), [productsData]);
+
     const [isOpen, setIsOpen] = useState(false);
     const [activeTab, setActiveTab] = useState<Tab>('dashboard');
     const [isClient, setIsClient] = useState(false);
@@ -17,15 +45,44 @@ export function AdminPanel() {
     const [productSearch, setProductSearch] = useState('');
     const [editingProduct, setEditingProduct] = useState<Product | null>(null);
     const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
+    const [expandedOrderItems, setExpandedOrderItems] = useState<any[]>([]);
+    const [selectedHistoryDate, setSelectedHistoryDate] = useState(() => {
+        const d = new Date();
+        const offset = d.getTimezoneOffset() * 60000;
+        return new Date(d.getTime() - offset).toISOString().split('T')[0];
+    });
+    const powersync = usePowerSync();
+
+    const filteredOrderHistory = useMemo(() => {
+        if (!selectedHistoryDate) return orderHistory;
+        return orderHistory.filter(o => {
+            const orderDate = new Date(o.timestamp);
+            const offset = orderDate.getTimezoneOffset() * 60000;
+            const localDateStr = new Date(orderDate.getTime() - offset).toISOString().split('T')[0];
+            return localDateStr === selectedHistoryDate;
+        });
+    }, [orderHistory, selectedHistoryDate]);
 
     useEffect(() => {
         setIsClient(true);
     }, []);
 
+    useEffect(() => {
+        if (expandedOrderId && powersync) {
+            powersync.getAll('SELECT * FROM pos_order_items WHERE order_id = ?', [expandedOrderId])
+                .then(items => setExpandedOrderItems(items));
+        }
+    }, [expandedOrderId, powersync]);
+
+    const updateProduct = async (id: string, updates: Partial<Product>) => {
+        await powersync.execute('UPDATE pos_products SET name = ?, price = ? WHERE id = ?',
+            [updates.name, updates.price, id]);
+    };
+
     if (!isClient) return null;
 
     const handleReset = () => {
-        if (confirm('ATTENTION: Cela va effacer le chiffre d\'affaires et l\'historique du jour. Continuer ?')) {
+        if (confirm('ATTENTION: Cela va effacer le chiffre d\'affaires local (affichage seulement). Continuer ?')) {
             resetDaily();
         }
     };
@@ -44,6 +101,7 @@ export function AdminPanel() {
         p.name.toLowerCase().includes(productSearch.toLowerCase()) ||
         p.id.includes(productSearch)
     );
+
 
     return (
         <>
@@ -65,40 +123,26 @@ export function AdminPanel() {
                         <div className="w-64 bg-zinc-900/50 border-r border-zinc-800 flex flex-col p-4">
                             <div className="mb-8 px-2">
                                 <h2 className="text-xl font-bold text-white tracking-tight">Admin Panel</h2>
-                                <p className="text-zinc-500 text-xs">Mitake POS v1.1</p>
+                                <p className="text-zinc-500 text-xs">Mitake POS v2.0</p>
                             </div>
 
                             <nav className="space-y-2 flex-1">
-                                <button
-                                    onClick={() => setActiveTab('dashboard')}
-                                    className={cn(
-                                        "w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-colors text-sm font-medium",
-                                        activeTab === 'dashboard' ? "bg-white text-black" : "text-zinc-400 hover:bg-zinc-800 hover:text-white"
-                                    )}
-                                >
-                                    <LayoutDashboard size={18} />
-                                    <span>Dashboard</span>
-                                </button>
-                                <button
-                                    onClick={() => setActiveTab('history')}
-                                    className={cn(
-                                        "w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-colors text-sm font-medium",
-                                        activeTab === 'history' ? "bg-white text-black" : "text-zinc-400 hover:bg-zinc-800 hover:text-white"
-                                    )}
-                                >
-                                    <History size={18} />
-                                    <span>Historique</span>
-                                </button>
-                                <button
-                                    onClick={() => setActiveTab('products')}
-                                    className={cn(
-                                        "w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-colors text-sm font-medium",
-                                        activeTab === 'products' ? "bg-white text-black" : "text-zinc-400 hover:bg-zinc-800 hover:text-white"
-                                    )}
-                                >
-                                    <Package size={18} />
-                                    <span>Produits</span>
-                                </button>
+                                {(['dashboard', 'history', 'products', 'settings'] as Tab[]).map((tab) => (
+                                    <button
+                                        key={tab}
+                                        onClick={() => setActiveTab(tab)}
+                                        className={cn(
+                                            "w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-colors text-sm font-medium",
+                                            activeTab === tab ? "bg-white text-black" : "text-zinc-400 hover:bg-zinc-800 hover:text-white"
+                                        )}
+                                    >
+                                        {tab === 'dashboard' && <LayoutDashboard size={18} />}
+                                        {tab === 'history' && <History size={18} />}
+                                        {tab === 'products' && <Package size={18} />}
+                                        {tab === 'settings' && <SlidersHorizontal size={18} />}
+                                        <span className="capitalize">{tab === 'settings' ? 'paramètres' : tab}</span>
+                                    </button>
+                                ))}
                             </nav>
 
                             <div className="mt-auto pt-4 border-t border-zinc-800">
@@ -133,41 +177,9 @@ export function AdminPanel() {
                                         </div>
                                     </div>
 
-                                    {/* Offline / Pending Orders Section */}
-                                    {pendingOrders.length > 0 && (
-                                        <div className="bg-amber-950/10 border border-amber-900/20 p-6 rounded-2xl mb-8">
-                                            <div className="flex justify-between items-center">
-                                                <div>
-                                                    <h4 className="text-amber-500 font-bold mb-2 flex items-center gap-2">
-                                                        <WifiOff size={20} />
-                                                        <span>Synchronisation Requise</span>
-                                                    </h4>
-                                                    <p className="text-zinc-400 text-sm">
-                                                        {pendingOrders.length} commande(s) stockée(s) hors-ligne. Connectez-vous à internet pour les sauvegarder.
-                                                    </p>
-                                                </div>
-                                                <button
-                                                    onClick={async () => {
-                                                        if (!confirm('Assurez-vous d\'avoir une connexion internet active.')) return;
-                                                        const result = await syncPendingOrders();
-                                                        if (result.failed === 0) {
-                                                            alert(`Succès! ${result.success} commandes synchronisées.`);
-                                                        } else {
-                                                            alert(`Partiel: ${result.success} réussies, ${result.failed} échouées. Vérifiez votre connexion.`);
-                                                        }
-                                                    }}
-                                                    className="flex items-center space-x-2 bg-amber-600 hover:bg-amber-500 text-white px-5 py-3 rounded-xl transition-all shadow-lg hover:shadow-amber-900/20"
-                                                >
-                                                    <CloudUpload size={18} />
-                                                    <span className="font-bold">Synchroniser Maintenant</span>
-                                                </button>
-                                            </div>
-                                        </div>
-                                    )}
-
                                     <div className="bg-red-950/10 border border-red-900/20 p-6 rounded-2xl">
                                         <h4 className="text-red-500 font-bold mb-2">Zone de Danger</h4>
-                                        <p className="text-zinc-400 text-sm mb-4">Réinitialiser toutes les données de la journée. Cette action est irréversible.</p>
+                                        <p className="text-zinc-400 text-sm mb-4">Réinitialiser l'affichage locale.</p>
                                         <button
                                             onClick={handleReset}
                                             className="flex items-center space-x-2 bg-red-900/20 text-red-500 hover:bg-red-900/40 px-4 py-2 rounded-lg transition-colors border border-red-900/30"
@@ -182,15 +194,24 @@ export function AdminPanel() {
                             {/* History Tab */}
                             {activeTab === 'history' && (
                                 <div className="flex flex-col h-full">
-                                    <div className="p-6 border-b border-zinc-800">
+                                    <div className="p-6 border-b border-zinc-800 flex justify-between items-center">
                                         <h3 className="text-2xl font-bold text-white">Historique des Commandes</h3>
+                                        <div className="flex items-center gap-3">
+                                            <span className="text-zinc-500 text-sm">Filtrer par date :</span>
+                                            <input
+                                                type="date"
+                                                value={selectedHistoryDate}
+                                                onChange={(e) => setSelectedHistoryDate(e.target.value)}
+                                                className="bg-zinc-900 border border-zinc-800 rounded-lg py-2 px-4 text-white focus:outline-none focus:border-zinc-700"
+                                            />
+                                        </div>
                                     </div>
                                     <div className="flex-1 overflow-y-auto p-6">
                                         <div className="space-y-4">
-                                            {orderHistory.length === 0 ? (
-                                                <div className="text-center text-zinc-500 py-10">Aucune commande aujourd'hui</div>
+                                            {filteredOrderHistory.length === 0 ? (
+                                                <div className="text-center text-zinc-500 py-10">Aucune commande pour cette date.</div>
                                             ) : (
-                                                orderHistory.map((order) => (
+                                                filteredOrderHistory.map((order) => (
                                                     <div key={order.id} className="bg-zinc-900/30 border border-zinc-800 rounded-xl overflow-hidden transition-all">
                                                         <div
                                                             onClick={() => setExpandedOrderId(expandedOrderId === order.id ? null : order.id)}
@@ -203,35 +224,48 @@ export function AdminPanel() {
                                                                         {new Date(order.timestamp).toLocaleTimeString()}
                                                                     </span>
                                                                 </div>
-                                                                <p className="text-zinc-500 text-sm mt-1">{order.items.length} articles</p>
                                                             </div>
                                                             <div className="text-right">
                                                                 <p className="text-xl font-bold text-white">{formatPrice(order.total)}</p>
-                                                                <p className="text-green-500 text-xs font-medium">Payé</p>
+                                                                <p className="text-green-500 text-xs font-medium">Payé ({order.paymentMethod})</p>
                                                             </div>
                                                         </div>
 
                                                         {/* Order Details */}
                                                         {expandedOrderId === order.id && (
                                                             <div className="bg-zinc-950/50 border-t border-zinc-800 p-4 space-y-3 animate-in slide-in-from-top-2 duration-200">
-                                                                {order.items.map((item, idx) => (
-                                                                    <div key={idx} className="flex justify-between items-start text-sm">
-                                                                        <div className="flex space-x-3">
-                                                                            <span className="font-bold text-zinc-400">{item.quantity}x</span>
-                                                                            <div>
-                                                                                <p className="text-zinc-200 font-medium">{item.menuItem.name}</p>
-                                                                                {item.selectedModifiers && item.selectedModifiers.length > 0 && (
-                                                                                    <div className="text-zinc-500 text-xs mt-0.5 space-y-0.5">
-                                                                                        {item.selectedModifiers.map((mod, mIdx) => (
-                                                                                            <span key={mIdx} className="block">+ {mod.name}</span>
-                                                                                        ))}
-                                                                                    </div>
-                                                                                )}
+                                                                {expandedOrderItems.length === 0 ? (
+                                                                    <p className="text-zinc-400 text-sm italic">Chargement...</p>
+                                                                ) : (
+                                                                    expandedOrderItems.map((item, idx) => (
+                                                                        <div key={idx} className="flex justify-between items-start text-sm">
+                                                                            <div className="flex space-x-3">
+                                                                                <span className="font-bold text-zinc-400">{item.quantity}x</span>
+                                                                                <div>
+                                                                                    <p className="text-zinc-200 font-medium">{item.product_name}</p>
+                                                                                    {(() => {
+                                                                                        if (!item.selected_modifiers || item.selected_modifiers === '[]') return null;
+                                                                                        try {
+                                                                                            const parsed = JSON.parse(item.selected_modifiers);
+                                                                                            const modsList = Array.isArray(parsed) ? parsed : (parsed.mods || []);
+                                                                                            const noteStr = !Array.isArray(parsed) && parsed.note ? parsed.note : '';
+
+                                                                                            return (
+                                                                                                <div className="text-zinc-500 text-xs mt-0.5 space-y-1">
+                                                                                                    {modsList.length > 0 && <div>{modsList.map((m: any) => m.name).join(', ')}</div>}
+                                                                                                    {noteStr && <div className="text-yellow-500/80 italic">Note: {noteStr}</div>}
+                                                                                                </div>
+                                                                                            );
+                                                                                        } catch (e) {
+                                                                                            return null;
+                                                                                        }
+                                                                                    })()}
+                                                                                </div>
                                                                             </div>
+                                                                            <span className="text-zinc-400">{formatPrice(item.total_price)}</span>
                                                                         </div>
-                                                                        <span className="text-zinc-400">{formatPrice(item.totalPrice)}</span>
-                                                                    </div>
-                                                                ))}
+                                                                    ))
+                                                                )}
                                                             </div>
                                                         )}
                                                     </div>
@@ -251,7 +285,7 @@ export function AdminPanel() {
                                                 <h3 className="text-2xl font-bold text-white">Gestion Produits</h3>
                                                 <button
                                                     onClick={async () => {
-                                                        if (confirm('ATTENTION: Cela va écraser/mettre à jour tous les produits dans la base de données avec les fichiers JSON (Kyo + Mitake). Continuer ?')) {
+                                                        if (confirm('ATTENTION: Cela va écraser/mettre à jour tous les produits dans le DB Local. Continuer ?')) {
                                                             const { seedDatabase } = await import('@/lib/seeder');
                                                             const result = await seedDatabase();
 
@@ -313,6 +347,110 @@ export function AdminPanel() {
                                     </div>
                                 </div>
                             )}
+
+                            {/* Settings Tab */}
+                            {activeTab === 'settings' && (
+                                <div className="flex flex-col h-full overflow-y-auto">
+                                    <div className="p-6 border-b border-zinc-800 flex justify-between items-center">
+                                        <h3 className="text-2xl font-bold text-white">Paramètres Système</h3>
+                                    </div>
+                                    <div className="p-8 max-w-2xl space-y-12">
+
+                                        {/* Device Identification */}
+                                        <div className="space-y-4">
+                                            <div>
+                                                <h4 className="text-lg font-bold text-white flex items-center gap-2">
+                                                    <Monitor size={20} className="text-primary" />
+                                                    Identification de l'Appareil
+                                                </h4>
+                                                <p className="text-zinc-400 text-sm mt-1">
+                                                    Définit le rôle de cette machine sur le réseau. Les commandes passées sur l'ordinateur alerteront la tablette, et vice versa.
+                                                </p>
+                                            </div>
+
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <button
+                                                    onClick={() => setDeviceId('caisse_ordi')}
+                                                    className={cn(
+                                                        "p-6 rounded-2xl border text-left transition-all",
+                                                        deviceId === 'caisse_ordi'
+                                                            ? "bg-primary/20 border-primary shadow-[0_0_30px_rgba(220,38,38,0.15)]"
+                                                            : "bg-zinc-900 border-zinc-800 hover:border-zinc-700"
+                                                    )}
+                                                >
+                                                    <Monitor size={32} className={cn("mb-4", deviceId === 'caisse_ordi' ? "text-primary" : "text-zinc-500")} />
+                                                    <div className={cn("font-bold text-lg", deviceId === 'caisse_ordi' ? "text-primary" : "text-white")}>
+                                                        Caisse Principal
+                                                    </div>
+                                                    <div className="text-zinc-500 text-sm mt-1">Appareil maître. Reçoit toutes les catégories de produits.</div>
+                                                </button>
+
+                                                <button
+                                                    onClick={() => setDeviceId('tablette')}
+                                                    className={cn(
+                                                        "p-6 rounded-2xl border text-left transition-all",
+                                                        deviceId === 'tablette'
+                                                            ? "bg-emerald-500/20 border-emerald-500 shadow-[0_0_30px_rgba(16,185,129,0.15)]"
+                                                            : "bg-zinc-900 border-zinc-800 hover:border-zinc-700"
+                                                    )}
+                                                >
+                                                    <Smartphone size={32} className={cn("mb-4", deviceId === 'tablette' ? "text-emerald-500" : "text-zinc-500")} />
+                                                    <div className={cn("font-bold text-lg", deviceId === 'tablette' ? "text-emerald-500" : "text-white")}>
+                                                        Tablette Ramen
+                                                    </div>
+                                                    <div className="text-zinc-500 text-sm mt-1">Affiche uniquement les 4 Ramens avec alertes de commandes.</div>
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <hr className="border-white/5" />
+
+                                        {/* Global POS Zoom Scale */}
+                                        <div className="space-y-6">
+                                            <div>
+                                                <h4 className="text-lg font-bold text-white flex items-center gap-2">
+                                                    <Search size={20} className="text-blue-500" />
+                                                    Facteur de Zoom Global (Écran Tactile)
+                                                </h4>
+                                                <p className="text-zinc-400 text-sm mt-1">
+                                                    Ajustez ce curseur si l'interface est paramétrée trop petite ou trop grande pour votre écran physique sans toucher au zoom du navigateur Chrome.
+                                                </p>
+                                            </div>
+
+                                            <div className="bg-zinc-900/50 p-6 rounded-2xl border border-zinc-800 space-y-6">
+                                                <div className="flex justify-between items-center text-white font-mono font-bold text-xl">
+                                                    <span>- 50%</span>
+                                                    <span className="text-3xl text-blue-400">{uiZoomLevel}%</span>
+                                                    <span>+ 150%</span>
+                                                </div>
+
+                                                <input
+                                                    type="range"
+                                                    min="50"
+                                                    max="150"
+                                                    step="5"
+                                                    value={uiZoomLevel}
+                                                    onChange={(e) => setUiZoomLevel(Number(e.target.value))}
+                                                    className="w-full h-3 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-blue-500"
+                                                />
+
+                                                <div className="flex justify-between items-center text-xs text-zinc-500">
+                                                    <span>Écritures Minuscules</span>
+                                                    <button
+                                                        onClick={() => setUiZoomLevel(100)}
+                                                        className="px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-white transition-colors"
+                                                    >
+                                                        Réinitialiser (100%)
+                                                    </button>
+                                                    <span>Écritures Géantes</span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                    </div>
+                                </div>
+                            )}
+
                         </div>
                     </div>
 

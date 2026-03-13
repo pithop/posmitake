@@ -1,15 +1,11 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import { CartItem, Product, ModifierOption, Order, Payment } from '@/types';
-import { supabase } from '@/lib/supabase';
-import menuData from '@/data/menu_data.json';
-
-// Initialize with empty array to enforce DB as source of truth
-const initialProducts: Product[] = [];
+import { CartItem, Product, ModifierOption, Payment } from '@/types';
+import { getPowerSyncDatabase } from '@/lib/powersync/PowerSyncDb';
 
 interface CartState {
     items: CartItem[];
-    addToCart: (product: Product, modifiers?: ModifierOption[]) => void;
+    addToCart: (product: Product, modifiers?: ModifierOption[], note?: string) => void;
     removeFromCart: (instanceId: string) => void;
     updateQuantity: (instanceId: string, delta: number) => void;
     clearCart: () => void;
@@ -18,37 +14,32 @@ interface CartState {
 
 interface SystemState {
     dailyRevenue: number;
-    orderHistory: Order[];
-    pendingOrders: Order[]; // Queue for offline orders
     orderIdCounter: number;
-    products: Product[];
-    isSyncing: boolean;
+    deviceId: string;
+    uiZoomLevel: number;
     checkout: (payments: Payment[]) => Promise<void>;
     resetDaily: () => void;
-    updateProduct: (id: string, updates: Partial<Product>) => Promise<void>;
-    fetchProducts: () => Promise<void>;
-    seedProducts: () => Promise<void>;
-    syncPendingOrders: () => Promise<{ success: number; failed: number }>;
-    initializeSync: () => void;
+    setDeviceId: (id: string) => void;
+    setUiZoomLevel: (level: number) => void;
 }
-
 
 export const useCartStore = create<CartState>()(
     persist(
         (set, get) => ({
             items: [],
             total: 0,
-            addToCart: (product, modifiers = []) => {
+            addToCart: (product, modifiers = [], note = '') => {
                 const items = get().items;
-                // Check if identical item exists
+                // Check if identical item exists (including exact same modifiers, quantities, and note)
                 const existingItemIndex = items.findIndex(
                     (item) =>
                         item.menuItem.id === product.id &&
-                        JSON.stringify(item.selectedModifiers.sort((a, b) => a.id.localeCompare(b.id))) ===
-                        JSON.stringify(modifiers.sort((a, b) => a.id.localeCompare(b.id)))
+                        (item.note || '') === note &&
+                        JSON.stringify(item.selectedModifiers.map(m => ({ id: m.id, q: m.quantity || 1 })).sort((a, b) => a.id.localeCompare(b.id))) ===
+                        JSON.stringify(modifiers.map(m => ({ id: m.id, q: m.quantity || 1 })).sort((a, b) => a.id.localeCompare(b.id)))
                 );
 
-                const modifiersCost = modifiers.reduce((acc, mod) => acc + mod.priceAdjustment, 0);
+                const modifiersCost = modifiers.reduce((acc, mod) => acc + (mod.priceAdjustment * (mod.quantity || 1)), 0);
                 const unitPrice = product.price + modifiersCost;
 
                 if (existingItemIndex > -1) {
@@ -63,6 +54,7 @@ export const useCartStore = create<CartState>()(
                         selectedModifiers: modifiers,
                         quantity: 1,
                         totalPrice: unitPrice,
+                        note: note
                     };
                     set({ items: [...items, newItem], total: get().total + unitPrice });
                 }
@@ -113,292 +105,79 @@ export const useSystemStore = create<SystemState>()(
     persist(
         (set, get) => ({
             dailyRevenue: 0,
-            orderHistory: [],
-            pendingOrders: [],
             orderIdCounter: 1,
-            products: initialProducts,
-            isSyncing: false,
+            deviceId: 'caisse_ordi',
+            uiZoomLevel: 100,
+
+            setDeviceId: (id) => set({ deviceId: id }),
+            setUiZoomLevel: (level) => set({ uiZoomLevel: level }),
 
             checkout: async (payments: Payment[]) => {
                 const cartState = useCartStore.getState();
                 if (cartState.items.length === 0) return;
 
                 const orderId = `#${String(get().orderIdCounter).padStart(3, '0')}`;
-                const newOrder: Order = {
-                    id: orderId,
-                    items: [...cartState.items],
-                    total: cartState.total,
-                    timestamp: Date.now(),
-                    status: 'completed',
-                    payments: payments
-                };
+                const timestamp = Date.now();
+                const total = cartState.total;
 
-                // Optimistic update (Local)
-                set((state) => ({
-                    dailyRevenue: state.dailyRevenue + cartState.total,
-                    orderHistory: [newOrder, ...state.orderHistory],
-                    orderIdCounter: state.orderIdCounter + 1,
-                }));
-                cartState.clearCart();
+                // ... (in checkout function)
+                try {
+                    const db = getPowerSyncDatabase();
+                    // Sync Write to PowerSync (Offline Capable)
+                    await db.writeTransaction(async (tx) => {
+                        // 1. Insert Order
+                        await tx.execute(
+                            `INSERT INTO pos_orders (id, total, status, payment_method, payment_details, created_at, source_device)
+                             VALUES (?, ?, ?, ?, ?, ?, ?)`,
+                            [
+                                orderId,
+                                total,
+                                'completed',
+                                payments[0].method,
+                                JSON.stringify(payments),
+                                new Date(timestamp).toISOString(),
+                                get().deviceId
+                            ]
+                        );
 
-                // Sync to Supabase
-                if (supabase) {
-                    set({ isSyncing: true });
-                    try {
-                        const { error: orderError } = await supabase
-                            .from('pos_orders')
-                            .insert({
-                                id: orderId,
-                                total: newOrder.total,
-                                status: 'completed',
-                                payment_method: payments[0].method, // Primary method for legacy support
-                                payment_details: payments, // New JSONB column for full details
-                                created_at: new Date(newOrder.timestamp).toISOString()
-                            });
+                        // 2. Insert Items
+                        for (const item of cartState.items) {
+                            // Embed note into modifiers JSON or a separate field if added. We'll tuck it into modifiers for backward compatibility in DB.
+                            const metadata = { mods: item.selectedModifiers, note: item.note };
+                            await tx.execute(
+                                `INSERT INTO pos_order_items (id, order_id, product_id, product_name, quantity, unit_price, total_price, selected_modifiers)
+                                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+                                [
+                                    crypto.randomUUID(),
+                                    orderId,
+                                    item.menuItem.id,
+                                    item.menuItem.name,
+                                    item.quantity,
+                                    item.totalPrice / item.quantity,
+                                    item.totalPrice,
+                                    JSON.stringify(metadata)
+                                ]
+                            );
+                        }
+                    });
 
-                        if (orderError) throw orderError;
-
-                        const orderItems = newOrder.items.map(item => ({
-                            order_id: orderId,
-                            product_id: item.menuItem.id,
-                            product_name: item.menuItem.name,
-                            quantity: item.quantity,
-                            unit_price: item.totalPrice / item.quantity,
-                            total_price: item.totalPrice,
-                            selected_modifiers: item.selectedModifiers
-                        }));
-
-                        const { error: itemsError } = await supabase
-                            .from('pos_order_items')
-                            .insert(orderItems);
-
-                        if (itemsError) throw itemsError;
-
-                    } catch (error) {
-                        console.error('Supabase Sync Error (Offline?):', error);
-                        // Queue for retry
-                        set((state) => ({
-                            pendingOrders: [...state.pendingOrders, newOrder]
-                        }));
-                    } finally {
-                        set({ isSyncing: false });
-                    }
-                } else {
-                    // No supabase client ? Queue it.
+                    // Update Local State (Ephemeral Shift Revenue)
                     set((state) => ({
-                        pendingOrders: [...state.pendingOrders, newOrder]
+                        dailyRevenue: state.dailyRevenue + total,
+                        orderIdCounter: state.orderIdCounter + 1,
                     }));
-                }
-            },
 
-            syncPendingOrders: async () => {
-                const pending = get().pendingOrders;
-                if (pending.length === 0) return { success: 0, failed: 0 };
-                if (!supabase) return { success: 0, failed: pending.length };
-
-                set({ isSyncing: true });
-                let successCount = 0;
-                let failedCount = 0;
-                const remainingOrders: Order[] = [];
-
-                for (const order of pending) {
-                    try {
-                        // Check if order already exists (idempotency)
-                        const { data: existing } = await supabase
-                            .from('pos_orders')
-                            .select('id')
-                            .eq('id', order.id)
-                            .single();
-
-                        if (!existing) {
-                            const { error: orderError } = await supabase
-                                .from('pos_orders')
-                                .insert({
-                                    id: order.id,
-                                    total: order.total,
-                                    status: 'completed',
-                                    payment_method: order.payments?.[0]?.method || 'cash',
-                                    payment_details: order.payments || [],
-                                    created_at: new Date(order.timestamp).toISOString()
-                                });
-
-                            if (orderError) throw orderError;
-
-                            const orderItems = order.items.map(item => ({
-                                order_id: order.id,
-                                product_id: item.menuItem.id,
-                                product_name: item.menuItem.name,
-                                quantity: item.quantity,
-                                unit_price: item.totalPrice / item.quantity,
-                                total_price: item.totalPrice,
-                                selected_modifiers: item.selectedModifiers
-                            }));
-
-                            const { error: itemsError } = await supabase
-                                .from('pos_order_items')
-                                .insert(orderItems);
-
-                            if (itemsError) throw itemsError;
-                        }
-
-                        successCount++;
-                    } catch (err) {
-                        console.error(`Failed to sync order ${order.id}:`, err);
-                        failedCount++;
-                        remainingOrders.push(order);
-                    }
-                }
-
-                set({ pendingOrders: remainingOrders, isSyncing: false });
-                return { success: successCount, failed: failedCount };
-            },
-
-            resetDaily: () => set({ dailyRevenue: 0, orderHistory: [], orderIdCounter: 1 }),
-
-            updateProduct: async (id, updates) => {
-                // Optimistic update
-                set((state) => ({
-                    products: state.products.map((p) => (p.id === id ? { ...p, ...updates } : p)),
-                }));
-
-                if (supabase) {
-                    set({ isSyncing: true });
-                    try {
-                        const { error } = await supabase
-                            .from('pos_products')
-                            .update(updates)
-                            .eq('id', id);
-
-                        if (error) throw error;
-                    } catch (error) {
-                        console.error('Supabase Product Update Error:', error);
-                    } finally {
-                        set({ isSyncing: false });
-                    }
-                }
-            },
-
-            fetchProducts: async () => {
-                if (!supabase) return;
-
-                set({ isSyncing: true });
-                try {
-                    const { data, error } = await supabase
-                        .from('pos_products')
-                        .select('*');
-
-                    if (error) throw error;
-
-                    if (data && data.length > 0) {
-                        set({ products: data as unknown as Product[] });
-                    }
+                    cartState.clearCart();
                 } catch (error) {
-                    console.error('Supabase Fetch Error:', error);
-                } finally {
-                    set({ isSyncing: false });
+                    console.error("Checkout Transaction Failed:", error);
+                    alert("Erreur lors de l'enregistrement de la commande. Veuillez réessayer.");
                 }
             },
 
-            seedProducts: async () => {
-                if (!supabase) return;
-                set({ isSyncing: true });
-                try {
-                    // Use CURRENT state products instead of initialProducts to persist edits
-                    const currentProducts = get().products;
-                    const { error } = await supabase
-                        .from('pos_products')
-                        .upsert(currentProducts, { onConflict: 'id' });
-
-                    if (error) throw error;
-                    console.log('Products synced to DB successfully');
-                    alert('Base de données synchronisée avec succès !');
-                } catch (error) {
-                    console.error('Supabase Seed Error:', error);
-                    alert('Erreur lors de la synchronisation: ' + (error as any).message);
-                } finally {
-                    set({ isSyncing: false });
-                }
-            },
-
-            initializeSync: async () => {
-                if (!supabase) return;
-
-                // Initial fetch of Products
-                get().fetchProducts();
-
-                // Initial fetch of Orders (History)
-                try {
-                    const { data: orders, error: ordersError } = await supabase
-                        .from('pos_orders')
-                        .select('*')
-                        .order('created_at', { ascending: false })
-                        .limit(50); // Limit to last 50 orders for performance
-
-                    if (ordersError) throw ordersError;
-
-                    if (orders && orders.length > 0) {
-                        // We need to fetch items for these orders
-                        const orderIds = orders.map(o => o.id);
-                        const { data: items, error: itemsError } = await supabase
-                            .from('pos_order_items')
-                            .select('*')
-                            .in('order_id', orderIds);
-
-                        if (itemsError) throw itemsError;
-
-                        // Reconstruct Order objects
-                        const reconstructedOrders: Order[] = orders.map(order => ({
-                            id: order.id,
-                            total: order.total,
-                            timestamp: new Date(order.created_at).getTime(),
-                            status: order.status as 'completed' | 'pending' | 'cancelled' || 'completed',
-                            payments: order.payment_details || [], // Assuming we fetch this column
-                            items: items
-                                .filter(item => item.order_id === order.id)
-                                .map(item => ({
-                                    instanceId: crypto.randomUUID(), // Generate new instance ID for display
-                                    menuItem: {
-                                        id: item.product_id,
-                                        name: item.product_name,
-                                        price: item.unit_price, // Use stored unit price
-                                        category: '', // Not strictly needed for history display
-                                        description: '',
-                                        image: '',
-                                        available: true
-                                    },
-                                    quantity: item.quantity,
-                                    selectedModifiers: item.selected_modifiers || [],
-                                    totalPrice: item.total_price
-                                }))
-                        }));
-
-                        set({ orderHistory: reconstructedOrders });
-                    }
-                } catch (error) {
-                    console.error('Error fetching order history:', error);
-                }
-
-                // Real-time subscription for Products
-                supabase
-                    .channel('pos_products_changes')
-                    .on(
-                        'postgres_changes',
-                        { event: 'UPDATE', schema: 'public', table: 'pos_products' },
-                        (payload) => {
-                            console.log('Real-time update received:', payload);
-                            const updatedProduct = payload.new as Product;
-                            set((state) => ({
-                                products: state.products.map((p) =>
-                                    p.id === updatedProduct.id ? { ...p, ...updatedProduct } : p
-                                ),
-                            }));
-                        }
-                    )
-                    .subscribe();
-            }
+            resetDaily: () => set({ dailyRevenue: 0, orderIdCounter: 1 }),
         }),
         {
-            name: 'mitake-system-storage',
+            name: 'mitake-system-storage-v2',
             storage: createJSONStorage(() => localStorage),
         }
     )

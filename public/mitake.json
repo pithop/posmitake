@@ -473,6 +473,17 @@
         "modifier_groups": null
     },
     {
+        "idx": 114,
+        "id": "8365_shoyu",
+        "name": "Ramen tonkotsu shoyu",
+        "price": "15.5",
+        "category": "Plats chauds",
+        "description": "Version Poulet",
+        "image": "https://www.sushi-aixsud.com/852-large_default/ramen-tonkotsu-cha-shu.jpg",
+        "available": true,
+        "modifier_groups": null
+    },
+    {
         "idx": 115,
         "id": "2245",
         "name": "Bol de riz nature - accompagnement",

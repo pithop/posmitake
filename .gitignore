@@ -45,3 +45,5 @@ supabase_schema.sql
 # documentation / research
 french restaurant payment methods explained.md
 
+migration_patch.sql
+poslocal-first: archittecture p2p offline.md

@@ -747,25 +747,133 @@
     "id": "8365",
     "name": "Ramen tonkotsu cha-shu",
     "description": "",
-    "price": 15.49,
+    "price": 15.50,
     "category": "Plats chauds",
-    "image": "https://www.sushi-aixsud.com/852-large_default/ramen-tonkotsu-cha-shu.jpg"
+    "image": "https://www.sushi-aixsud.com/852-large_default/ramen-tonkotsu-cha-shu.jpg",
+    "modifier_groups": [
+      {
+        "id": "ramen_supp",
+        "name": "Suppléments",
+        "type": "multiSelect",
+        "required": false,
+        "options": [
+          {
+            "id": "supp_oeuf",
+            "name": "Supplément Oeuf",
+            "priceAdjustment": 1.00
+          },
+          {
+            "id": "supp_spicy",
+            "name": "Supplément Spicy",
+            "priceAdjustment": 1.00
+          },
+          {
+            "id": "supp_omori",
+            "name": "Taille Omori (Grand)",
+            "priceAdjustment": 4.00
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "8365_shoyu",
+    "name": "Ramen tonkotsu shoyu",
+    "description": "Version Poulet",
+    "price": 15.50,
+    "category": "Plats chauds",
+    "image": "https://www.sushi-aixsud.com/852-large_default/ramen-tonkotsu-cha-shu.jpg",
+    "modifier_groups": [
+      {
+        "id": "ramen_supp",
+        "name": "Suppléments",
+        "type": "multiSelect",
+        "required": false,
+        "options": [
+          {
+            "id": "supp_oeuf",
+            "name": "Supplément Oeuf",
+            "priceAdjustment": 1.00
+          },
+          {
+            "id": "supp_spicy",
+            "name": "Supplément Spicy",
+            "priceAdjustment": 1.00
+          },
+          {
+            "id": "supp_omori",
+            "name": "Taille Omori (Grand)",
+            "priceAdjustment": 4.00
+          }
+        ]
+      }
+    ]
   },
   {
     "id": "8367",
     "name": "Ramen tonkotsu classic",
     "description": "",
-    "price": 13.97,
+    "price": 14.00,
     "category": "Plats chauds",
-    "image": "https://www.sushi-aixsud.com/853-large_default/ramen-tonkotsu-classic.jpg"
+    "image": "https://www.sushi-aixsud.com/853-large_default/ramen-tonkotsu-classic.jpg",
+    "modifier_groups": [
+      {
+        "id": "ramen_supp",
+        "name": "Suppléments",
+        "type": "multiSelect",
+        "required": false,
+        "options": [
+          {
+            "id": "supp_oeuf",
+            "name": "Supplément Oeuf",
+            "priceAdjustment": 1.00
+          },
+          {
+            "id": "supp_spicy",
+            "name": "Supplément Spicy",
+            "priceAdjustment": 1.00
+          },
+          {
+            "id": "supp_omori",
+            "name": "Taille Omori (Grand)",
+            "priceAdjustment": 4.00
+          }
+        ]
+      }
+    ]
   },
   {
     "id": "8368",
     "name": "Mazé men (ramen sans bouillon)",
     "description": "",
-    "price": 15.01,
+    "price": 15.00,
     "category": "Plats chauds",
-    "image": "https://www.sushi-aixsud.com/854-large_default/maze-men-ramen-sans-bouillon.jpg"
+    "image": "https://www.sushi-aixsud.com/854-large_default/maze-men-ramen-sans-bouillon.jpg",
+    "modifier_groups": [
+      {
+        "id": "ramen_supp",
+        "name": "Suppléments",
+        "type": "multiSelect",
+        "required": false,
+        "options": [
+          {
+            "id": "supp_oeuf",
+            "name": "Supplément Oeuf",
+            "priceAdjustment": 1.00
+          },
+          {
+            "id": "supp_spicy",
+            "name": "Supplément Spicy",
+            "priceAdjustment": 1.00
+          },
+          {
+            "id": "supp_omori",
+            "name": "Taille Omori (Grand)",
+            "priceAdjustment": 4.00
+          }
+        ]
+      }
+    ]
   },
   {
     "id": "2244",
