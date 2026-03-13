@@ -1,18 +1,47 @@
 "use client";
 
-import { useState, useMemo, useRef, useEffect } from 'react';
+import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { Product, ModifierOption } from '@/types';
 import { ProductCard } from './ProductCard';
 import { ModifierModal } from './ModifierModal';
 import { useCartStore, useSystemStore } from '@/store/useStore';
+import { useStockStatus } from '@/hooks/useStockStatus';
 import { cn } from '@/lib/utils';
 import { Search } from 'lucide-react';
 import { useQuery } from '@powersync/react';
 import { seedDatabase } from '@/lib/seeder';
 
+// Maps stock alert IDs to product name fragments for matching
+const STOCK_ID_TO_NAME: Record<string, string[]> = {
+    'ramen_chashu': ['cha-shu', 'chashu'],
+    'ramen_classic': ['ramen tonkotsu classic'],
+    'ramen_shoyu': ['shoyu'],
+    'maze_men': ['mazé men', 'maze men'],
+    'kara_age': ['kara age', 'karaage'],
+    'ebi_fried': ['ebi fried'],
+    'gyoza_6': ['gyoza par 6'],
+    'gyoza_poulet': ['gyoza poulet'],
+    'korokke': ['korokke'],
+    'yakitori': ['yakitori'],
+    'takoyaki': ['takoyaki'],
+    'harumaki': ['harumaki'],
+};
+
 export function MenuGrid() {
     const addToCart = useCartStore((state) => state.addToCart);
     const deviceId = useSystemStore((state) => state.deviceId);
+    const { outOfStock } = useStockStatus();
+
+    // Check if a product name matches any out-of-stock item
+    const isProductOutOfStock = useCallback((productName: string) => {
+        const lowerName = productName.toLowerCase();
+        for (const [stockId, fragments] of Object.entries(STOCK_ID_TO_NAME)) {
+            if (outOfStock.has(stockId)) {
+                if (fragments.some(f => lowerName.includes(f))) return true;
+            }
+        }
+        return false;
+    }, [outOfStock]);
 
     // PowerSync Integration
     const { data: productsData = [] } = useQuery('SELECT * FROM pos_products');
@@ -197,6 +226,7 @@ export function MenuGrid() {
                                     product={product}
                                     onAdd={(p, m, n) => addToCart(p, m, n)}
                                     onOpenModal={handleOpenModal}
+                                    isOutOfStock={isProductOutOfStock(product.name)}
                                 />
                             </div>
                         ))}
