@@ -1,0 +1,151 @@
+id,name,price,category,description,image,available,modifier_groups,tags
+2152,SUSHI SHAKE par paire,4.18,Sushi,,https://www.sushi-aixsud.com/25-large_default/sushi-shake.jpg,true,,[]
+2153,SUSHI MAGURO par paire,4.66,Sushi,,https://www.sushi-aixsud.com/26-large_default/sushi-maguro.jpg,true,,[]
+2155,SUSHI TAI - (vendus par paire),4.18,Sushi,,https://www.sushi-aixsud.com/24-large_default/sushi-tai.jpg,true,,[]
+2159,SUSHI IKURA GUNKAN par paire,7.51,Sushi,,https://www.sushi-aixsud.com/502-large_default/sushi-ikura-gunkan.jpg,true,,[]
+2160,SUSHI EBI par paire,4.47,Sushi,,https://www.sushi-aixsud.com/594-large_default/sushi-ebi.jpg,true,,[]
+2162,SUSHI UNAGI par paire,6.56,Sushi,,https://www.sushi-aixsud.com/177-large_default/sushi-unagi.jpg,true,,[]
+2164,SUSHI TAMAGO par paire,4.09,Sushi,,https://www.sushi-aixsud.com/607-large_default/sushi-tamago-par-paire.jpg,true,,[]
+2175,SASHIMI SHAKE par paire,4.18,Sashimi,,https://www.sushi-aixsud.com/55-large_default/sashimi-shake-par-paire.jpg,true,,[]
+2176,SASHIMI MAGURO par paire,4.37,Sashimi,,https://www.sushi-aixsud.com/179-large_default/sashimi-maguro-par-paire.jpg,true,,[]
+2178,SASHIMI TAI par paire,4.18,Sashimi,,https://www.sushi-aixsud.com/651-large_default/sashimi-tai.jpg,true,,[]
+2182,SASHIMI IKURA par paire,6.56,Sashimi,,https://www.sushi-aixsud.com/57-large_default/sashimi-ikura-par-paire.jpg,true,,[]
+2183,SASHIMI EBI par paire,4.37,Sashimi,,https://www.sushi-aixsud.com/59-large_default/sashimi-ebi-par-paire.jpg,true,,[]
+2185,SASHIMI UNAGI par paire,6.37,Sashimi,,https://www.sushi-aixsud.com/734-large_default/sashimi-unagi-par-paire.jpg,true,,[]
+2187,SASHIMI TAMAGO par paire,4.09,Sashimi,,https://www.sushi-aixsud.com/649-large_default/sashimi-tamago-par-paire.jpg,true,,[]
+2194,TEKKA MAKI par 6,5.51,Maki et rolls,,https://www.sushi-aixsud.com/84-large_default/tekka-maki-par-6.jpg,true,,[]
+2195,SHAKE MAKI par 6,5.7,Maki et rolls,,https://www.sushi-aixsud.com/85-large_default/shake-maki-par-6.jpg,true,,[]
+2196,KAPPA MAKI par 6,4.94,Maki et rolls,,https://www.sushi-aixsud.com/86-large_default/kappa-maki-par-6.jpg,true,,[]
+2200,CHEESE MAKI par 6,4.94,Maki et rolls,,https://www.sushi-aixsud.com/89-large_default/cheese-maki-par-6.jpg,true,,[]
+2201,FUTO MAKI par 8,10.93,Maki et rolls,,https://www.sushi-aixsud.com/182-large_default/futo-maki-par-8.jpg,true,,[]
+2202,18 MAKI MIX DEGUSTATION,13.68,Maki et rolls,,https://www.sushi-aixsud.com/738-large_default/18-maki-mix-degustation.jpg,true,,[]
+2203,MAKI VEGETARIENS - vendus par 12,9.79,Maki et rolls,,https://www.sushi-aixsud.com/187-large_default/12-maki-vegetariens.jpg,true,,[]
+2206,CALIFORNIA SAUMON - AVOCAT par 6,7.32,Maki et rolls,,https://www.sushi-aixsud.com/68-large_default/california-saumon-avocat-par-6.jpg,true,,[]
+2207,CALIFORNIA SAUMON - ST MORET par 6,7.32,Maki et rolls,,https://www.sushi-aixsud.com/69-large_default/california-saumon-st-moret-par-6.jpg,true,,[]
+2208,CALIFORNIA AVOCAT - CREVETTE par 6,7.32,Maki et rolls,,https://www.sushi-aixsud.com/70-large_default/california-avocat-crevette-par-6.jpg,true,,[]
+2209,CALIFORNIA AVOCAT - THON par 6,7.32,Maki et rolls,,https://www.sushi-aixsud.com/71-large_default/california-avocat-thon-par-6.jpg,true,,[]
+2210,18 CALIFORNIA MIX DEGUSTATION,17.86,Maki et rolls,,https://www.sushi-aixsud.com/61-large_default/18-california-mix-degustation.jpg,true,,[]
+2211,CALIFORNIA MIX sans cru - 9 pièces,10.93,Maki et rolls,,https://www.sushi-aixsud.com/60-large_default/9-california-mix-sans-cru.jpg,true,,[]
+2212,CHIRASHI SAUMON,15.11,Chirashi,,https://www.sushi-aixsud.com/90-large_default/chirashi-saumon.jpg,true,,[]
+2213,CHIRASHI THON - SAUMON,16.82,Chirashi,,https://www.sushi-aixsud.com/91-large_default/chirashi-thon-saumon.jpg,true,,[]
+2214,CHIRASHI MIX,15.68,Chirashi,,https://www.sushi-aixsud.com/92-large_default/chirashi-mix.jpg,true,,[]
+2215,CHIRASHI DELUXE,23.66,Chirashi,,https://www.sushi-aixsud.com/93-large_default/chirashi-deluxe.jpg,true,,[]
+2216,Duo Sushi Sashimi,16.06,Plateaux combinés,,https://www.sushi-aixsud.com/73-large_default/duo-sushi-sashimi.jpg,true,,[]
+2217,Duo Maki California,15.87,Plateaux combinés,,https://www.sushi-aixsud.com/74-large_default/duo-maki-california.jpg,true,,[]
+2218,Duo Sushi Maki,13.59,Plateaux combinés,,https://www.sushi-aixsud.com/75-large_default/duo-sushi-maki.jpg,true,,[]
+2219,Duo Sushi California,15.77,Plateaux combinés,,https://www.sushi-aixsud.com/76-large_default/duo-sushi-california.jpg,true,,[]
+2220,"Trio Mix 6 Sushi, 6 Maki, 6 California",18.91,Plateaux combinés,,https://www.sushi-aixsud.com/77-large_default/trio-mix-6-sushi-6-maki-6-california.jpg,true,,[]
+2221,"Trio Tout Saumon 6 Sushi, 6 Maki, 6 California",18.91,Plateaux combinés,,https://www.sushi-aixsud.com/78-large_default/trio-tout-saumon-6-sushi-6-maki-6-california.jpg,true,,[]
+2224,Quatuor Decouverte,14.73,Plateaux combinés,,https://www.sushi-aixsud.com/81-large_default/quatuor-decouverte.jpg,true,,[]
+2225,Quatuor Deluxe - plateau à déguster,21.47,Plateaux combinés,,https://www.sushi-aixsud.com/82-large_default/quatuor-deluxe.jpg,true,,[]
+2232,Misoshiru - soupe maison Kyo Sushi,3.42,"Salades, soupes et riz",,https://www.sushi-aixsud.com/97-large_default/misoshiru.jpg,true,,"[""mitake""]"
+2233,Salade Kyo - (spécialité Kyo Sushi),5.61,"Salades, soupes et riz",,https://www.sushi-aixsud.com/95-large_default/salade-kyo.jpg,true,,[]
+2235,Bol de riz Sushi - (à l'unité),3.14,"Salades, soupes et riz",,https://www.sushi-aixsud.com/191-large_default/bol-de-riz-sushi.jpg,true,,[]
+2237,Wasabi (supplément : vendu à l'unité),0.29,Extras,,https://www.sushi-aixsud.com/192-large_default/wasabi-x1.jpg,true,,[]
+2239,Gingembre mariné - vendu à l'unité,0.57,Extras,,https://www.sushi-aixsud.com/193-large_default/gingembre-marine-x1.jpg,true,,[]
+2244,Hiyashi Wakame - salade d'algues,4.66,"Salades, soupes et riz",,https://www.sushi-aixsud.com/100-large_default/hiyashi-wakame.jpg,true,,[]
+2245,Bol de riz nature - accompagnement,2.95,"Salades, soupes et riz",,https://www.sushi-aixsud.com/94-large_default/bol-de-riz-nature.jpg,true,,"[""mitake""]"
+2246,Sauce soja sucrée (sachet de 10 ml),0.29,Extras,,https://www.sushi-aixsud.com/407-large_default/sauce-sucree-15-ml.jpg,true,,[]
+2252,DAIFUKU BLANC - SHIRO (vendu à l'unité),3.71,Desserts,,https://www.sushi-aixsud.com/198-large_default/daifuku-blanc.jpg,true,,[]
+2253,DAIFUKU VERT - KUSA,3.71,Desserts,,https://www.sushi-aixsud.com/108-large_default/daifuku-vert.jpg,true,,[]
+2254,DORAYAKI - dessert vendu à l'unité,3.71,Desserts,,https://www.sushi-aixsud.com/109-large_default/dorayaki.jpg,true,,[]
+2255,DAIFUKU SESAME - KURO GOMA x 1,3.71,Desserts,,https://www.sushi-aixsud.com/199-large_default/daifuku-sesame.jpg,true,,[]
+2262,THÉ GLACÉ VERT - canette 30 cl,2.47,Boissons softs,,https://www.sushi-aixsud.com/873-large_default/the-vert-froid.jpg,true,,"[""mitake""]"
+2265,THÉ GLACÉ A LA PECHE - en canette,2.57,Boissons softs,,https://www.sushi-aixsud.com/874-large_default/the-peche.jpg,true,,"[""mitake""]"
+2267,JUS LITCHI - bouteille de 25cl,2.47,Boissons softs,,https://www.sushi-aixsud.com/205-large_default/jus-litchi.jpg,true,,"[""mitake""]"
+2268,JUS MANGUE - bouteille de 25cl,3.04,Boissons softs,,https://www.sushi-aixsud.com/206-large_default/jus-mangue.jpg,true,,"[""mitake""]"
+2271,EAU DE COCO VAÏVAÏ BIO - bouteille 33cl,3.71,Boissons softs,,https://www.sushi-aixsud.com/252-large_default/jus-coco.jpg,true,,"[""mitake""]"
+2273,JUS POMME,2.47,Boissons softs,,https://www.sushi-aixsud.com/209-large_default/jus-pomme.jpg,true,,"[""mitake""]"
+2276,COCA COLA - canette de 33 cl -,2.47,Boissons softs,,https://www.sushi-aixsud.com/212-large_default/coca.jpg,true,,"[""mitake""]"
+2278,COCA COLA ZERO - canette de 33cl,2.47,Boissons softs,,https://www.sushi-aixsud.com/214-large_default/coca-zero.jpg,true,,"[""mitake""]"
+2280,EAU EVIAN - bouteille de 50 cl,2.47,Boissons softs,,https://www.sushi-aixsud.com/559-large_default/vittel.jpg,true,,"[""mitake""]"
+2281,SAN PELLEGRINO - bouteille de 50cl,2.47,Boissons softs,,https://www.sushi-aixsud.com/217-large_default/san-pellegrino.jpg,true,,"[""mitake""]"
+2285,BIERES ASAHI - bouteille de 33cl,3.71,Boissons alcoolisées,,https://www.sushi-aixsud.com/139-large_default/bieres-asahi-33cl.jpg,true,,"[""mitake""]"
+2286,BIERES ASAHI (canette de 50CL),4.65,Boissons alcoolisées,,https://www.sushi-aixsud.com/221-large_default/bieres-asahi-50cl.jpg,true,,"[""mitake""]"
+2287,BIERES KIRIN - bouteille de 33cl,3.71,Boissons alcoolisées,,https://www.sushi-aixsud.com/135-large_default/bieres-kirin-33cl.jpg,true,,"[""mitake""]"
+2288,BIERES KIRIN - canette de 50cl,4.65,Boissons alcoolisées,,https://www.sushi-aixsud.com/394-large_default/bieres-kirin-50cl.jpg,true,,"[""mitake""]"
+2289,BIERES SAPPORO - bouteille de 33cl,3.71,Boissons alcoolisées,,https://www.sushi-aixsud.com/872-large_default/bieres-sapporo-33cl.jpg,true,,"[""mitake""]"
+2290,BIERES SAPPORO - canette de 50cl,4.65,Boissons alcoolisées,,https://www.sushi-aixsud.com/871-large_default/bieres-sapporo-50cl.jpg,true,,"[""mitake""]"
+2291,BIERES HEINEKEN 25CL,2.57,Boissons alcoolisées,,https://www.sushi-aixsud.com/219-large_default/bieres-heineken-33cl.jpg,true,,"[""mitake""]"
+2293,SAKE ONE CUP (10CL) - 15 degres,3.61,Boissons alcoolisées,,https://www.sushi-aixsud.com/218-large_default/sake-one-cup-10cl-15-degres.jpg,true,,"[""mitake""]"
+2295,"SAKE OZEKI SUPER DRY 75CL - 14,5 degres",12.64,Boissons alcoolisées,,https://www.sushi-aixsud.com/220-large_default/sake-ozeki-super-dry-75cl-145-degres.jpg,true,,"[""mitake""]"
+2349,SAUMON TERIYAKI,17.96,Plats chauds,,https://www.sushi-aixsud.com/124-large_default/saumon-teriyaki.jpg,true,,[]
+2350,"GYOZA PAR 6 poulet, crevettes, legumes",7.51,Plats chauds,,https://www.sushi-aixsud.com/111-large_default/gyoza-par-6-poulet-crevettes-legumes.jpg,true,,"[""mitake""]"
+2351,YAKITORI CLASSIQUE,6.18,Plats chauds,,https://www.sushi-aixsud.com/359-large_default/yakitori-classique.jpg,true,,"[""mitake""]"
+2352,YAKITORI TSUKUNE,6.18,Plats chauds,,https://www.sushi-aixsud.com/358-large_default/yakitori-tsukune.jpg,true,,"[""mitake""]"
+2353,YAKITORI PLATEAU - 4 brochettes,14.92,Plats chauds,,https://www.sushi-aixsud.com/115-large_default/yakitori-plateau-4-brochettes.jpg,true,,[]
+2354,YAKITORI CLASSIQUE ET TSUKUNE,6.18,Plats chauds,,https://www.sushi-aixsud.com/116-large_default/yakitori-classique-et-tsukune.jpg,true,,"[""mitake""]"
+2356,Edamame - vendus dans leur cosse,3.71,Extras,,https://www.sushi-aixsud.com/101-large_default/edamame.jpg,true,,[]
+2357,EBI FRIED,10.36,Plats chauds,,https://www.sushi-aixsud.com/112-large_default/ebi-fried.jpg,true,,"[""mitake""]"
+2358,CALIFORNIA EBI FRIED par 6,7.51,Maki et rolls,,https://www.sushi-aixsud.com/225-large_default/california-ebi-fried-par-6.jpg,true,,[]
+2359,TEMAKI SAUMON AVOCAT SESAME,5.99,Maki et rolls,,https://www.sushi-aixsud.com/691-large_default/temaki-par-2.jpg,true,,[]
+2360,YAKITORI PLATEAU 4 Tsukune,14.92,Plats chauds,,https://www.sushi-aixsud.com/625-large_default/yakitori-plateau-4-tsukune.jpg,true,,[]
+2361,YAKITORI PLATEAU 4 Classique,14.92,Plats chauds,,https://www.sushi-aixsud.com/624-large_default/yakitori-plateau-4-classique.jpg,true,,[]
+2383,MOCHI à la Vanille (vendu à l'unité),2.66,Desserts,,https://www.sushi-aixsud.com/671-large_default/mochi-vanille-x1.jpg,true,,[]
+2384,MOCHI Vanille - vendus par deux,4.66,Desserts,,https://www.sushi-aixsud.com/672-large_default/mochi-vanille-x-2.jpg,true,,[]
+3231,SUSHI TOBIKO GUNKAN (Oeufs de poisson volant)...,5.04,Sushi,,https://www.sushi-aixsud.com/711-large_default/sushi-tobiko-gunkan-oeufs-de-poisson-volant.jpg,true,,[]
+3233,CALIFORNIA SAUMON FUME - vendus par 6,7.51,Maki et rolls,,https://www.sushi-aixsud.com/239-large_default/california-saumon-fume-maison.jpg,true,,[]
+3592,CALIFORNIA AVOCAT - ANGUILLE par 6,9.03,Maki et rolls,,https://www.sushi-aixsud.com/238-large_default/california-avocat-anguille-par-6.jpg,true,,[]
+3626,TAKOYAKI Classique,7.98,Plats chauds,,https://www.sushi-aixsud.com/103-large_default/takoyaki.jpg,true,,"[""mitake""]"
+3627,HIYASHI IKA,5.61,"Salades, soupes et riz",,https://www.sushi-aixsud.com/102-large_default/hiyashi-ika.jpg,true,,[]
+3927,AVOCADO MAKI par 6,4.94,Maki et rolls,,https://www.sushi-aixsud.com/534-large_default/avocado-maki-par-6.jpg,true,,[]
+4173,KARA AGE,10.36,Plats chauds,,https://www.sushi-aixsud.com/127-large_default/karaage.jpg,true,,"[""mitake""]"
+5008,MOCHI Choco Coco - vendu à l'unité,2.66,Desserts,,https://www.sushi-aixsud.com/669-large_default/mochi-choco-coco-x-1.jpg,true,,[]
+5010,Ramune - recette traditionnelle,3.71,Boissons softs,,https://www.sushi-aixsud.com/843-large_default/ramune.jpg,true,,"[""mitake""]"
+5385,Mochi Choco Coco - vendus par 2,4.66,Desserts,,https://www.sushi-aixsud.com/670-large_default/mochi-choco-coco-2.jpg,true,,[]
+6429,BROCHETTES SHAKE KUSHI YAKI,4.94,Plats chauds,,https://www.sushi-aixsud.com/815-large_default/brochettes-shake-kushi-yaki.jpg,true,,"[""mitake""]"
+6430,CALIFORNIA THON CUIT,7.32,Maki et rolls,,https://www.sushi-aixsud.com/142-large_default/california-thon-cuit.jpg,true,,[]
+6431,CALIFORNIA SAUMON GRILLE,7.32,Maki et rolls,,https://www.sushi-aixsud.com/247-large_default/california-saumon-grille.jpg,true,,[]
+7570,SAKE HAKUTSURU 30 CL - 14 degres,10.45,Boissons alcoolisées,,https://www.sushi-aixsud.com/850-large_default/sake-hakutsuru-30-cl-14-degres.jpg,true,,"[""mitake""]"
+7571,SAKE SASARA TSUKI 30 CL - 10.5 degres,14.25,Boissons alcoolisées,,https://www.sushi-aixsud.com/393-large_default/sake-sasara-tsuki-30-cl-105-degres.jpg,true,,"[""mitake""]"
+7572,SAKE YAMADA NISHIKI 30 CL - 14.5 degres,17.1,Boissons alcoolisées,,https://www.sushi-aixsud.com/131-large_default/sake-yamada-nishiki-30-cl-145-degres.jpg,true,,"[""mitake""]"
+7573,SAKE MIYANOYUKI 30 CL - 13.5 degres,14.25,Boissons alcoolisées,,https://www.sushi-aixsud.com/149-large_default/sake-miyanoyuki-30-cl-135-degres.jpg,true,,"[""mitake""]"
+7574,CHIRASHI ANGUILLE,20.43,Chirashi,,https://www.sushi-aixsud.com/259-large_default/una-chirashi.jpg,true,,[]
+7575,UMESHU boisson aromatisée à base de vin 75CL -...,17.96,Boissons alcoolisées,,https://www.sushi-aixsud.com/152-large_default/umeshu-vin-de-prune-75cl-10-degres.jpg,true,,"[""mitake""]"
+7577,"IKI BEER YUZU bio 33CL - 4,5 degres",4.47,Boissons alcoolisées,,https://www.sushi-aixsud.com/143-large_default/iki-beer-33cl-45-degres.jpg,true,,"[""mitake""]"
+7578,TAKO KARA AGE,7.7,Plats chauds,,https://www.sushi-aixsud.com/104-large_default/tako-kara-age.jpg,true,,"[""mitake""]"
+7589,Gyoza crevettes,8.65,Plats chauds,,https://www.sushi-aixsud.com/227-large_default/gyoza-crevettes.jpg,true,,"[""mitake""]"
+7590,Gyoza poulet - legumes,6.37,Plats chauds,,https://www.sushi-aixsud.com/226-large_default/gyoza-poulet-legumes.jpg,true,,"[""mitake""]"
+8036,CHIRASHI SAUMON - AVOCAT,16.25,Chirashi,,https://www.sushi-aixsud.com/593-large_default/chirashi-saumon-avocat.jpg,true,,[]
+8052,CHIRASHI THON,18.15,Chirashi,,https://www.sushi-aixsud.com/255-large_default/chirashi-thon-saumon.jpg,true,,[]
+8053,Wasabi green peas - version large,2.57,Extras,,https://www.sushi-aixsud.com/157-large_default/wasabi-green-peas.jpg,true,,[]
+8054,Rice crackers - (version large),2.57,Extras,,https://www.sushi-aixsud.com/158-large_default/rice-crackers.jpg,true,,[]
+8057,TEMAKI SAUMON - FEUILLE DE SHISO,5.99,Maki et rolls,,https://www.sushi-aixsud.com/270-large_default/temaki-par-2.jpg,true,,[]
+8090,10 SUSHI MIX,17.48,Sushi,,https://www.sushi-aixsud.com/530-large_default/8-sushi-mix.jpg,true,,[]
+8091,15 SUSHI MIX,24.32,Sushi,,https://www.sushi-aixsud.com/741-large_default/8-sushi-mix.jpg,true,,[]
+8092,15 SASHIMI MIX,23.18,Sashimi,,https://www.sushi-aixsud.com/765-large_default/15-sashimi-mix.jpg,true,,[]
+8094,TAMAGO MAKI,4.94,Maki et rolls,,https://www.sushi-aixsud.com/637-large_default/cheese-maki.jpg,true,,[]
+8095,SAUMON GRILLE MAKI,5.04,Maki et rolls,,https://www.sushi-aixsud.com/638-large_default/cheese-maki.jpg,true,,[]
+8098,10 SASHIMI SAUMON avec bol de riz,15.58,Sashimi,,https://www.sushi-aixsud.com/340-large_default/10-sashimi-saumon-lrriz-bio.jpg,true,,[]
+8099,SASHIMI 5 THON 5 SAUMON avec bol de riz,18.72,Sashimi,,https://www.sushi-aixsud.com/330-large_default/sashimi-5-thon-5-saumon-lrriz-bio.jpg,true,,[]
+8100,10 SASHIMI MIX avec bol de riz,16.53,Sashimi,,https://www.sushi-aixsud.com/718-large_default/10-sashimi-mixriz-bio.jpg,true,,[]
+8106,Temaki Thon Avocat Sesame,5.99,Maki et rolls,,https://www.sushi-aixsud.com/321-large_default/temaki-thon-avocat-sesame.jpg,true,,[]
+8107,Temaki Crabe Avocat Sesame,5.99,Maki et rolls,,https://www.sushi-aixsud.com/322-large_default/temaki-crabe-avocat-sesame.jpg,true,,[]
+8108,Temaki Anguille Avocat Sesame,5.99,Maki et rolls,,https://www.sushi-aixsud.com/323-large_default/temaki-anguille-avocat-sesame.jpg,true,,[]
+8109,Temaki Crevette Avocat Sesame,5.99,Maki et rolls,,https://www.sushi-aixsud.com/324-large_default/temaki-crevette-avocat-sesame.jpg,true,,[]
+8115,10 Sushi Saumon LR,16.06,Sushi,,https://www.sushi-aixsud.com/562-large_default/10-sushi-saumon-lr.jpg,true,,[]
+8117,5 Sushi Saumon - 5 Sushi Crevette,17.67,Sushi,,https://www.sushi-aixsud.com/328-large_default/5-sushi-saumon-5-sushi-crevette.jpg,true,,[]
+8126,Sauce soja salée - sachet de 15 ml,0.29,Extras,,https://www.sushi-aixsud.com/878-large_default/sauce-salee-10-ml.jpg,true,,[]
+8136,6 SUSHI SAUMON,9.79,Sushi,,https://www.sushi-aixsud.com/363-large_default/6-sushi-saumon.jpg,true,,[]
+8137,3 Sushi Thon 3 saumon,10.74,Sushi,,https://www.sushi-aixsud.com/364-large_default/3-sushi-thon-3-saumon.jpg,true,,[]
+8139,3 Sushi Daurade 3 saumon,10.74,Sushi,,https://www.sushi-aixsud.com/366-large_default/3-sushi-crevette-3-saumon.jpg,true,,[]
+8140,6 Sashimi Saumon et bol de riz,9.79,Sashimi,,https://www.sushi-aixsud.com/367-large_default/6-sashimi-saumon-et-bol-de-riz.jpg,true,,[]
+8141,"3 Sashimi Daurade, 3 Saumon et bol de riz",11.59,Sashimi,,https://www.sushi-aixsud.com/368-large_default/3-sashimi-thon-3-saumon-et-bol-de-riz.jpg,true,,[]
+8143,CHIRASHI MIX TARTARE,15.77,Chirashi,,https://www.sushi-aixsud.com/371-large_default/chirashi-tartare-mix.jpg,true,,[]
+8144,CHIRASHI MIX TARTARE SPICY,16.34,Chirashi,,https://www.sushi-aixsud.com/372-large_default/chirashi-tartare-mix-spicy.jpg,true,,[]
+8169,Salade de chou - assaisonnement maison,3.61,"Salades, soupes et riz",,https://www.sushi-aixsud.com/694-large_default/hiyashi-ika.jpg,true,,[]
+8187,"IKI BEER GINGEMBRE bio 33CL - 5,5 degres",4.47,Boissons alcoolisées,,https://www.sushi-aixsud.com/463-large_default/iki-beer-33cl-45-degres.jpg,true,,"[""mitake""]"
+8216,Mochiri Mangue-Passion (à l'unité),2.66,Desserts,,https://www.sushi-aixsud.com/627-large_default/mochiri-framboise-mangue-x1.jpg,true,,[]
+8217,Mochiri Mangue-Passion - vendus par 2,4.66,Desserts,,https://www.sushi-aixsud.com/678-large_default/mochiri-framboise-mangue-x2.jpg,true,,[]
+8220,Mochiri Thé Vert Matcha Bio x1,2.66,Desserts,,https://www.sushi-aixsud.com/492-large_default/mochiri-the-vert-matcha-bio-x1.jpg,true,,[]
+8221,Mochiri Thé Vert Matcha Bio x2,4.66,Desserts,,https://www.sushi-aixsud.com/680-large_default/mochiri-the-vert-matcha-bio-x2.jpg,true,,[]
+8224,Mochiri Citron-Yuzu (à l'unité),2.66,Desserts,,https://www.sushi-aixsud.com/496-large_default/mochiri-citron-yuzu-x1.jpg,true,,[]
+8236,Supplément avocat pour Chirashi,2.47,Chirashi,,https://www.sushi-aixsud.com/544-large_default/suplement-avocat-pour-chirashi.jpg,true,,[]
+8249,Curry Torikatsu,15.39,Plats chauds,,https://www.sushi-aixsud.com/549-large_default/curry-torikatsu.jpg,true,,[]
+8250,Curry Ebi Fried,15.39,Plats chauds,,https://www.sushi-aixsud.com/550-large_default/curry-ebi-fried.jpg,true,,[]
+8251,Harumaki par 2,3.9,Plats chauds,,https://www.sushi-aixsud.com/551-large_default/harumaki-par-2.jpg,true,,"[""mitake""]"
+8258,YAKITORI PLATEAU 4 Tsukune,14.92,Plats chauds,,https://www.sushi-aixsud.com/561-large_default/yakitori-plateau-4-tsukune.jpg,true,,[]
+8278,KOROKKE PAR 3,5.04,Plats chauds,,https://www.sushi-aixsud.com/633-large_default/korokke-par-5.jpg,true,,"[""mitake""]"
+8365,Ramen tonkotsu cha-shu,15.5,Plats chauds,,https://www.sushi-aixsud.com/852-large_default/ramen-tonkotsu-cha-shu.jpg,true,,"[""mitake""]"
+8367,Ramen tonkotsu classic,14,Plats chauds,,https://www.sushi-aixsud.com/853-large_default/ramen-tonkotsu-classic.jpg,true,,"[""mitake""]"
+8368,Mazé men (ramen sans bouillon),15,Plats chauds,,https://www.sushi-aixsud.com/854-large_default/maze-men-ramen-sans-bouillon.jpg,true,,"[""mitake""]"

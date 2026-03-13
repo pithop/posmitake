@@ -166,8 +166,17 @@ export const useSystemStore = create<SystemState>()(
                     // === WRITE 2: Direct Supabase — for cross-device visibility & Realtime alerts ===
                     if (supabase) {
                         try {
-                            // Insert order row — triggers the Realtime INSERT event
-                            const { error: orderError, data: orderData } = await supabase.from('pos_orders').upsert({
+                            // Build items JSON to embed in order row (instant alert data — no separate fetch needed)
+                            const itemsForAlert = itemsSnapshot.map(item => ({
+                                product_name: item.menuItem.name,
+                                quantity: item.quantity,
+                                unit_price: item.totalPrice / item.quantity,
+                                total_price: item.totalPrice,
+                                selected_modifiers: { mods: item.selectedModifiers, note: item.note },
+                            }));
+
+                            // Insert order row with embedded items — triggers Realtime INSERT
+                            const { error: orderError } = await supabase.from('pos_orders').upsert({
                                 id: orderId,
                                 total,
                                 status: 'completed',
@@ -176,14 +185,15 @@ export const useSystemStore = create<SystemState>()(
                                 created_at: createdAt,
                                 source_device: deviceId,
                                 order_type: orderTypeValue,
-                            }).select();
+                                items_json: itemsForAlert, // <-- embedded items for instant alerts
+                            });
 
                             if (orderError) {
                                 console.error('[Checkout] Supabase order write FAILED:', JSON.stringify(orderError));
                             } else {
-                                console.log('[Checkout] Order written to Supabase:', orderData);
+                                console.log('[Checkout] Order+items written to Supabase:', orderId);
 
-                                // Insert items — these appear in the alert details
+                                // Also insert into pos_order_items for relational queries / history detail
                                 const supabaseItems = itemsSnapshot.map(item => ({
                                     id: crypto.randomUUID(),
                                     order_id: orderId,
@@ -196,11 +206,7 @@ export const useSystemStore = create<SystemState>()(
                                 }));
 
                                 const { error: itemsError } = await supabase.from('pos_order_items').insert(supabaseItems);
-                                if (itemsError) {
-                                    console.error('[Checkout] Supabase items write FAILED:', JSON.stringify(itemsError));
-                                } else {
-                                    console.log('[Checkout] Items written to Supabase:', supabaseItems.length, 'items');
-                                }
+                                if (itemsError) console.warn('[Checkout] pos_order_items insert failed (non-critical):', itemsError.message);
                             }
                         } catch (syncErr) {
                             console.error('[Checkout] Supabase sync exception:', syncErr);
