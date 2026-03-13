@@ -69,7 +69,7 @@ export function StockAlertManager() {
             {/* FLOATING RUPTURE BUTTON — top-right, hidden on tablet */}
             <button
                 onClick={() => setIsPanelOpen(true)}
-                className="fixed top-4 right-[210px] z-50 px-4 py-2 bg-amber-500/90 hover:bg-amber-500 text-black font-black text-xs rounded-full shadow-lg shadow-amber-500/20 active:scale-95 transition-all hidden lg:flex items-center gap-2 backdrop-blur-lg border border-amber-400/50"
+                className="fixed top-4 right-[210px] z-50 px-4 py-2 bg-amber-500/90 hover:bg-amber-500 text-black font-black text-xs rounded-full shadow-lg shadow-amber-500/20 active:scale-95 transition-all flex items-center gap-2 backdrop-blur-lg border border-amber-400/50"
             >
                 <Package size={14} />
                 RUPTURE
