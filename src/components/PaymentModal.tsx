@@ -12,7 +12,7 @@ interface PaymentModalProps {
     isOpen: boolean;
     totalAmount: number;
     onClose: () => void;
-    onConfirm: (payments: Payment[], orderType: OrderType) => void;
+    onConfirm: (payments: Payment[], orderType: OrderType, customerName: string, pickupTime: string) => void;
 }
 
 const PAYMENT_METHODS: { id: PaymentMethodType; label: string; icon: any; color: string }[] = [
@@ -28,6 +28,8 @@ export function PaymentModal({ isOpen, totalAmount, onClose, onConfirm }: Paymen
     const [inputAmount, setInputAmount] = useState<string>('');
     const [mounted, setMounted] = useState(false);
     const [orderType, setOrderType] = useState<OrderType>('sur_place');
+    const [customerName, setCustomerName] = useState('');
+    const [pickupTime, setPickupTime] = useState('');
 
     useEffect(() => {
         setMounted(true);
@@ -38,6 +40,10 @@ export function PaymentModal({ isOpen, totalAmount, onClose, onConfirm }: Paymen
             setPayments([]);
             setInputAmount('');
             setOrderType('sur_place');
+            setCustomerName('');
+            // Default pickup time = now (HH:MM)
+            const now = new Date();
+            setPickupTime(`${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`);
         }
     }, [isOpen, totalAmount]);
 
@@ -88,7 +94,7 @@ export function PaymentModal({ isOpen, totalAmount, onClose, onConfirm }: Paymen
 
     const handleConfirm = () => {
         if (!isComplete) return;
-        onConfirm(payments, orderType);
+        onConfirm(payments, orderType, customerName, pickupTime);
     };
 
     if (!isOpen) return null;
@@ -149,6 +155,23 @@ export function PaymentModal({ isOpen, totalAmount, onClose, onConfirm }: Paymen
                                 Emporté
                             </button>
                         </div>
+                    </div>
+
+                    {/* Customer Name + Time */}
+                    <div className="px-6 pb-3 flex gap-2">
+                        <input
+                            type="text"
+                            placeholder="Nom client (optionnel)"
+                            value={customerName}
+                            onChange={(e) => setCustomerName(e.target.value)}
+                            className="flex-1 bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white text-sm font-medium placeholder-white/30 focus:outline-none focus:border-white/30"
+                        />
+                        <input
+                            type="time"
+                            value={pickupTime}
+                            onChange={(e) => setPickupTime(e.target.value)}
+                            className="w-[110px] bg-black/40 border border-white/10 rounded-xl px-3 py-3 text-white text-sm font-mono font-bold focus:outline-none focus:border-white/30 text-center"
+                        />
                     </div>
 
                     {/* Order Items (Mini Ticket) */}

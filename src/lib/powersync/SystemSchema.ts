@@ -23,7 +23,9 @@ export const ORDERS_TABLE = new Table({
         new Column({ name: 'payment_details', type: ColumnType.TEXT }),
         new Column({ name: 'created_at', type: ColumnType.TEXT }),
         new Column({ name: 'source_device', type: ColumnType.TEXT }),
-        new Column({ name: 'order_type', type: ColumnType.TEXT })
+        new Column({ name: 'order_type', type: ColumnType.TEXT }),
+        new Column({ name: 'customer_name', type: ColumnType.TEXT }),
+        new Column({ name: 'pickup_time', type: ColumnType.TEXT }),
     ]
 });
 

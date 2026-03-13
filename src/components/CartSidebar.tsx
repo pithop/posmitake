@@ -23,8 +23,8 @@ export function CartSidebar() {
         setIsPaymentModalOpen(true);
     };
 
-    const handleConfirmPayment = async (payments: Payment[], orderType: OrderType) => {
-        await checkout(payments, orderType);
+    const handleConfirmPayment = async (payments: Payment[], orderType: OrderType, customerName: string, pickupTime: string) => {
+        await checkout(payments, orderType, customerName, pickupTime);
         setIsPaymentModalOpen(false);
     };
 

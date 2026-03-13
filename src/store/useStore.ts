@@ -18,7 +18,7 @@ interface SystemState {
     orderIdCounter: number;
     deviceId: string;
     uiZoomLevel: number;
-    checkout: (payments: Payment[], orderType: OrderType) => Promise<void>;
+    checkout: (payments: Payment[], orderType: OrderType, customerName: string, pickupTime: string) => Promise<void>;
     resetDaily: () => void;
     setDeviceId: (id: string) => void;
     setUiZoomLevel: (level: number) => void;
@@ -113,7 +113,7 @@ export const useSystemStore = create<SystemState>()(
             setDeviceId: (id) => set({ deviceId: id }),
             setUiZoomLevel: (level) => set({ uiZoomLevel: level }),
 
-            checkout: async (payments: Payment[], orderType: OrderType) => {
+            checkout: async (payments: Payment[], orderType: OrderType, customerName: string, pickupTime: string) => {
                 const cartState = useCartStore.getState();
                 if (cartState.items.length === 0) return;
 
@@ -125,6 +125,8 @@ export const useSystemStore = create<SystemState>()(
                 const paymentDetailsJson = JSON.stringify(payments);
                 const itemsSnapshot = [...cartState.items];
                 const orderTypeValue = orderType || 'sur_place';
+                const custName = customerName || '';
+                const pickTime = pickupTime || '';
 
                 try {
                     const db = getPowerSyncDatabase();
@@ -132,9 +134,9 @@ export const useSystemStore = create<SystemState>()(
                     // === WRITE 1: Local SQLite (PowerSync) — for local history & offline ===
                     await db.writeTransaction(async (tx) => {
                         await tx.execute(
-                            `INSERT INTO pos_orders (id, total, status, payment_method, payment_details, created_at, source_device, order_type)
-                             VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-                            [orderId, total, 'completed', payments[0].method, paymentDetailsJson, createdAt, deviceId, orderTypeValue]
+                            `INSERT INTO pos_orders (id, total, status, payment_method, payment_details, created_at, source_device, order_type, customer_name, pickup_time)
+                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                            [orderId, total, 'completed', payments[0].method, paymentDetailsJson, createdAt, deviceId, orderTypeValue, custName, pickTime]
                         );
 
                         for (const item of itemsSnapshot) {
@@ -185,7 +187,9 @@ export const useSystemStore = create<SystemState>()(
                                 created_at: createdAt,
                                 source_device: deviceId,
                                 order_type: orderTypeValue,
-                                items_json: itemsForAlert, // <-- embedded items for instant alerts
+                                customer_name: custName,
+                                pickup_time: pickTime,
+                                items_json: itemsForAlert,
                             });
 
                             if (orderError) {
