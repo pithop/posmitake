@@ -66,15 +66,15 @@ export function StockAlertManager() {
 
     return createPortal(
         <>
-            {/* FLOATING RUPTURE BUTTON — bottom-left, next to ADMIN */}
+            {/* FLOATING RUPTURE BUTTON — top-right, hidden on tablet */}
             <button
                 onClick={() => setIsPanelOpen(true)}
-                className="fixed bottom-6 left-32 z-50 px-4 py-3 bg-amber-500/90 hover:bg-amber-500 text-black font-black text-sm rounded-full shadow-2xl shadow-amber-500/30 active:scale-95 transition-all flex items-center gap-2 backdrop-blur-lg border border-amber-400/50"
+                className="fixed top-4 right-[210px] z-50 px-4 py-2 bg-amber-500/90 hover:bg-amber-500 text-black font-black text-xs rounded-full shadow-lg shadow-amber-500/20 active:scale-95 transition-all hidden lg:flex items-center gap-2 backdrop-blur-lg border border-amber-400/50"
             >
-                <Package size={16} />
+                <Package size={14} />
                 RUPTURE
                 {ruptureCount > 0 && (
-                    <span className="bg-red-600 text-white text-xs font-black px-1.5 py-0.5 rounded-full min-w-[20px] text-center">
+                    <span className="bg-red-600 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full min-w-[18px] text-center">
                         {ruptureCount}
                     </span>
                 )}
@@ -111,8 +111,8 @@ export function StockAlertManager() {
                                             key={product.id}
                                             onClick={() => handleToggle(product)}
                                             className={`relative rounded-2xl p-4 flex flex-col items-center justify-center gap-2 transition-all active:scale-95 border-2 min-h-[100px] ${isOut
-                                                    ? 'bg-red-600/30 border-red-500 shadow-[0_0_20px_rgba(220,38,38,0.2)]'
-                                                    : 'bg-zinc-900 border-zinc-700 hover:border-emerald-500/50'
+                                                ? 'bg-red-600/30 border-red-500 shadow-[0_0_20px_rgba(220,38,38,0.2)]'
+                                                : 'bg-zinc-900 border-zinc-700 hover:border-emerald-500/50'
                                                 }`}
                                         >
                                             <span className="text-2xl">{product.emoji}</span>
