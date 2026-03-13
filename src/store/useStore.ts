@@ -163,21 +163,23 @@ export const useSystemStore = create<SystemState>()(
                     cartState.clearCart();
 
                     // === WRITE 2: Direct Supabase — for cross-device visibility & Realtime alerts ===
-                    // This runs AFTER local write succeeds. Non-blocking: failures don't affect local UX.
                     if (supabase) {
-                        (async () => {
-                            try {
-                                // Insert order row — this triggers the Realtime event on other devices
-                                const { error: orderError } = await supabase!.from('pos_orders').upsert({
-                                    id: orderId,
-                                    total,
-                                    status: 'completed',
-                                    payment_method: payments[0].method,
-                                    payment_details: payments,
-                                    created_at: createdAt,
-                                    source_device: deviceId,
-                                });
-                                if (orderError) throw orderError;
+                        try {
+                            // Insert order row — triggers the Realtime INSERT event
+                            const { error: orderError, data: orderData } = await supabase.from('pos_orders').upsert({
+                                id: orderId,
+                                total,
+                                status: 'completed',
+                                payment_method: payments[0].method,
+                                payment_details: payments, // jsonb column accepts JS objects directly
+                                created_at: createdAt,
+                                source_device: deviceId,
+                            }).select();
+
+                            if (orderError) {
+                                console.error('[Checkout] Supabase order write FAILED:', JSON.stringify(orderError));
+                            } else {
+                                console.log('[Checkout] Order written to Supabase:', orderData);
 
                                 // Insert items — these appear in the alert details
                                 const supabaseItems = itemsSnapshot.map(item => ({
@@ -191,15 +193,18 @@ export const useSystemStore = create<SystemState>()(
                                     selected_modifiers: { mods: item.selectedModifiers, note: item.note },
                                 }));
 
-                                const { error: itemsError } = await supabase!.from('pos_order_items').insert(supabaseItems);
-                                if (itemsError) throw itemsError;
-
-                                console.log('[Checkout] Synced order', orderId, 'to Supabase successfully.');
-                            } catch (syncErr) {
-                                // Non-fatal: order is already saved locally
-                                console.warn('[Checkout] Supabase sync failed (order saved locally):', syncErr);
+                                const { error: itemsError } = await supabase.from('pos_order_items').insert(supabaseItems);
+                                if (itemsError) {
+                                    console.error('[Checkout] Supabase items write FAILED:', JSON.stringify(itemsError));
+                                } else {
+                                    console.log('[Checkout] Items written to Supabase:', supabaseItems.length, 'items');
+                                }
                             }
-                        })();
+                        } catch (syncErr) {
+                            console.error('[Checkout] Supabase sync exception:', syncErr);
+                        }
+                    } else {
+                        console.warn('[Checkout] supabase client is null — check env vars');
                     }
 
                 } catch (error) {
