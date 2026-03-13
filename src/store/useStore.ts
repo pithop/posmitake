@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import { CartItem, Product, ModifierOption, Payment } from '@/types';
+import { CartItem, Product, ModifierOption, Payment, OrderType } from '@/types';
 import { getPowerSyncDatabase } from '@/lib/powersync/PowerSyncDb';
 import { supabase } from '@/lib/supabase';
 
@@ -18,7 +18,7 @@ interface SystemState {
     orderIdCounter: number;
     deviceId: string;
     uiZoomLevel: number;
-    checkout: (payments: Payment[]) => Promise<void>;
+    checkout: (payments: Payment[], orderType: OrderType) => Promise<void>;
     resetDaily: () => void;
     setDeviceId: (id: string) => void;
     setUiZoomLevel: (level: number) => void;
@@ -113,7 +113,7 @@ export const useSystemStore = create<SystemState>()(
             setDeviceId: (id) => set({ deviceId: id }),
             setUiZoomLevel: (level) => set({ uiZoomLevel: level }),
 
-            checkout: async (payments: Payment[]) => {
+            checkout: async (payments: Payment[], orderType: OrderType) => {
                 const cartState = useCartStore.getState();
                 if (cartState.items.length === 0) return;
 
@@ -124,6 +124,7 @@ export const useSystemStore = create<SystemState>()(
                 const createdAt = new Date(timestamp).toISOString();
                 const paymentDetailsJson = JSON.stringify(payments);
                 const itemsSnapshot = [...cartState.items];
+                const orderTypeValue = orderType || 'sur_place';
 
                 try {
                     const db = getPowerSyncDatabase();
@@ -131,9 +132,9 @@ export const useSystemStore = create<SystemState>()(
                     // === WRITE 1: Local SQLite (PowerSync) — for local history & offline ===
                     await db.writeTransaction(async (tx) => {
                         await tx.execute(
-                            `INSERT INTO pos_orders (id, total, status, payment_method, payment_details, created_at, source_device)
-                             VALUES (?, ?, ?, ?, ?, ?, ?)`,
-                            [orderId, total, 'completed', payments[0].method, paymentDetailsJson, createdAt, deviceId]
+                            `INSERT INTO pos_orders (id, total, status, payment_method, payment_details, created_at, source_device, order_type)
+                             VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+                            [orderId, total, 'completed', payments[0].method, paymentDetailsJson, createdAt, deviceId, orderTypeValue]
                         );
 
                         for (const item of itemsSnapshot) {
@@ -171,9 +172,10 @@ export const useSystemStore = create<SystemState>()(
                                 total,
                                 status: 'completed',
                                 payment_method: payments[0].method,
-                                payment_details: payments, // jsonb column accepts JS objects directly
+                                payment_details: payments,
                                 created_at: createdAt,
                                 source_device: deviceId,
+                                order_type: orderTypeValue,
                             }).select();
 
                             if (orderError) {

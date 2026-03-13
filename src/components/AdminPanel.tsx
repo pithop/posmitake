@@ -45,6 +45,7 @@ export function AdminPanel() {
         items: [],
         paymentMethod: o.payment_method || 'card',
         sourceDevice: o.source_device || 'unknown',
+        orderType: o.order_type || 'sur_place',
         payments: o.payment_details ? (typeof o.payment_details === 'string' ? JSON.parse(o.payment_details) : o.payment_details) : [],
     })), [supabaseOrders]);
 
@@ -252,6 +253,14 @@ export function AdminPanel() {
                                                                     <span className="font-mono font-bold text-white bg-zinc-800 px-2 py-1 rounded">{order.id}</span>
                                                                     <span className="text-zinc-400 text-sm">
                                                                         {new Date(order.timestamp).toLocaleTimeString()}
+                                                                    </span>
+                                                                    <span className={cn(
+                                                                        "text-xs font-bold px-2 py-0.5 rounded",
+                                                                        order.orderType === 'emporte'
+                                                                            ? "bg-sky-500/20 text-sky-400"
+                                                                            : "bg-amber-500/20 text-amber-400"
+                                                                    )}>
+                                                                        {order.orderType === 'emporte' ? '📦 Emporté' : '🍽️ Sur Place'}
                                                                     </span>
                                                                 </div>
                                                             </div>

@@ -136,6 +136,8 @@ export function OrderAlertManager() {
                             NOUVELLE COMMANDE
                         </h1>
                         <p className="text-xl md:text-3xl font-bold text-red-100 mt-1 md:mt-2">
+                            {incomingOrder.order.order_type === 'emporte' ? '📦 EMPORTÉ' : '🍽️ SUR PLACE'}
+                            &nbsp;·&nbsp;
                             Machine : {incomingOrder.order.source_device || 'Inconnue'} · Total : {Number(incomingOrder.order.total).toFixed(2)} €
                         </p>
                     </div>

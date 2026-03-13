@@ -4,15 +4,15 @@ import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useCartStore } from '@/store/useStore';
 import { formatPrice } from '@/lib/utils';
-import { Payment, PaymentMethodType } from '@/types';
-import { X, CreditCard, Banknote, Ticket, CheckCircle2, Trash2, Smartphone, Gift, FileSignature, Delete } from 'lucide-react';
+import { Payment, PaymentMethodType, OrderType } from '@/types';
+import { X, CreditCard, Banknote, Ticket, CheckCircle2, Trash2, Smartphone, Gift, FileSignature, Delete, UtensilsCrossed, ShoppingBag } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface PaymentModalProps {
     isOpen: boolean;
     totalAmount: number;
     onClose: () => void;
-    onConfirm: (payments: Payment[]) => void;
+    onConfirm: (payments: Payment[], orderType: OrderType) => void;
 }
 
 const PAYMENT_METHODS: { id: PaymentMethodType; label: string; icon: any; color: string }[] = [
@@ -27,6 +27,7 @@ export function PaymentModal({ isOpen, totalAmount, onClose, onConfirm }: Paymen
     const [payments, setPayments] = useState<Payment[]>([]);
     const [inputAmount, setInputAmount] = useState<string>('');
     const [mounted, setMounted] = useState(false);
+    const [orderType, setOrderType] = useState<OrderType>('sur_place');
 
     useEffect(() => {
         setMounted(true);
@@ -36,6 +37,7 @@ export function PaymentModal({ isOpen, totalAmount, onClose, onConfirm }: Paymen
         if (isOpen) {
             setPayments([]);
             setInputAmount('');
+            setOrderType('sur_place');
         }
     }, [isOpen, totalAmount]);
 
@@ -86,7 +88,7 @@ export function PaymentModal({ isOpen, totalAmount, onClose, onConfirm }: Paymen
 
     const handleConfirm = () => {
         if (!isComplete) return;
-        onConfirm(payments);
+        onConfirm(payments, orderType);
     };
 
     if (!isOpen) return null;
@@ -112,11 +114,41 @@ export function PaymentModal({ isOpen, totalAmount, onClose, onConfirm }: Paymen
                 {/* LEFT PANE: Summary */}
                 <div className="w-full lg:w-[400px] xl:w-[450px] bg-secondary/30 lg:rounded-[2rem] border-r lg:border border-white/5 flex flex-col h-1/2 lg:h-full shrink-0">
                     {/* Header */}
-                    <div className="p-8 pb-6 flex items-center justify-between">
+                    <div className="p-8 pb-4 flex items-center justify-between">
                         <h2 className="text-3xl font-heading font-medium tracking-tight">Checkout</h2>
                         <button onClick={onClose} className="hidden lg:flex p-3 hover:bg-white/10 rounded-full transition-colors bg-white/5 border border-white/5">
                             <X size={24} className="text-muted-foreground hover:text-white" />
                         </button>
+                    </div>
+
+                    {/* Sur Place / Emporté Toggle */}
+                    <div className="px-6 pb-4">
+                        <div className="flex rounded-2xl overflow-hidden border border-white/10 bg-black/40">
+                            <button
+                                onClick={() => setOrderType('sur_place')}
+                                className={cn(
+                                    "flex-1 flex items-center justify-center gap-3 py-4 font-bold text-lg transition-all",
+                                    orderType === 'sur_place'
+                                        ? "bg-amber-500 text-black shadow-lg"
+                                        : "text-white/40 hover:text-white/70 hover:bg-white/5"
+                                )}
+                            >
+                                <UtensilsCrossed size={22} />
+                                Sur Place
+                            </button>
+                            <button
+                                onClick={() => setOrderType('emporte')}
+                                className={cn(
+                                    "flex-1 flex items-center justify-center gap-3 py-4 font-bold text-lg transition-all",
+                                    orderType === 'emporte'
+                                        ? "bg-sky-500 text-black shadow-lg"
+                                        : "text-white/40 hover:text-white/70 hover:bg-white/5"
+                                )}
+                            >
+                                <ShoppingBag size={22} />
+                                Emporté
+                            </button>
+                        </div>
                     </div>
 
                     {/* Order Items (Mini Ticket) */}

@@ -6,7 +6,7 @@ import { Trash2, Minus, Plus, CreditCard, ShoppingBag } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 import { PaymentModal } from './PaymentModal';
-import { Payment } from '@/types';
+import { Payment, OrderType } from '@/types';
 
 export function CartSidebar() {
     const { items, total, removeFromCart, updateQuantity, clearCart } = useCartStore();
@@ -23,8 +23,8 @@ export function CartSidebar() {
         setIsPaymentModalOpen(true);
     };
 
-    const handleConfirmPayment = async (payments: Payment[]) => {
-        await checkout(payments);
+    const handleConfirmPayment = async (payments: Payment[], orderType: OrderType) => {
+        await checkout(payments, orderType);
         setIsPaymentModalOpen(false);
     };
 

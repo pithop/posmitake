@@ -42,7 +42,11 @@ export interface Order {
     status: 'completed' | 'pending' | 'cancelled';
     payments?: Payment[];
     paymentMethod?: string;
+    orderType?: OrderType;
+    sourceDevice?: string;
 }
+
+export type OrderType = 'sur_place' | 'emporte';
 
 export type PaymentMethodType =
     | 'cash'
