@@ -161,16 +161,16 @@ export function PaymentModal({ isOpen, totalAmount, onClose, onConfirm }: Paymen
                     <div className="px-6 pb-3 flex gap-2">
                         <input
                             type="text"
-                            placeholder="Nom client (optionnel)"
+                            placeholder="👤 Nom client"
                             value={customerName}
                             onChange={(e) => setCustomerName(e.target.value)}
-                            className="flex-1 bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white text-sm font-medium placeholder-white/30 focus:outline-none focus:border-white/30"
+                            className="flex-1 bg-black/40 border border-white/15 rounded-xl px-4 py-4 text-white text-lg font-bold placeholder-white/40 focus:outline-none focus:border-amber-500/50"
                         />
                         <input
                             type="time"
                             value={pickupTime}
                             onChange={(e) => setPickupTime(e.target.value)}
-                            className="w-[110px] bg-black/40 border border-white/10 rounded-xl px-3 py-3 text-white text-sm font-mono font-bold focus:outline-none focus:border-white/30 text-center"
+                            className="w-[120px] bg-black/40 border border-white/15 rounded-xl px-3 py-4 text-white text-lg font-mono font-black focus:outline-none focus:border-amber-500/50 text-center"
                         />
                     </div>
 

@@ -186,16 +186,36 @@ export function OrderAlertManager() {
                                 <BellRing size={48} className="hidden md:block" />
                             </div>
                             <div className="min-w-0">
-                                <h1 className="text-2xl md:text-5xl font-black tracking-wider uppercase">
+                                <h1 className="text-2xl md:text-4xl font-black tracking-wider uppercase">
                                     NOUVELLE COMMANDE
                                 </h1>
-                                <p className="text-base md:text-2xl font-bold text-red-100 mt-1 truncate">
-                                    {currentAlert.order_type === 'emporte' ? '📦 EMPORTÉ' : '🍽️ SUR PLACE'}
-                                    {' · '}
-                                    {currentAlert.total.toFixed(2)} €
-                                    {currentAlert.customer_name && ` · 👤 ${currentAlert.customer_name}`}
-                                    {currentAlert.pickup_time && ` · 🕐 ${currentAlert.pickup_time}`}
-                                </p>
+                                {/* Order type — huge badge */}
+                                <div className="mt-2 flex flex-wrap items-center gap-3">
+                                    <span className={`text-xl md:text-3xl font-black px-4 py-1 rounded-xl ${currentAlert.order_type === 'emporte'
+                                            ? 'bg-sky-500 text-white'
+                                            : 'bg-orange-500 text-white'
+                                        }`}>
+                                        {currentAlert.order_type === 'emporte' ? '📦 EMPORTÉ' : '🍽️ SUR PLACE'}
+                                    </span>
+                                    <span className="text-xl md:text-3xl font-black text-white">
+                                        {currentAlert.total.toFixed(2)} €
+                                    </span>
+                                </div>
+                                {/* Customer name + time — big and clear */}
+                                {(currentAlert.customer_name || currentAlert.pickup_time) && (
+                                    <div className="mt-2 flex flex-wrap items-center gap-3">
+                                        {currentAlert.customer_name && (
+                                            <span className="text-xl md:text-3xl font-black text-yellow-300">
+                                                👤 {currentAlert.customer_name}
+                                            </span>
+                                        )}
+                                        {currentAlert.pickup_time && (
+                                            <span className="text-xl md:text-3xl font-black text-green-300">
+                                                🕐 {currentAlert.pickup_time}
+                                            </span>
+                                        )}
+                                    </div>
+                                )}
                             </div>
                         </div>
 
