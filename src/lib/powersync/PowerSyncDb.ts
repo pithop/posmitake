@@ -25,19 +25,26 @@ export class SupabaseConnector {
         try {
             for (const op of transaction.crud) {
                 const table = op.table;
-                const data = op.opData;
+                // op.opData contains column values but NOT the primary key 'id'
+                // op.id is the PowerSync row id = our primary key
+                const data = op.opData || {};
+                const rowWithId = { id: op.id, ...data };
 
                 if (op.op === 'PUT') {
-                    await supabase.from(table).upsert(data || {});
+                    const { error } = await supabase.from(table).upsert(rowWithId);
+                    if (error) throw error;
                 } else if (op.op === 'PATCH') {
-                    await supabase.from(table).update(data || {}).eq('id', data?.id);
+                    const { error } = await supabase.from(table).update(data).eq('id', op.id);
+                    if (error) throw error;
                 } else if (op.op === 'DELETE') {
-                    await supabase.from(table).delete().eq('id', data?.id);
+                    const { error } = await supabase.from(table).delete().eq('id', op.id);
+                    if (error) throw error;
                 }
             }
             await transaction.complete();
         } catch (error) {
-            console.error('Data upload failed:', error);
+            console.error('[PowerSync] Data upload failed:', error);
+            // Don't call complete() on error — PowerSync will retry
         }
     }
 }

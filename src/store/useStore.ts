@@ -142,7 +142,6 @@ export const useSystemStore = create<SystemState>()(
 
                         // 2. Insert Items
                         for (const item of cartState.items) {
-                            // Embed note into modifiers JSON or a separate field if added. We'll tuck it into modifiers for backward compatibility in DB.
                             const metadata = { mods: item.selectedModifiers, note: item.note };
                             await tx.execute(
                                 `INSERT INTO pos_order_items (id, order_id, product_id, product_name, quantity, unit_price, total_price, selected_modifiers)
@@ -150,7 +149,7 @@ export const useSystemStore = create<SystemState>()(
                                 [
                                     crypto.randomUUID(),
                                     orderId,
-                                    item.menuItem.id,
+                                    null, // null to avoid FK constraint on Supabase — product_name is the source of truth
                                     item.menuItem.name,
                                     item.quantity,
                                     item.totalPrice / item.quantity,
