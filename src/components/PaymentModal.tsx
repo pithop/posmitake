@@ -103,7 +103,7 @@ export function PaymentModal({ isOpen, totalAmount, onClose, onConfirm }: Paymen
     if (!mounted || typeof document === 'undefined') return null;
 
     return createPortal(
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 backdrop-blur-3xl animate-fade-in sm:p-6 touch-none">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 backdrop-blur-3xl animate-fade-in sm:p-6">
             <div className="w-full h-full max-w-[1400px] mx-auto flex flex-col lg:flex-row gap-0 lg:gap-6 bg-background sm:rounded-[2.5rem] overflow-hidden shadow-2xl border border-white/5 relative">
 
                 {/* Close Button Mobile */}
