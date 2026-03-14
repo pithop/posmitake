@@ -137,7 +137,10 @@ export const useSystemStore = create<SystemState>()(
             tvaRate: 20,
             settings: null,
 
-            setDeviceId: (id) => set({ deviceId: id }),
+            setDeviceId: (id) => {
+                logger.setDeviceId(id);
+                set({ deviceId: id });
+            },
             setUiZoomLevel: (level) => set({ uiZoomLevel: level }),
             setPrinterName: (name) => set({ printerName: name }),
             setTvaRate: (rate) => set({ tvaRate: rate }),
@@ -404,6 +407,13 @@ export const useSystemStore = create<SystemState>()(
                                 items_json: itemsForAlert,
                             });
 
+                            logger.info('ORDER', 'ORDER_HELD', {
+                                order_id: orderId,
+                                total,
+                                order_type: orderTypeValue,
+                                customer_name: custName
+                            });
+
                             // Register ACK tracking for this new held order
                             get().registerPendingAck(orderId);
 
@@ -447,6 +457,13 @@ export const useSystemStore = create<SystemState>()(
                     // Update daily revenue logic in store
                     const totalPaid = payments.reduce((sum, p) => sum + p.amount, 0);
                     set((state) => ({ dailyRevenue: state.dailyRevenue + totalPaid }));
+
+                    logger.info('ORDER', 'ORDER_PAID', {
+                        order_id: orderId,
+                        total_paid: totalPaid,
+                        payment_method: paymentMethod,
+                        sent_rappel: sendSecondAlert
+                    });
 
                     // === UPDATE Supabase ===
                     if (supabase) {

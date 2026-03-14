@@ -2,6 +2,7 @@
 
 import { useSystemStore } from "@/store/useStore";
 import { useEffect, useState } from "react";
+import { logger } from "@/lib/logger";
 
 export function ClientLayout({ children }: { children: React.ReactNode }) {
   const { uiZoomLevel } = useSystemStore();
@@ -9,6 +10,11 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     setMounted(true);
+    // Ensure logger picks up the device ID from the restored state
+    const { deviceId } = useSystemStore.getState();
+    if (deviceId) {
+      logger.setDeviceId(deviceId);
+    }
   }, []);
 
   // When unmounted during SSR, style defaults to CSS. 

@@ -14,6 +14,7 @@
     "@powersync/web": "^1.31.0",
     "@supabase/supabase-js": "^2.90.1",
     "clsx": "^2.1.1",
+    "date-fns": "^4.1.0",
     "lucide-react": "^0.562.0",
     "next": "16.1.1",
     "react": "19.2.3",
