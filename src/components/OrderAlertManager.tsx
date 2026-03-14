@@ -4,7 +4,7 @@ import { useEffect, useState, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { supabase } from '@/lib/supabase';
 import { useSystemStore } from '@/store/useStore';
-import { BellRing, X, ChevronRight, Minimize2 } from 'lucide-react';
+import { BellRing, X, ChevronRight, ChevronLeft, Minimize2 } from 'lucide-react';
 
 // Audio
 let audioCtx: AudioContext | null = null;
@@ -43,6 +43,8 @@ interface AlertOrder {
 export function OrderAlertManager() {
     // Queue of pending alerts
     const [alertQueue, setAlertQueue] = useState<AlertOrder[]>([]);
+    // Index of the currently viewed alert
+    const [currentIndex, setCurrentIndex] = useState(0);
     // Whether the full alert modal is open or minimized to bubble
     const [isExpanded, setIsExpanded] = useState(false);
     const [mounted, setMounted] = useState(false);
@@ -141,14 +143,21 @@ export function OrderAlertManager() {
         stopAlertSound();
     }, []);
 
-    // ACKNOWLEDGE — fully dismiss the current order from queue
-    const handleAcknowledge = useCallback(() => {
+    // ACKNOWLEDGE — fully dismiss the CURRENT order from queue
+    const handleAcknowledge = useCallback((indexToRemove: number) => {
         setAlertQueue(prev => {
-            const next = prev.slice(1);
+            const next = [...prev];
+            next.splice(indexToRemove, 1);
+
             if (next.length === 0) {
                 stopAlertSound();
                 setIsExpanded(false);
+                setCurrentIndex(0);
+            } else if (indexToRemove >= next.length) {
+                // If we removed the last item in the list, step back one
+                setCurrentIndex(Math.max(0, next.length - 1));
             }
+
             return next;
         });
     }, []);
@@ -156,7 +165,9 @@ export function OrderAlertManager() {
     if (!mounted) return null;
 
     const pendingCount = alertQueue.length;
-    const currentAlert = alertQueue[0];
+    // Ensure index is always within bounds
+    const safeIndex = Math.min(Math.max(0, currentIndex), Math.max(0, pendingCount - 1));
+    const currentAlert = alertQueue[safeIndex];
 
     // Nothing pending — render nothing
     if (pendingCount === 0) return null;
@@ -192,8 +203,8 @@ export function OrderAlertManager() {
                                 {/* Order type — huge badge */}
                                 <div className="mt-2 flex flex-wrap items-center gap-3">
                                     <span className={`text-xl md:text-3xl font-black px-4 py-1 rounded-xl ${currentAlert.order_type === 'emporte'
-                                            ? 'bg-sky-500 text-white'
-                                            : 'bg-orange-500 text-white'
+                                        ? 'bg-sky-500 text-white'
+                                        : 'bg-orange-500 text-white'
                                         }`}>
                                         {currentAlert.order_type === 'emporte' ? '📦 EMPORTÉ' : '🍽️ SUR PLACE'}
                                     </span>
@@ -219,12 +230,32 @@ export function OrderAlertManager() {
                             </div>
                         </div>
 
-                        <div className="flex items-center gap-2 flex-shrink-0">
+                        <div className="flex items-center gap-2 md:gap-4 flex-shrink-0">
+                            {/* Navigation controls if multiple alerts */}
                             {pendingCount > 1 && (
-                                <div className="bg-yellow-400 text-black font-black text-base md:text-xl px-3 py-1.5 rounded-xl animate-pulse">
-                                    +{pendingCount - 1}
+                                <div className="flex items-center bg-black/50 rounded-xl border border-white/20 p-1 md:p-2">
+                                    <button
+                                        onClick={() => setCurrentIndex(Math.max(0, safeIndex - 1))}
+                                        disabled={safeIndex === 0}
+                                        className="p-2 md:p-3 text-white disabled:opacity-30 hover:bg-white/10 rounded-lg active:scale-95 transition-all"
+                                    >
+                                        <ChevronLeft size={24} className="md:w-8 md:h-8" />
+                                    </button>
+
+                                    <div className="px-3 md:px-5 font-black text-xl md:text-2xl text-yellow-400 min-w-[80px] text-center">
+                                        {safeIndex + 1} / {pendingCount}
+                                    </div>
+
+                                    <button
+                                        onClick={() => setCurrentIndex(Math.min(pendingCount - 1, safeIndex + 1))}
+                                        disabled={safeIndex === pendingCount - 1}
+                                        className="p-2 md:p-3 text-white disabled:opacity-30 hover:bg-white/10 rounded-lg active:scale-95 transition-all"
+                                    >
+                                        <ChevronRight size={24} className="md:w-8 md:h-8" />
+                                    </button>
                                 </div>
                             )}
+
                             {/* Minimize button (X → becomes floating bubble) */}
                             <button onClick={handleMinimize}
                                 className="h-12 w-12 md:h-16 md:w-16 bg-black/50 hover:bg-black/70 border-2 border-white/30 text-white rounded-xl flex items-center justify-center active:scale-95 transition-all"
@@ -284,19 +315,10 @@ export function OrderAlertManager() {
 
                     {/* Footer — main action: ACKNOWLEDGE */}
                     <div className="p-3 md:p-6 bg-black/40 flex justify-center flex-shrink-0">
-                        <button onClick={handleAcknowledge}
+                        <button onClick={() => handleAcknowledge(safeIndex)}
                             className="w-full max-w-3xl py-5 md:py-7 bg-white hover:bg-zinc-200 text-red-600 font-black text-xl md:text-3xl rounded-2xl shadow-[0_0_60px_rgba(255,255,255,0.2)] active:scale-[0.98] flex justify-center items-center gap-3 md:gap-5">
-                            {pendingCount > 1 ? (
-                                <>
-                                    <ChevronRight size={32} />
-                                    SUIVANTE ({pendingCount - 1} restante{pendingCount > 2 ? 's' : ''})
-                                </>
-                            ) : (
-                                <>
-                                    <BellRing size={32} />
-                                    ✅ PRIS EN CHARGE
-                                </>
-                            )}
+                            <BellRing size={32} />
+                            ✅ MARQUER COMME PRIS EN CHARGE
                         </button>
                     </div>
                 </div>
