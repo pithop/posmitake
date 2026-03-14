@@ -13,10 +13,11 @@ const STOCK_PRODUCTS = [
     { id: 'maze_men', name: 'Mazé Men', emoji: '🍜' },
     { id: 'kara_age', name: 'Kara Age', emoji: '🍗' },
     { id: 'ebi_fried', name: 'Ebi Fried', emoji: '🍤' },
-    { id: 'gyoza_6', name: 'Gyoza par 6', emoji: '🥟' },
     { id: 'gyoza_poulet', name: 'Gyoza Poulet', emoji: '🥟' },
+    { id: 'gyoza_crevette', name: 'Gyoza Crevette', emoji: '🥟' },
+    { id: 'yakitori_classique', name: 'Yakitori Classique', emoji: '🍢' },
+    { id: 'yakitori_tsukune', name: 'Yakitori Tsukune', emoji: '🍢' },
     { id: 'korokke', name: 'Korokke', emoji: '🥔' },
-    { id: 'yakitori', name: 'Yakitori', emoji: '🍢' },
     { id: 'takoyaki', name: 'Takoyaki', emoji: '🐙' },
     { id: 'harumaki', name: 'Harumaki', emoji: '🌯' },
 ];

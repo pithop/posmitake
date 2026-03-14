@@ -11,7 +11,7 @@ import { Search } from 'lucide-react';
 import { useQuery } from '@powersync/react';
 import { seedDatabase } from '@/lib/seeder';
 
-// Maps stock alert IDs to product name fragments for matching
+// Maps stock IDs to product name fragments they directly match
 const STOCK_ID_TO_NAME: Record<string, string[]> = {
     'ramen_chashu': ['cha-shu', 'chashu'],
     'ramen_classic': ['ramen tonkotsu classic'],
@@ -19,12 +19,28 @@ const STOCK_ID_TO_NAME: Record<string, string[]> = {
     'maze_men': ['mazé men', 'maze men'],
     'kara_age': ['kara age', 'karaage'],
     'ebi_fried': ['ebi fried'],
-    'gyoza_6': ['gyoza par 6'],
     'gyoza_poulet': ['gyoza poulet'],
+    'gyoza_crevette': ['gyoza crevette'],
+    'yakitori_classique': ['yakitori classique'],
+    'yakitori_tsukune': ['yakitori tsukune'],
     'korokke': ['korokke'],
-    'yakitori': ['yakitori'],
     'takoyaki': ['takoyaki'],
     'harumaki': ['harumaki'],
+};
+
+// Dependency rules: if ANY of the required stock IDs are out → this product is also out
+// Key = product name fragment, Value = list of stock IDs (OR logic: if any is out → product is out)
+const STOCK_DEPENDENCIES: Record<string, string[]> = {
+    // Gyoza mix (par 6 poulet,crevettes,legumes) needs BOTH poulet AND crevette
+    'gyoza par 6': ['gyoza_poulet', 'gyoza_crevette'],
+    // Yakitori mixte (classique et tsukune) needs BOTH classique AND tsukune
+    'yakitori classique et tsukune': ['yakitori_classique', 'yakitori_tsukune'],
+    // Yakitori plateau 4 brochettes (mix) needs BOTH
+    'yakitori plateau - 4 brochettes': ['yakitori_classique', 'yakitori_tsukune'],
+    // Yakitori plateau 4 Classique → needs classique
+    'yakitori plateau 4 classique': ['yakitori_classique'],
+    // Yakitori plateau 4 Tsukune → needs tsukune
+    'yakitori plateau 4 tsukune': ['yakitori_tsukune'],
 };
 
 export function MenuGrid() {
@@ -32,14 +48,25 @@ export function MenuGrid() {
     const deviceId = useSystemStore((state) => state.deviceId);
     const { outOfStock } = useStockStatus();
 
-    // Check if a product name matches any out-of-stock item
+    // Check if a product name matches any out-of-stock item (with dependency logic)
     const isProductOutOfStock = useCallback((productName: string) => {
         const lowerName = productName.toLowerCase();
+
+        // 1. Direct match: product name contains a fragment of an out-of-stock item
         for (const [stockId, fragments] of Object.entries(STOCK_ID_TO_NAME)) {
             if (outOfStock.has(stockId)) {
                 if (fragments.some(f => lowerName.includes(f))) return true;
             }
         }
+
+        // 2. Dependency match: mix products that depend on ingredients
+        for (const [depFragment, requiredStockIds] of Object.entries(STOCK_DEPENDENCIES)) {
+            if (lowerName.includes(depFragment)) {
+                // If ANY required ingredient is out of stock → this mix is out
+                if (requiredStockIds.some(id => outOfStock.has(id))) return true;
+            }
+        }
+
         return false;
     }, [outOfStock]);
 
