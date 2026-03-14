@@ -5,6 +5,7 @@ import { PowerSyncProvider } from "@/components/PowerSyncProvider";
 import { ClientLayout } from "@/components/ClientLayout";
 import { OrderAlertManager } from "@/components/OrderAlertManager";
 import { StockAlertManager } from "@/components/StockAlertManager";
+import { logger } from "@/lib/logger";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const outfit = Outfit({ subsets: ["latin"], variable: "--font-outfit" });
