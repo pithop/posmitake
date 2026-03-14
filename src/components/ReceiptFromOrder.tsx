@@ -22,6 +22,7 @@ interface Props {
 
 export function ReceiptFromOrder({ data }: Props) {
     const tvaRate = useSystemStore(state => state.tvaRate) || 20;
+    const settings = useSystemStore(state => state.settings);
 
     if (!data) return null;
 
@@ -33,9 +34,17 @@ export function ReceiptFromOrder({ data }: Props) {
         <div id="receipt-print-area" className="receipt-container">
             {/* Header */}
             <div className="receipt-header">
-                <div className="receipt-logo">MITAKE RAMEN</div>
-                <div className="receipt-sub">Japanese Kitchen</div>
-                <div className="receipt-divider">{'='.repeat(32)}</div>
+                <div className="receipt-logo">{settings?.store_name || 'MITAKE RAMEN'}</div>
+                <div className="receipt-sub">{settings?.subtitle || 'Japanese Kitchen'}</div>
+            </div>
+
+            <div style={{ borderBottom: '1px dashed #000', margin: '8px 0' }}></div>
+
+            {/* Restaurant Info */}
+            <div className="receipt-center receipt-small" style={{ marginBottom: '12px' }}>
+                <div>{settings?.address || '569 Av. Henri Mauriat, 13100 Aix-en-Provence'}</div>
+                <div>Tél: {settings?.phone || '09 72 21 38 99'}</div>
+                {settings?.siret && <div>SIRET: {settings.siret}</div>}
             </div>
 
             {/* Order Info */}
@@ -74,7 +83,7 @@ export function ReceiptFromOrder({ data }: Props) {
                 )}
             </div>
 
-            <div className="receipt-divider">{'-'.repeat(32)}</div>
+            <div style={{ borderBottom: '1px dashed #000', margin: '8px 0' }}></div>
 
             {/* Items */}
             <div className="receipt-items">
@@ -118,7 +127,7 @@ export function ReceiptFromOrder({ data }: Props) {
                 })}
             </div>
 
-            <div className="receipt-divider">{'-'.repeat(32)}</div>
+            <div style={{ borderBottom: '1px dashed #000', margin: '8px 0' }}></div>
 
             {/* Totals */}
             <div className="receipt-totals">
@@ -136,7 +145,7 @@ export function ReceiptFromOrder({ data }: Props) {
                 </div>
             </div>
 
-            <div className="receipt-divider">{'-'.repeat(32)}</div>
+            <div style={{ borderBottom: '1px dashed #000', margin: '8px 0' }}></div>
 
             {/* Payments or Pending */}
             <div className="receipt-payments">
@@ -157,9 +166,9 @@ export function ReceiptFromOrder({ data }: Props) {
 
             {/* Footer */}
             <div className="receipt-footer">
-                <div className="receipt-divider">{'='.repeat(32)}</div>
-                <div className="receipt-center">Merci de votre visite !</div>
-                <div className="receipt-center receipt-small">MITAKE RAMEN — À bientôt</div>
+                <div style={{ borderTop: '1px dashed #000', paddingTop: '8px', marginTop: '8px' }}></div>
+                <div className="receipt-center">{settings?.footer_message_1 || 'Merci de votre visite !'}</div>
+                <div className="receipt-center receipt-small mt-1">{settings?.footer_message_2 || 'À très bientôt.'}</div>
             </div>
         </div>
     );

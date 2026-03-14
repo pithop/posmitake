@@ -4,6 +4,16 @@ import { CartItem, Product, ModifierOption, Payment, OrderType } from '@/types';
 import { getPowerSyncDatabase } from '@/lib/powersync/PowerSyncDb';
 import { supabase } from '@/lib/supabase';
 
+export interface PosSettings {
+    store_name: string;
+    subtitle: string;
+    address: string;
+    phone: string;
+    siret: string;
+    footer_message_1: string;
+    footer_message_2: string;
+}
+
 interface CartState {
     items: CartItem[];
     addToCart: (product: Product, modifiers?: ModifierOption[], note?: string) => void;
@@ -20,6 +30,9 @@ interface SystemState {
     uiZoomLevel: number;
     printerName: string;
     tvaRate: number;
+    settings: PosSettings | null;
+    fetchSettings: () => Promise<void>;
+    updateSettings: (newSettings: PosSettings) => Promise<void>;
     checkout: (payments: Payment[], orderType: OrderType, customerName: string, pickupTime: string) => Promise<void>;
     resetDaily: () => void;
     setDeviceId: (id: string) => void;
@@ -117,11 +130,57 @@ export const useSystemStore = create<SystemState>()(
             uiZoomLevel: 100,
             printerName: '',
             tvaRate: 20,
+            settings: null,
 
             setDeviceId: (id) => set({ deviceId: id }),
             setUiZoomLevel: (level) => set({ uiZoomLevel: level }),
             setPrinterName: (name) => set({ printerName: name }),
             setTvaRate: (rate) => set({ tvaRate: rate }),
+
+            fetchSettings: async () => {
+                if (!supabase) return;
+                try {
+                    const { data, error } = await supabase
+                        .from('pos_settings')
+                        .select('*')
+                        .eq('id', 1)
+                        .single();
+
+                    if (!error && data) {
+                        set({ settings: data });
+                    }
+                } catch (e) {
+                    console.error('[Admin] Failed to fetch settings:', e);
+                }
+            },
+
+            updateSettings: async (newSettings: PosSettings) => {
+                if (!supabase) return;
+                try {
+                    // Optimistic update
+                    set({ settings: newSettings });
+
+                    const { error } = await supabase
+                        .from('pos_settings')
+                        .update({
+                            store_name: newSettings.store_name,
+                            subtitle: newSettings.subtitle,
+                            address: newSettings.address,
+                            phone: newSettings.phone,
+                            siret: newSettings.siret,
+                            footer_message_1: newSettings.footer_message_1,
+                            footer_message_2: newSettings.footer_message_2,
+                            updated_at: new Date().toISOString()
+                        })
+                        .eq('id', 1);
+
+                    if (error) throw error;
+                } catch (e) {
+                    console.error('[Admin] Failed to update settings:', e);
+                    // Could revert here or just refetch
+                    get().fetchSettings();
+                }
+            },
 
             checkout: async (payments: Payment[], orderType: OrderType, customerName: string, pickupTime: string) => {
                 const cartState = useCartStore.getState();

@@ -13,7 +13,7 @@ import { createPortal } from 'react-dom';
 type Tab = 'dashboard' | 'onhold' | 'history' | 'products' | 'settings';
 
 export function AdminPanel() {
-    const { dailyRevenue, resetDaily, deviceId, setDeviceId, uiZoomLevel, setUiZoomLevel, printerName, setPrinterName, payOnHoldOrder, tvaRate, setTvaRate } = useSystemStore();
+    const { dailyRevenue, resetDaily, deviceId, setDeviceId, uiZoomLevel, setUiZoomLevel, printerName, setPrinterName, payOnHoldOrder, tvaRate, setTvaRate, settings, fetchSettings, updateSettings } = useSystemStore();
 
     // PowerSync Data (local) — for products
     const { data: productsData = [] } = useQuery('SELECT * FROM pos_products');
@@ -86,6 +86,22 @@ export function AdminPanel() {
     const [isOpen, setIsOpen] = useState(false);
     const [activeTab, setActiveTab] = useState<Tab>('dashboard');
     const [isClient, setIsClient] = useState(false);
+
+    // Fetch settings on mount
+    useEffect(() => {
+        if (isOpen) {
+            fetchSettings();
+        }
+    }, [isOpen, fetchSettings]);
+
+    // Ticket settings local state
+    const [localSettings, setLocalSettings] = useState<any>(null);
+
+    useEffect(() => {
+        if (settings && !localSettings) {
+            setLocalSettings(settings);
+        }
+    }, [settings, localSettings]);
 
     // Product Management State
     const [productSearch, setProductSearch] = useState('');
@@ -735,6 +751,104 @@ export function AdminPanel() {
                                                     <span>Écritures Géantes</span>
                                                 </div>
                                             </div>
+                                        </div>
+
+                                        <hr className="border-white/5" />
+
+                                        {/* Ticket Information Settings */}
+                                        <div className="space-y-4">
+                                            <div>
+                                                <h4 className="text-lg font-bold text-white flex items-center gap-2">
+                                                    📄 Informations du Ticket (Impression)
+                                                </h4>
+                                                <p className="text-zinc-400 text-sm mt-1">
+                                                    Gérez les informations d'en-tête et de pied de page pour vos tickets imprimés.
+                                                </p>
+                                            </div>
+
+                                            {localSettings && (
+                                                <div className="bg-zinc-900/50 p-6 rounded-2xl border border-zinc-800 space-y-4">
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                        <label className="block">
+                                                            <span className="text-sm font-medium text-zinc-300">Nom du Restaurant</span>
+                                                            <input
+                                                                type="text"
+                                                                value={localSettings.store_name}
+                                                                onChange={(e) => setLocalSettings({ ...localSettings, store_name: e.target.value })}
+                                                                className="mt-1 w-full bg-black/40 border border-zinc-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-white/20"
+                                                            />
+                                                        </label>
+                                                        <label className="block">
+                                                            <span className="text-sm font-medium text-zinc-300">Sous-titre / Catégorie</span>
+                                                            <input
+                                                                type="text"
+                                                                value={localSettings.subtitle}
+                                                                onChange={(e) => setLocalSettings({ ...localSettings, subtitle: e.target.value })}
+                                                                className="mt-1 w-full bg-black/40 border border-zinc-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-white/20"
+                                                            />
+                                                        </label>
+                                                        <label className="block md:col-span-2">
+                                                            <span className="text-sm font-medium text-zinc-300">Adresse</span>
+                                                            <input
+                                                                type="text"
+                                                                value={localSettings.address}
+                                                                onChange={(e) => setLocalSettings({ ...localSettings, address: e.target.value })}
+                                                                className="mt-1 w-full bg-black/40 border border-zinc-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-white/20"
+                                                            />
+                                                        </label>
+                                                        <label className="block">
+                                                            <span className="text-sm font-medium text-zinc-300">Téléphone</span>
+                                                            <input
+                                                                type="text"
+                                                                value={localSettings.phone}
+                                                                onChange={(e) => setLocalSettings({ ...localSettings, phone: e.target.value })}
+                                                                className="mt-1 w-full bg-black/40 border border-zinc-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-white/20"
+                                                            />
+                                                        </label>
+                                                        <label className="block">
+                                                            <span className="text-sm font-medium text-zinc-300">SIRET</span>
+                                                            <input
+                                                                type="text"
+                                                                value={localSettings.siret}
+                                                                onChange={(e) => setLocalSettings({ ...localSettings, siret: e.target.value })}
+                                                                className="mt-1 w-full bg-black/40 border border-zinc-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-white/20"
+                                                            />
+                                                        </label>
+                                                        <label className="block">
+                                                            <span className="text-sm font-medium text-zinc-300">Message Pied de page 1</span>
+                                                            <input
+                                                                type="text"
+                                                                value={localSettings.footer_message_1}
+                                                                onChange={(e) => setLocalSettings({ ...localSettings, footer_message_1: e.target.value })}
+                                                                className="mt-1 w-full bg-black/40 border border-zinc-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-white/20"
+                                                            />
+                                                        </label>
+                                                        <label className="block">
+                                                            <span className="text-sm font-medium text-zinc-300">Message Pied de page 2</span>
+                                                            <input
+                                                                type="text"
+                                                                value={localSettings.footer_message_2}
+                                                                onChange={(e) => setLocalSettings({ ...localSettings, footer_message_2: e.target.value })}
+                                                                className="mt-1 w-full bg-black/40 border border-zinc-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-white/20"
+                                                            />
+                                                        </label>
+                                                    </div>
+                                                    <button
+                                                        onClick={async () => {
+                                                            try {
+                                                                await updateSettings(localSettings);
+                                                                alert('✅ Informations du ticket sauvegardées');
+                                                            } catch (err) {
+                                                                alert('❌ Erreur lors de la sauvegarde');
+                                                            }
+                                                        }}
+                                                        className="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-black font-bold px-6 py-2.5 rounded-xl transition-all shadow-lg shadow-emerald-500/20"
+                                                    >
+                                                        <Save size={18} />
+                                                        Sauvegarder les infos du ticket
+                                                    </button>
+                                                </div>
+                                            )}
                                         </div>
 
                                         <hr className="border-white/5" />
