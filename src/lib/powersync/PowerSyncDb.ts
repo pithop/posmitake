@@ -30,6 +30,14 @@ export class SupabaseConnector {
                 const data = op.opData || {};
                 const rowWithId = { id: op.id, ...data };
 
+                if (table === 'pos_logs' && op.op === 'PUT') {
+                    // Logs are append-only. Use standard insert instead of upsert
+                    const { id, ...logData } = rowWithId; // don't override the pos_logs pg uuid if it errors
+                    const { error } = await supabase.from(table).insert(rowWithId);
+                    if (error) throw error;
+                    continue;
+                }
+
                 if (op.op === 'PUT') {
                     const { error } = await supabase.from(table).upsert(rowWithId);
                     if (error) throw error;
