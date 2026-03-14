@@ -149,14 +149,14 @@ class PosLogger {
                         [
                             entry.id,
                             entry.session_id,
-                            entry.trace_id,
+                            entry.trace_id ?? null,
                             entry.client_timestamp,
                             entry.level,
                             entry.category,
                             entry.event_name,
-                            entry.device_id,
-                            entry.user_id,
-                            entry.payload
+                            entry.device_id ?? null,
+                            entry.user_id ?? null,
+                            entry.payload ?? null
                         ]
                     );
                 }

@@ -31,10 +31,23 @@ export class SupabaseConnector {
                 const rowWithId = { id: op.id, ...data };
 
                 if (table === 'pos_logs' && op.op === 'PUT') {
-                    // Logs are append-only. Use standard insert instead of upsert
-                    const { id, ...logData } = rowWithId; // don't override the pos_logs pg uuid if it errors
-                    const { error } = await supabase.from(table).insert(rowWithId);
-                    if (error) throw error;
+                    // Logs are append-only. 
+                    const row = { ...rowWithId };
+
+                    // Supabase requires JSONB, so we parse the string back into an object
+                    if (typeof row.payload === 'string') {
+                        try {
+                            row.payload = JSON.parse(row.payload);
+                        } catch (e) {
+                            row.payload = { raw: row.payload };
+                        }
+                    }
+
+                    const { error } = await supabase.from(table).insert(row);
+                    if (error) {
+                        console.error('[PowerSync] Dropping invalid pos_logs row:', error);
+                        // Do NOT throw. If we throw, the queue gets permanently stuck.
+                    }
                     continue;
                 }
 
