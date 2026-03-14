@@ -87,7 +87,7 @@ export function AdminPanel() {
 
     // On-hold / En Attente state
     const [onHoldPaymentOrder, setOnHoldPaymentOrder] = useState<any | null>(null);
-    const [sendSecondAlert, setSendSecondAlert] = useState(false);
+    const [alertsToResend, setAlertsToResend] = useState<Record<string, boolean>>({});
 
     const [selectedHistoryDate, setSelectedHistoryDate] = useState(() => {
         const d = new Date();
@@ -275,6 +275,7 @@ export function AdminPanel() {
                                         ) : (
                                             pendingOrders.map(order => {
                                                 const alertCount = order.payments?.[0]?.alertCount || 1;
+                                                const isAlertChecked = alertsToResend[order.id] || false;
                                                 return (
                                                     <div key={order.id} className="bg-zinc-900/30 border border-zinc-800 rounded-xl p-4 flex flex-col md:flex-row gap-4 justify-between items-center transition-all hover:bg-zinc-800/30">
                                                         <div className="flex-1">
@@ -302,20 +303,15 @@ export function AdminPanel() {
                                                                     <input
                                                                         type="checkbox"
                                                                         disabled={alertCount >= 2}
-                                                                        checked={alertCount >= 2 ? false : sendSecondAlert}
-                                                                        onChange={(e) => setSendSecondAlert(e.target.checked)}
-                                                                        onClick={() => {
-                                                                            if (onHoldPaymentOrder?.id !== order.id) setOnHoldPaymentOrder(order);
-                                                                        }}
+                                                                        checked={alertCount >= 2 ? false : isAlertChecked}
+                                                                        onChange={(e) => setAlertsToResend(prev => ({ ...prev, [order.id]: e.target.checked }))}
+                                                                        onClick={(e) => e.stopPropagation()}
                                                                         className="accent-orange-500 w-4 h-4 cursor-pointer"
                                                                     />
                                                                     {alertCount >= 2 ? "Rappel déjà envoyé" : "Renvoyer alerte (Rappel)"}
                                                                 </label>
                                                                 <button
                                                                     onClick={() => {
-                                                                        if (onHoldPaymentOrder?.id !== order.id) {
-                                                                            setSendSecondAlert(false); // reset toggle when a new order is clicked
-                                                                        }
                                                                         setOnHoldPaymentOrder(order);
                                                                     }}
                                                                     className="bg-emerald-500 hover:bg-emerald-400 text-black font-bold px-6 py-2.5 rounded-xl transition-all active:scale-95 shadow-lg shadow-emerald-500/20"
@@ -738,9 +734,10 @@ export function AdminPanel() {
                     onClose={() => setOnHoldPaymentOrder(null)}
                     onConfirm={async (payments) => {
                         const rawData = supabaseOrders.find(o => o.id === onHoldPaymentOrder.id);
-                        await payOnHoldOrder(onHoldPaymentOrder.id, payments, sendSecondAlert, rawData);
+                        const shouldAlert = alertsToResend[onHoldPaymentOrder.id] || false;
+                        await payOnHoldOrder(onHoldPaymentOrder.id, payments, shouldAlert, rawData);
                         setOnHoldPaymentOrder(null);
-                        setSendSecondAlert(false);
+                        setAlertsToResend(prev => ({ ...prev, [onHoldPaymentOrder.id]: false }));
                         fetchOrdersFromSupabase(); // refresh
                     }}
                 />
