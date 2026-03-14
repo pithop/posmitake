@@ -32,7 +32,7 @@ export class SupabaseConnector {
 
                 if (table === 'pos_logs' && op.op === 'PUT') {
                     // Logs are append-only. 
-                    const row = { ...rowWithId };
+                    const row: any = { ...rowWithId };
 
                     // Supabase requires JSONB, so we parse the string back into an object
                     if (typeof row.payload === 'string') {
