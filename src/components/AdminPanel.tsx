@@ -106,8 +106,23 @@ export function AdminPanel() {
     }, [expandedOrderId]);
 
     const updateProduct = async (id: string, updates: Partial<Product>) => {
+        // 1. Write to local PowerSync (instant UI update)
         await powersync.execute('UPDATE pos_products SET name = ?, price = ? WHERE id = ?',
             [updates.name, updates.price, id]);
+
+        // 2. Write to Supabase (persistent, syncs to all devices)
+        if (supabase) {
+            const { error } = await supabase.from('pos_products').update({
+                name: updates.name,
+                price: updates.price,
+            }).eq('id', id);
+
+            if (error) {
+                console.error('[Admin] Supabase product update failed:', error);
+            } else {
+                console.log('[Admin] Product updated in Supabase:', id, updates.name, updates.price);
+            }
+        }
     };
 
     if (!isClient) return null;

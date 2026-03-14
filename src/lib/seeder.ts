@@ -21,7 +21,7 @@ export async function seedDatabase() {
         const mitakeData = await mitakeResponse.json();
         const mitakeIds = new Set(mitakeData.map((p: any) => p.id));
 
-        // 2. Prepare Products from Kyo Menu (Source of Truth)
+        // 2. Prepare Products from Kyo Menu (Source of Truth for NEW products only)
         const products = kyoMenuData.map((p: any) => {
             const tags: string[] = [];
             if (mitakeIds.has(p.id)) {
@@ -37,27 +37,40 @@ export async function seedDatabase() {
                 description: p.description || '',
                 available: true,
                 modifier_groups: p.modifier_groups || null,
-                tags: tags // New field
+                tags: tags
             };
         });
 
-        // 3. Upsert to PowerSync Local DB
+        // 3. Seed into PowerSync Local DB
+        //    - INSERT OR IGNORE: only adds NEW products (preserves user-edited prices/names)
+        //    - Separate UPDATE: only touches tags and modifier_groups (safe metadata, not user-editable)
         const db = getPowerSyncDatabase();
         await db.writeTransaction(async (tx) => {
             for (const p of products) {
+                // Insert new products only — does NOT overwrite existing rows
                 await tx.execute(
-                    `INSERT OR REPLACE INTO pos_products (id, name, price, category, description, image, available, modifier_groups, tags)
+                    `INSERT OR IGNORE INTO pos_products (id, name, price, category, description, image, available, modifier_groups, tags)
                      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
                     [
                         p.id,
                         p.name,
                         p.price,
-                        p.category, // Default 'General' handled in map above
+                        p.category,
                         p.description || '',
                         p.image,
                         p.available ? 1 : 0,
                         JSON.stringify(p.modifier_groups || []),
                         JSON.stringify(p.tags || [])
+                    ]
+                );
+
+                // Always update tags and modifier_groups (metadata that isn't user-editable)
+                await tx.execute(
+                    `UPDATE pos_products SET tags = ?, modifier_groups = ? WHERE id = ?`,
+                    [
+                        JSON.stringify(p.tags || []),
+                        JSON.stringify(p.modifier_groups || []),
+                        p.id
                     ]
                 );
             }
