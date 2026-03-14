@@ -42,10 +42,27 @@ export const ORDER_ITEMS_TABLE = new Table({
     ]
 });
 
+export const LOGS_TABLE = new Table({
+    name: 'pos_logs',
+    columns: [
+        new Column({ name: 'session_id', type: ColumnType.TEXT }),
+        new Column({ name: 'trace_id', type: ColumnType.TEXT }),
+        new Column({ name: 'client_timestamp', type: ColumnType.INTEGER }),
+        new Column({ name: 'server_timestamp', type: ColumnType.TEXT }),
+        new Column({ name: 'level', type: ColumnType.TEXT }),
+        new Column({ name: 'category', type: ColumnType.TEXT }),
+        new Column({ name: 'event_name', type: ColumnType.TEXT }),
+        new Column({ name: 'device_id', type: ColumnType.TEXT }),
+        new Column({ name: 'user_id', type: ColumnType.TEXT }),
+        new Column({ name: 'payload', type: ColumnType.TEXT })
+    ]
+});
+
 export const AppSchema = new Schema({
     pos_products: PRODUCTS_TABLE,
     pos_orders: ORDERS_TABLE,
-    pos_order_items: ORDER_ITEMS_TABLE
+    pos_order_items: ORDER_ITEMS_TABLE,
+    pos_logs: LOGS_TABLE
 });
 
 export type Database = (typeof AppSchema)['types'];

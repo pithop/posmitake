@@ -103,6 +103,15 @@ export function OrderAlertManager() {
             return [...prev, alertOrder];
         });
 
+        // SEND ACKNOWLEDGEMENT BACK TO CAISSE
+        if (supabase) {
+            supabase.channel('kitchen_alerts_ack').send({
+                type: 'broadcast',
+                event: 'ACK_ORDER',
+                payload: { traceId: order.id, deviceId: myDeviceId }
+            }).catch(console.error);
+        }
+
         // Auto-expand and play sound
         setIsExpanded(true);
         playAlertSound();

@@ -3,6 +3,9 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 import { CartItem, Product, ModifierOption, Payment, OrderType } from '@/types';
 import { getPowerSyncDatabase } from '@/lib/powersync/PowerSyncDb';
 import { supabase } from '@/lib/supabase';
+import { logger } from '@/lib/logger';
+
+const pendingAcksMap = new Map<string, NodeJS.Timeout>();
 
 export interface PosSettings {
     store_name: string;
@@ -41,6 +44,8 @@ interface SystemState {
     setTvaRate: (rate: number) => void;
     putOnHold: (orderType: OrderType, customerName: string, pickupTime: string) => Promise<void>;
     payOnHoldOrder: (orderId: string, payments: Payment[], sendSecondAlert: boolean, fullOrderData: any) => Promise<void>;
+    registerPendingAck: (traceId: string) => void;
+    resolveAck: (traceId: string) => void;
 }
 
 export const useCartStore = create<CartState>()(
@@ -137,6 +142,26 @@ export const useSystemStore = create<SystemState>()(
             setPrinterName: (name) => set({ printerName: name }),
             setTvaRate: (rate) => set({ tvaRate: rate }),
 
+            registerPendingAck: (traceId: string) => {
+                logger.audit('REALTIME', 'BROADCAST_SENT', { trace_id: traceId });
+                const timeout = setTimeout(() => {
+                    if (pendingAcksMap.has(traceId)) {
+                        logger.error('REALTIME', 'ACK_TIMEOUT', { trace_id: traceId });
+                        alert(`⚠️ ALERTE CRITIQUE : La tablette cuisine n'a pas confirmé la réception de la commande ${traceId}. L'application cuisine est probablement hors-ligne ou fermée.`);
+                        pendingAcksMap.delete(traceId);
+                    }
+                }, 5000);
+                pendingAcksMap.set(traceId, timeout);
+            },
+
+            resolveAck: (traceId: string) => {
+                if (pendingAcksMap.has(traceId)) {
+                    clearTimeout(pendingAcksMap.get(traceId));
+                    pendingAcksMap.delete(traceId);
+                    logger.info('REALTIME', 'BROADCAST_ACKED', { trace_id: traceId });
+                }
+            },
+
             fetchSettings: async () => {
                 if (!supabase) return;
                 try {
@@ -175,8 +200,11 @@ export const useSystemStore = create<SystemState>()(
                         .eq('id', 1);
 
                     if (error) throw error;
+
+                    logger.audit('SYSTEM', 'SETTINGS_CHANGED', newSettings);
                 } catch (e) {
                     console.error('[Admin] Failed to update settings:', e);
+                    logger.error('SYSTEM', 'SETTINGS_CHANGE_FAILED', { error: e });
                     // Could revert here or just refetch
                     get().fetchSettings();
                 }
@@ -263,8 +291,13 @@ export const useSystemStore = create<SystemState>()(
 
                             if (orderError) {
                                 console.error('[Checkout] Supabase order write FAILED:', JSON.stringify(orderError));
+                                logger.error('ORDER', 'SYNC_ORDER_FAILED', { error: orderError, order_id: orderId });
                             } else {
                                 console.log('[Checkout] Order+items written to Supabase:', orderId);
+                                logger.info('ORDER', 'ORDER_COMPLETED', { order_id: orderId, total });
+
+                                // Register ACK tracking for the Realtime broadcast that this INSERT triggers
+                                get().registerPendingAck(orderId);
 
                                 // Also insert into pos_order_items for relational queries / history detail
                                 const supabaseItems = itemsSnapshot.map(item => ({
@@ -371,6 +404,9 @@ export const useSystemStore = create<SystemState>()(
                                 items_json: itemsForAlert,
                             });
 
+                            // Register ACK tracking for this new held order
+                            get().registerPendingAck(orderId);
+
                             // Insert items history
                             const supabaseItems = itemsSnapshot.map(item => ({
                                 id: crypto.randomUUID(),
@@ -431,6 +467,8 @@ export const useSystemStore = create<SystemState>()(
                                 event: 'RE_ALERT',
                                 payload: payload
                             });
+                            // Register ACK tracking for the rappel
+                            get().registerPendingAck(orderId);
                         }
                     }
 

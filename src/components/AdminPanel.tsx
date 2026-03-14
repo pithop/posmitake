@@ -13,7 +13,7 @@ import { createPortal } from 'react-dom';
 type Tab = 'dashboard' | 'onhold' | 'history' | 'products' | 'settings';
 
 export function AdminPanel() {
-    const { dailyRevenue, resetDaily, deviceId, setDeviceId, uiZoomLevel, setUiZoomLevel, printerName, setPrinterName, payOnHoldOrder, tvaRate, setTvaRate, settings, fetchSettings, updateSettings } = useSystemStore();
+    const { dailyRevenue, resetDaily, deviceId, setDeviceId, uiZoomLevel, setUiZoomLevel, printerName, setPrinterName, payOnHoldOrder, tvaRate, setTvaRate, settings, fetchSettings, updateSettings, resolveAck, registerPendingAck } = useSystemStore();
 
     // PowerSync Data (local) — for products
     const { data: productsData = [] } = useQuery('SELECT * FROM pos_products');
@@ -146,6 +146,22 @@ export function AdminPanel() {
     useEffect(() => {
         setIsClient(true);
     }, []);
+
+    // Global listener for ACK_ORDER from kitchen tablet
+    useEffect(() => {
+        if (!supabase) return;
+        const channel = supabase.channel('kitchen_alerts_ack')
+            .on('broadcast', { event: 'ACK_ORDER' }, (payload: any) => {
+                if (payload.payload?.traceId) {
+                    resolveAck(payload.payload.traceId);
+                }
+            })
+            .subscribe();
+
+        return () => {
+            if (supabase) supabase.removeChannel(channel);
+        };
+    }, [resolveAck]);
 
     useEffect(() => {
         if (expandedOrderId && supabase) {
@@ -370,6 +386,10 @@ export function AdminPanel() {
                                                                                 .update({ payment_details: updatedDetails })
                                                                                 .eq('id', order.id);
                                                                             fetchOrdersFromSupabase(); // refresh
+
+                                                                            // Register tracking for the rappel
+                                                                            registerPendingAck(order.id);
+
                                                                             alert('✅ Rappel envoyé en cuisine !');
                                                                         } catch (err) {
                                                                             console.error('[Rappel] Error:', err);

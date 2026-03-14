@@ -1,5 +1,6 @@
 import { ReceiptData } from '@/components/Receipt';
 import { formatPrice } from '@/lib/utils';
+import { logger } from './logger';
 
 // ============================================================
 // METHOD 1: Browser Print (window.print + @media print CSS)
@@ -167,9 +168,11 @@ export async function printQzTray(data: ReceiptData, printerName: string): Promi
         // Print
         await qz.print(config, [{ type: 'raw', format: 'plain', data: escPosData }]);
 
+        logger.info('PRINT', 'PRINT_QZ_SUCCESS', { printer: printerName });
         return { success: true };
     } catch (err: any) {
         console.error('[QZ Tray] Print error:', err);
+        logger.error('PRINT', 'PRINT_QZ_FAILED', { error: err?.message || 'Unknown', printer: printerName });
         return { success: false, error: err?.message || 'Erreur impression QZ Tray' };
     }
 }
