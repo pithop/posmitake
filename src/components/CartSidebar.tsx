@@ -3,7 +3,8 @@
 import { useCartStore, useSystemStore } from '@/store/useStore';
 import { formatPrice } from '@/lib/utils';
 import { Trash2, Minus, Plus, CreditCard, ShoppingBag, Printer, Zap, X } from 'lucide-react';
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 import { PaymentModal } from './PaymentModal';
 import { Receipt, ReceiptData } from './Receipt';
@@ -202,7 +203,11 @@ export function CartSidebar() {
             />
 
             {/* Receipt hidden component for browser printing */}
-            <Receipt data={lastReceipt} />
+            {/* Receipt rendered as PORTAL to body — must be direct child for @media print */}
+            {typeof document !== 'undefined' && lastReceipt && createPortal(
+                <Receipt data={lastReceipt} />,
+                document.body
+            )}
 
             {/* POST-CHECKOUT PRINT OVERLAY */}
             {showPrintOverlay && (
