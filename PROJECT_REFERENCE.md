@@ -120,5 +120,34 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=votre_cle_anon
 
 ## 6. Prochaines Étapes Possibles
 - Ajouter l'authentification pour l'Admin Panel.
-- Ajouter la gestion des stocks.
-- Imprimer les tickets de caisse (intégration imprimante thermique).
+
+## 7. Impression & Matériel
+
+### Deux Méthodes d'Impression
+
+| | Navigateur (Kiosk) | QZ Tray (ESC/POS) |
+|---|---|---|
+| **Prérequis** | Chrome en mode Kiosk | QZ Tray installé sur le PC |
+| **Coupe papier** | ❌ Manuelle | ✅ Automatique |
+| **Tiroir-caisse** | ❌ | ✅ Ouverture automatique |
+| **Fichier** | `Receipt.tsx` + `@media print` | `printUtils.ts` → `printQzTray()` |
+
+### Méthode 1 : Navigateur
+- Composant `<Receipt />` caché à l'écran (`display: none`) mais formaté pour 80mm via `@media print`.
+- `printBrowser()` appelle `window.print()`. Tout le reste de l'app est masqué.
+- Chrome Kiosk : lancer Chrome avec `--kiosk --kiosk-printing` pour impression automatique sans dialogue.
+
+### Méthode 2 : QZ Tray (ESC/POS)
+- `printQzTray(data, printerName)` se connecte au WebSocket QZ Tray local.
+- Envoie des commandes brutes ESC/POS : formatage texte, coupure papier (`GS V 0`), ouverture tiroir-caisse (`ESC p`).
+- Installer QZ Tray : [https://qz.io/download/](https://qz.io/download/)
+
+### Variables d'État (Zustand)
+- `printerName: string` — Nom de l'imprimante cible (ex: `EPSON TM-T20III`). Sauvegardé dans `localStorage` via `useSystemStore`.
+- Configurable dans **Admin Panel → Paramètres → Paramètres Caisse**.
+
+### Flux d'Impression
+1. L'utilisateur valide une commande (checkout).
+2. Un overlay apparaît avec deux boutons : **Imprimer (Navigateur)** et **Imprimer (QZ Tray)**.
+3. Le composant `<Receipt />` est rendu avec les données de la commande (snapshot pris avant que le panier ne soit vidé).
+4. L'utilisateur peut imprimer, puis fermer l'overlay.

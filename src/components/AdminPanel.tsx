@@ -10,7 +10,7 @@ import { supabase } from '@/lib/supabase';
 type Tab = 'dashboard' | 'history' | 'products' | 'settings';
 
 export function AdminPanel() {
-    const { dailyRevenue, resetDaily, deviceId, setDeviceId, uiZoomLevel, setUiZoomLevel } = useSystemStore();
+    const { dailyRevenue, resetDaily, deviceId, setDeviceId, uiZoomLevel, setUiZoomLevel, printerName, setPrinterName } = useSystemStore();
 
     // PowerSync Data (local) — for products
     const { data: productsData = [] } = useQuery('SELECT * FROM pos_products');
@@ -558,6 +558,37 @@ export function AdminPanel() {
                                                         Réinitialiser (100%)
                                                     </button>
                                                     <span>Écritures Géantes</span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <hr className="border-white/5" />
+
+                                        {/* Printer Settings */}
+                                        <div className="space-y-4">
+                                            <div>
+                                                <h4 className="text-lg font-bold text-white flex items-center gap-2">
+                                                    🖨️ Paramètres Caisse (Impression)
+                                                </h4>
+                                                <p className="text-zinc-400 text-sm mt-1">
+                                                    Configurez le nom de l&apos;imprimante pour l&apos;impression directe via QZ Tray. Laissez vide pour utiliser l&apos;imprimante par défaut.
+                                                </p>
+                                            </div>
+
+                                            <div className="bg-zinc-900/50 p-6 rounded-2xl border border-zinc-800 space-y-4">
+                                                <label className="block">
+                                                    <span className="text-sm font-bold text-zinc-300">Nom de l&apos;imprimante (QZ Tray)</span>
+                                                    <input
+                                                        type="text"
+                                                        value={printerName}
+                                                        onChange={(e) => setPrinterName(e.target.value)}
+                                                        placeholder="Ex: EPSON TM-T20III"
+                                                        className="mt-2 w-full bg-black/40 border border-zinc-700 rounded-xl px-4 py-3 text-white text-base font-mono font-medium placeholder-zinc-600 focus:outline-none focus:border-amber-500/50"
+                                                    />
+                                                </label>
+                                                <div className="text-xs text-zinc-500 space-y-1">
+                                                    <p>💡 <strong>Navigateur (Kiosk)</strong> : Pas besoin de nom, utilise le dialogue d&apos;impression Chrome.</p>
+                                                    <p>⚡ <strong>QZ Tray</strong> : Nécessite QZ Tray installé + le nom exact de l&apos;imprimante.</p>
                                                 </div>
                                             </div>
                                         </div>

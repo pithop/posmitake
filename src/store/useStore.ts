@@ -18,10 +18,12 @@ interface SystemState {
     orderIdCounter: number;
     deviceId: string;
     uiZoomLevel: number;
+    printerName: string;
     checkout: (payments: Payment[], orderType: OrderType, customerName: string, pickupTime: string) => Promise<void>;
     resetDaily: () => void;
     setDeviceId: (id: string) => void;
     setUiZoomLevel: (level: number) => void;
+    setPrinterName: (name: string) => void;
 }
 
 export const useCartStore = create<CartState>()(
@@ -109,9 +111,11 @@ export const useSystemStore = create<SystemState>()(
             orderIdCounter: 1,
             deviceId: 'caisse_ordi',
             uiZoomLevel: 100,
+            printerName: '',
 
             setDeviceId: (id) => set({ deviceId: id }),
             setUiZoomLevel: (level) => set({ uiZoomLevel: level }),
+            setPrinterName: (name) => set({ printerName: name }),
 
             checkout: async (payments: Payment[], orderType: OrderType, customerName: string, pickupTime: string) => {
                 const cartState = useCartStore.getState();

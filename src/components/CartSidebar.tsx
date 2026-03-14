@@ -2,17 +2,24 @@
 
 import { useCartStore, useSystemStore } from '@/store/useStore';
 import { formatPrice } from '@/lib/utils';
-import { Trash2, Minus, Plus, CreditCard, ShoppingBag } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { Trash2, Minus, Plus, CreditCard, ShoppingBag, Printer, Zap, X } from 'lucide-react';
+import { useEffect, useState, useRef } from 'react';
 
 import { PaymentModal } from './PaymentModal';
+import { Receipt, ReceiptData } from './Receipt';
 import { Payment, OrderType } from '@/types';
+import { printBrowser, printQzTray } from '@/lib/printUtils';
 
 export function CartSidebar() {
     const { items, total, removeFromCart, updateQuantity, clearCart } = useCartStore();
-    const { checkout } = useSystemStore();
+    const { checkout, printerName, deviceId } = useSystemStore();
     const [isClient, setIsClient] = useState(false);
     const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+
+    // Post-checkout print state
+    const [lastReceipt, setLastReceipt] = useState<ReceiptData | null>(null);
+    const [showPrintOverlay, setShowPrintOverlay] = useState(false);
+    const [printStatus, setPrintStatus] = useState<string | null>(null);
 
     useEffect(() => {
         setIsClient(true);
@@ -24,8 +31,57 @@ export function CartSidebar() {
     };
 
     const handleConfirmPayment = async (payments: Payment[], orderType: OrderType, customerName: string, pickupTime: string) => {
+        // Snapshot items BEFORE checkout clears them
+        const itemsSnapshot = [...items];
+        const totalSnapshot = total;
+        const orderIdCounter = useSystemStore.getState().orderIdCounter;
+        const orderId = `#${String(orderIdCounter).padStart(3, '0')}`;
+
         await checkout(payments, orderType, customerName, pickupTime);
         setIsPaymentModalOpen(false);
+
+        // Build receipt data for printing
+        const receiptData: ReceiptData = {
+            orderId,
+            items: itemsSnapshot,
+            total: totalSnapshot,
+            payments,
+            orderType,
+            customerName,
+            pickupTime,
+            timestamp: Date.now(),
+            deviceId,
+        };
+
+        setLastReceipt(receiptData);
+        setShowPrintOverlay(true);
+        setPrintStatus(null);
+    };
+
+    const handlePrintBrowser = () => {
+        setPrintStatus('Impression navigateur...');
+        // Small delay to let Receipt render
+        setTimeout(() => {
+            printBrowser();
+            setPrintStatus('✅ Envoyé à l\'impression');
+        }, 200);
+    };
+
+    const handlePrintQz = async () => {
+        if (!lastReceipt) return;
+        setPrintStatus('Envoi vers QZ Tray...');
+        const result = await printQzTray(lastReceipt, printerName);
+        if (result.success) {
+            setPrintStatus('✅ Imprimé via QZ Tray');
+        } else {
+            setPrintStatus(`❌ ${result.error}`);
+        }
+    };
+
+    const closePrintOverlay = () => {
+        setShowPrintOverlay(false);
+        setLastReceipt(null);
+        setPrintStatus(null);
     };
 
     if (!isClient) return <div className="h-full w-full bg-zinc-900/50 animate-pulse" />;
@@ -140,6 +196,60 @@ export function CartSidebar() {
                 onClose={() => setIsPaymentModalOpen(false)}
                 onConfirm={handleConfirmPayment}
             />
+
+            {/* Receipt hidden component for browser printing */}
+            <Receipt data={lastReceipt} />
+
+            {/* POST-CHECKOUT PRINT OVERLAY */}
+            {showPrintOverlay && (
+                <div className="fixed inset-0 z-[99999] bg-black/90 backdrop-blur-md flex items-center justify-center p-4">
+                    <div className="bg-zinc-950 border border-zinc-800 rounded-3xl p-8 max-w-sm w-full space-y-6 shadow-2xl">
+                        {/* Success header */}
+                        <div className="text-center">
+                            <div className="text-5xl mb-3">✅</div>
+                            <h2 className="text-2xl font-black text-white">Commande validée</h2>
+                            <p className="text-zinc-400 mt-1">
+                                {lastReceipt?.orderId} — {formatPrice(lastReceipt?.total || 0)}
+                            </p>
+                        </div>
+
+                        {/* Print buttons */}
+                        <div className="space-y-3">
+                            <button
+                                onClick={handlePrintBrowser}
+                                className="w-full flex items-center justify-center gap-3 bg-zinc-800 hover:bg-zinc-700 text-white font-bold py-4 rounded-xl transition-all active:scale-[0.97] border border-zinc-700"
+                            >
+                                <Printer size={22} />
+                                <span>Imprimer (Navigateur)</span>
+                            </button>
+
+                            <button
+                                onClick={handlePrintQz}
+                                className="w-full flex items-center justify-center gap-3 bg-amber-600 hover:bg-amber-500 text-white font-bold py-4 rounded-xl transition-all active:scale-[0.97] shadow-lg shadow-amber-600/20"
+                            >
+                                <Zap size={22} />
+                                <span>Imprimer (QZ Tray)</span>
+                            </button>
+                        </div>
+
+                        {/* Status */}
+                        {printStatus && (
+                            <div className="text-center text-sm font-medium text-zinc-300 bg-zinc-900 rounded-lg py-2 px-4">
+                                {printStatus}
+                            </div>
+                        )}
+
+                        {/* Close */}
+                        <button
+                            onClick={closePrintOverlay}
+                            className="w-full flex items-center justify-center gap-2 text-zinc-500 hover:text-zinc-300 font-medium py-3 transition-colors"
+                        >
+                            <X size={16} />
+                            Fermer
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
