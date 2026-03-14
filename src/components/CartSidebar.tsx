@@ -13,7 +13,7 @@ import { printBrowser, printQzTray } from '@/lib/printUtils';
 
 export function CartSidebar() {
     const { items, total, removeFromCart, updateQuantity, clearCart } = useCartStore();
-    const { checkout, printerName, deviceId } = useSystemStore();
+    const { checkout, putOnHold, printerName, deviceId } = useSystemStore();
     const [isClient, setIsClient] = useState(false);
     const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
 
@@ -61,6 +61,11 @@ export function CartSidebar() {
             setShowPrintOverlay(true);
         }
         setPrintStatus(null);
+    };
+
+    const handlePutOnHold = async (orderType: OrderType, customerName: string, pickupTime: string) => {
+        setIsPaymentModalOpen(false);
+        await putOnHold(orderType, customerName, pickupTime);
     };
 
     const handlePrintBrowser = () => {
@@ -200,6 +205,7 @@ export function CartSidebar() {
                 totalAmount={total}
                 onClose={() => setIsPaymentModalOpen(false)}
                 onConfirm={handleConfirmPayment}
+                onPutOnHold={handlePutOnHold}
             />
 
             {/* Receipt hidden component for browser printing */}

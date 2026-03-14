@@ -13,6 +13,7 @@ interface PaymentModalProps {
     totalAmount: number;
     onClose: () => void;
     onConfirm: (payments: Payment[], orderType: OrderType, customerName: string, pickupTime: string) => void;
+    onPutOnHold?: (orderType: OrderType, customerName: string, pickupTime: string) => void;
 }
 
 const PAYMENT_METHODS: { id: PaymentMethodType; label: string; icon: any; color: string }[] = [
@@ -22,7 +23,7 @@ const PAYMENT_METHODS: { id: PaymentMethodType; label: string; icon: any; color:
     { id: 'cash', label: 'Espèces', icon: Banknote, color: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20' },
 ];
 
-export function PaymentModal({ isOpen, totalAmount, onClose, onConfirm }: PaymentModalProps) {
+export function PaymentModal({ isOpen, totalAmount, onClose, onConfirm, onPutOnHold }: PaymentModalProps) {
     const { items } = useCartStore();
     const [payments, setPayments] = useState<Payment[]>([]);
     const [inputAmount, setInputAmount] = useState<string>('');
@@ -97,6 +98,12 @@ export function PaymentModal({ isOpen, totalAmount, onClose, onConfirm }: Paymen
         onConfirm(payments, orderType, customerName, pickupTime);
     };
 
+    const handlePutOnHold = () => {
+        if (onPutOnHold) {
+            onPutOnHold(orderType, customerName, pickupTime);
+        }
+    };
+
     if (!isOpen) return null;
 
     const numpadKeys = [
@@ -109,26 +116,26 @@ export function PaymentModal({ isOpen, totalAmount, onClose, onConfirm }: Paymen
     if (!mounted || typeof document === 'undefined') return null;
 
     return createPortal(
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 backdrop-blur-3xl animate-fade-in sm:p-6">
-            <div className="w-full h-full max-w-[1400px] mx-auto flex flex-col lg:flex-row gap-0 lg:gap-6 bg-background sm:rounded-[2.5rem] overflow-hidden shadow-2xl border border-white/5 relative">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 backdrop-blur-3xl animate-fade-in sm:p-4">
+            <div className="w-full h-full max-w-[1240px] mx-auto flex flex-col lg:flex-row gap-0 lg:gap-4 bg-background sm:rounded-[2rem] overflow-hidden shadow-2xl border border-white/5 relative">
 
                 {/* Close Button Mobile */}
-                <button onClick={onClose} className="absolute top-6 right-6 lg:hidden p-4 bg-white/10 hover:bg-white/20 rounded-full z-[110] backdrop-blur-md transition-all">
-                    <X size={28} className="text-white" />
+                <button onClick={onClose} className="absolute top-4 right-4 lg:hidden p-3 bg-white/10 hover:bg-white/20 rounded-full z-[110] backdrop-blur-md transition-all">
+                    <X size={24} className="text-white" />
                 </button>
 
                 {/* LEFT PANE: Summary */}
-                <div className="w-full lg:w-[400px] xl:w-[450px] bg-secondary/30 lg:rounded-[2rem] border-r lg:border border-white/5 flex flex-col h-1/2 lg:h-full shrink-0">
+                <div className="w-full lg:w-[380px] xl:w-[420px] bg-secondary/30 lg:rounded-[1.5rem] border-r lg:border border-white/5 flex flex-col h-1/2 lg:h-full shrink-0">
                     {/* Header */}
-                    <div className="p-8 pb-4 flex items-center justify-between">
-                        <h2 className="text-3xl font-heading font-medium tracking-tight">Checkout</h2>
-                        <button onClick={onClose} className="hidden lg:flex p-3 hover:bg-white/10 rounded-full transition-colors bg-white/5 border border-white/5">
-                            <X size={24} className="text-muted-foreground hover:text-white" />
+                    <div className="p-6 pb-4 flex items-center justify-between">
+                        <h2 className="text-2xl font-heading font-medium tracking-tight">Checkout</h2>
+                        <button onClick={onClose} className="hidden lg:flex p-2 hover:bg-white/10 rounded-full transition-colors bg-white/5 border border-white/5">
+                            <X size={22} className="text-muted-foreground hover:text-white" />
                         </button>
                     </div>
 
                     {/* Sur Place / Emporté Toggle */}
-                    <div className="px-6 pb-4">
+                    <div className="px-5 pb-3">
                         <div className="flex rounded-2xl overflow-hidden border border-white/10 bg-black/40">
                             <button
                                 onClick={() => setOrderType('sur_place')}
@@ -158,24 +165,24 @@ export function PaymentModal({ isOpen, totalAmount, onClose, onConfirm }: Paymen
                     </div>
 
                     {/* Customer Name + Time */}
-                    <div className="px-6 pb-3 flex gap-2">
+                    <div className="px-5 pb-3 flex gap-2">
                         <input
                             type="text"
                             placeholder="👤 Nom client"
                             value={customerName}
                             onChange={(e) => setCustomerName(e.target.value)}
-                            className="flex-1 bg-black/40 border border-white/15 rounded-xl px-4 py-4 text-white text-lg font-bold placeholder-white/40 focus:outline-none focus:border-amber-500/50"
+                            className="flex-1 bg-black/40 border border-white/15 rounded-xl px-3 py-3 text-white text-base font-bold placeholder-white/40 focus:outline-none focus:border-amber-500/50"
                         />
                         <input
                             type="time"
                             value={pickupTime}
                             onChange={(e) => setPickupTime(e.target.value)}
-                            className="w-[120px] bg-black/40 border border-white/15 rounded-xl px-3 py-4 text-white text-lg font-mono font-black focus:outline-none focus:border-amber-500/50 text-center"
+                            className="w-[110px] bg-black/40 border border-white/15 rounded-xl px-2 py-3 text-white text-base font-mono font-black focus:outline-none focus:border-amber-500/50 text-center"
                         />
                     </div>
 
                     {/* Order Items (Mini Ticket) */}
-                    <div className="flex-1 overflow-y-auto px-6 py-4 border-b border-white/5 bg-black/20 no-scrollbar relative shadow-inner">
+                    <div className="flex-1 overflow-y-auto px-5 py-3 border-b border-white/5 bg-black/20 no-scrollbar relative shadow-inner">
                         <div className="space-y-3">
                             {items.map((item) => (
                                 <div key={item.instanceId} className="flex justify-between items-start text-sm">
@@ -206,12 +213,12 @@ export function PaymentModal({ isOpen, totalAmount, onClose, onConfirm }: Paymen
                     </div>
 
                     {/* Totals */}
-                    <div className="px-8 py-6 space-y-4 border-b border-white/5">
-                        <div className="flex justify-between items-center text-lg text-muted-foreground">
+                    <div className="px-6 py-4 space-y-3 border-b border-white/5">
+                        <div className="flex justify-between items-center text-base text-muted-foreground">
                             <span>Total commande</span>
                             <span>{formatPrice(totalAmount)}</span>
                         </div>
-                        <div className="flex justify-between items-center text-4xl font-bold font-mono tracking-tight">
+                        <div className="flex justify-between items-center text-3xl font-bold font-mono tracking-tight">
                             <span className="text-muted-foreground/80">Reste</span>
                             <span className={cn(isComplete ? "text-emerald-500" : "text-white")}>
                                 {formatPrice(remaining)}
@@ -220,7 +227,7 @@ export function PaymentModal({ isOpen, totalAmount, onClose, onConfirm }: Paymen
                     </div>
 
                     {/* Payment Lines */}
-                    <div className="h-[200px] overflow-y-auto px-6 py-4 space-y-2 no-scrollbar bg-black/40">
+                    <div className="h-[160px] overflow-y-auto px-5 py-3 space-y-2 no-scrollbar bg-black/40">
                         {payments.length === 0 && (
                             <div className="h-full flex items-center justify-center text-muted-foreground/30 italic text-sm">
                                 Aucun encaissement...
@@ -252,54 +259,57 @@ export function PaymentModal({ isOpen, totalAmount, onClose, onConfirm }: Paymen
                     </div>
 
                     {/* Footer / Confirm Action */}
-                    <div className="p-5 bg-black/60 backdrop-blur-md z-10 border-t border-white/5">
+                    <div className="p-4 bg-black/60 backdrop-blur-md z-10 border-t border-white/5">
                         {isComplete ? (
                             <button
                                 onClick={handleConfirm}
-                                className="w-full py-6 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-2xl flex items-center justify-center gap-3 transition-all animate-scale-up shadow-[0_0_50px_rgba(16,185,129,0.2)] active:scale-95"
+                                className="w-full py-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-xl flex items-center justify-center gap-2 transition-all animate-scale-up shadow-[0_0_40px_rgba(16,185,129,0.2)] active:scale-95"
                             >
-                                <CheckCircle2 size={32} />
+                                <CheckCircle2 size={28} />
                                 VALIDER LA COMMANDE
                             </button>
                         ) : (
-                            <div className="w-full py-6 rounded-2xl bg-white/5 text-muted-foreground/50 font-medium text-center text-xl border border-white/5 border-dashed">
-                                En attente du solde
-                            </div>
+                            <button
+                                onClick={handlePutOnHold}
+                                className="w-full py-4 rounded-xl bg-orange-500 hover:bg-orange-400 bg-opacity-20 hover:bg-opacity-30 border-2 border-orange-500/50 text-orange-400 font-bold text-lg flex items-center justify-center gap-2 transition-all active:scale-95 shadow-[0_0_30px_rgba(249,115,22,0.1)]"
+                            >
+                                ⏳ METTRE EN ATTENTE
+                            </button>
                         )}
                     </div>
                 </div>
 
                 {/* RIGHT PANE: Input & Actions */}
-                <div className="w-full lg:flex-1 flex flex-col h-1/2 lg:h-full relative overflow-y-auto lg:overflow-hidden p-6 lg:p-10 lg:pl-4">
+                <div className="w-full lg:flex-1 flex flex-col h-1/2 lg:h-full relative overflow-y-auto lg:overflow-hidden p-4 lg:p-6 lg:pl-2">
 
                     {/* Amount Input Screen */}
-                    <div className="w-full bg-black/40 rounded-[2rem] p-8 lg:p-12 border border-white/10 mb-8 flex items-center justify-between shadow-inner relative overflow-hidden group">
+                    <div className="w-full bg-black/40 rounded-[1.5rem] p-6 lg:p-8 border border-white/10 mb-6 flex items-center justify-between shadow-inner relative overflow-hidden group shrink-0">
                         <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-1000"></div>
-                        <div className="text-2xl lg:text-3xl text-muted-foreground font-medium relative z-10">
+                        <div className="text-xl lg:text-2xl text-muted-foreground font-medium relative z-10">
                             Montant
                         </div>
                         <div className={cn(
-                            "text-6xl lg:text-8xl font-mono font-bold tracking-tighter transition-colors flex items-center gap-3 relative z-10",
+                            "text-5xl lg:text-6xl font-mono font-bold tracking-tighter transition-colors flex items-center gap-2 relative z-10",
                             inputAmount !== '' ? "text-primary" : "text-white"
                         )}>
-                            {displayAmount.toFixed(2)} <span className="text-4xl lg:text-6xl opacity-40 font-sans tracking-normal">€</span>
-                            {inputAmount !== '' && <div className="w-2 h-16 lg:h-20 bg-primary animate-pulse rounded-full ml-2"></div>}
+                            {displayAmount.toFixed(2)} <span className="text-3xl lg:text-4xl opacity-40 font-sans tracking-normal">€</span>
+                            {inputAmount !== '' && <div className="w-2 h-12 lg:h-14 bg-primary animate-pulse rounded-full ml-2"></div>}
                         </div>
                     </div>
 
                     {/* Interactive Grid */}
                     <div className={cn(
-                        "flex flex-col xl:flex-row gap-8 flex-1 transition-all duration-500",
+                        "flex flex-col xl:flex-row gap-4 xl:gap-8 flex-1 transition-all duration-500",
                         isComplete && "opacity-20 pointer-events-none blur-sm scale-95"
                     )}>
 
                         {/* Numpad */}
-                        <div className="w-full xl:w-[400px] grid grid-cols-3 gap-3 place-content-start shrink-0">
+                        <div className="w-full xl:w-[320px] grid grid-cols-3 gap-2 place-content-start shrink-0">
                             {numpadKeys.map(key => (
                                 <button
                                     key={key}
                                     onClick={() => handleNumpad(key)}
-                                    className={cn("aspect-square bg-secondary/50 hover:bg-white/10 active:bg-white/20 border border-white/5 rounded-3xl text-3xl lg:text-4xl font-medium transition-all flex items-center justify-center font-mono hover:scale-[1.02] active:scale-95", key === 'C' ? "text-red-400" : "")}
+                                    className={cn("aspect-square bg-secondary/50 hover:bg-white/10 active:bg-white/20 border border-white/5 rounded-2xl text-2xl lg:text-3xl font-medium transition-all flex items-center justify-center font-mono hover:scale-[1.02] active:scale-95", key === 'C' ? "text-red-400" : "")}
                                 >
                                     {key}
                                 </button>
@@ -307,7 +317,7 @@ export function PaymentModal({ isOpen, totalAmount, onClose, onConfirm }: Paymen
                         </div>
 
                         {/* Payment Methods */}
-                        <div className="w-full flex-1 grid grid-cols-2 md:grid-cols-3 xl:grid-cols-2 2xl:grid-cols-3 gap-3 place-content-start">
+                        <div className="w-full flex-1 grid grid-cols-2 lg:grid-cols-2 gap-2 place-content-start">
                             {PAYMENT_METHODS.map(m => {
                                 const Icon = m.icon;
                                 return (
@@ -315,12 +325,12 @@ export function PaymentModal({ isOpen, totalAmount, onClose, onConfirm }: Paymen
                                         key={m.id}
                                         onClick={() => handleAddPayment(m.id)}
                                         className={cn(
-                                            "aspect-square xl:aspect-auto xl:py-8 rounded-3xl border flex flex-col items-center justify-center gap-4 transition-all hover:scale-[1.02] active:scale-95 text-center px-4",
+                                            "aspect-square xl:aspect-auto xl:py-6 rounded-2xl border flex flex-col items-center justify-center gap-2 transition-all hover:scale-[1.02] active:scale-95 text-center px-2",
                                             m.color
                                         )}
                                     >
-                                        <Icon size={40} className="mb-2" />
-                                        <span className="font-bold text-lg lg:text-xl leading-tight">{m.label}</span>
+                                        <Icon size={32} className="mb-1" />
+                                        <span className="font-bold text-base lg:text-lg leading-tight">{m.label}</span>
                                     </button>
                                 );
                             })}

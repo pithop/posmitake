@@ -38,6 +38,7 @@ interface AlertOrder {
     customer_name?: string;
     pickup_time?: string;
     items: any[];
+    is_rappel?: boolean;
 }
 
 export function OrderAlertManager() {
@@ -116,6 +117,11 @@ export function OrderAlertManager() {
                 (payload: any) => {
                     console.log('[Alert] Realtime INSERT:', payload.new?.id);
                     enqueueAlert(payload.new);
+                })
+            .on('broadcast', { event: 'RE_ALERT' },
+                (payload: any) => {
+                    console.log('[Alert] Realtime RE_ALERT:', payload.payload?.id);
+                    enqueueAlert(payload.payload);
                 })
             .subscribe((status) => console.log('[Alert] Realtime:', status));
 
@@ -197,8 +203,8 @@ export function OrderAlertManager() {
                                 <BellRing size={48} className="hidden md:block" />
                             </div>
                             <div className="min-w-0">
-                                <h1 className="text-2xl md:text-4xl font-black tracking-wider uppercase">
-                                    NOUVELLE COMMANDE
+                                <h1 className={`text-2xl md:text-4xl font-black tracking-wider uppercase ${currentAlert.is_rappel ? 'text-yellow-400 drop-shadow-[0_0_15px_rgba(250,204,21,0.5)]' : ''}`}>
+                                    {currentAlert.is_rappel ? "⚠️ RAPPEL COMMANDE" : "NOUVELLE COMMANDE"}
                                 </h1>
                                 {/* Order type — huge badge */}
                                 <div className="mt-2 flex flex-wrap items-center gap-3">

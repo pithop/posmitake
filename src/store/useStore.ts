@@ -24,6 +24,8 @@ interface SystemState {
     setDeviceId: (id: string) => void;
     setUiZoomLevel: (level: number) => void;
     setPrinterName: (name: string) => void;
+    putOnHold: (orderType: OrderType, customerName: string, pickupTime: string) => Promise<void>;
+    payOnHoldOrder: (orderId: string, payments: Payment[], sendSecondAlert: boolean, fullOrderData: any) => Promise<void>;
 }
 
 export const useCartStore = create<CartState>()(
@@ -226,6 +228,152 @@ export const useSystemStore = create<SystemState>()(
                 } catch (error) {
                     console.error("Checkout Transaction Failed:", error);
                     alert("Erreur lors de l'enregistrement de la commande. Veuillez réessayer.");
+                }
+            },
+
+            putOnHold: async (orderType: OrderType, customerName: string, pickupTime: string) => {
+                const cartState = useCartStore.getState();
+                if (cartState.items.length === 0) return;
+
+                const orderId = `#${String(get().orderIdCounter).padStart(3, '0')}`;
+                const timestamp = Date.now();
+                const total = cartState.total;
+                const deviceId = get().deviceId;
+                const createdAt = new Date(timestamp).toISOString();
+                const itemsSnapshot = [...cartState.items];
+                const orderTypeValue = orderType || 'sur_place';
+                const custName = customerName || '';
+                const pickTime = pickupTime || '';
+
+                // Create a special payment details payload for on-hold
+                const holdDetails = [{ method: 'unpaid', amount: total, alertCount: 1, isHold: true }];
+                const paymentDetailsJson = JSON.stringify(holdDetails);
+
+                try {
+                    const db = getPowerSyncDatabase();
+
+                    // === WRITE 1: Local SQLite ===
+                    await db.writeTransaction(async (tx) => {
+                        await tx.execute(
+                            `INSERT INTO pos_orders (id, total, status, payment_method, payment_details, created_at, source_device, order_type, customer_name, pickup_time)
+                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                            [orderId, total, 'pending', 'unpaid', paymentDetailsJson, createdAt, deviceId, orderTypeValue, custName, pickTime]
+                        );
+
+                        for (const item of itemsSnapshot) {
+                            const metadata = { mods: item.selectedModifiers, note: item.note };
+                            await tx.execute(
+                                `INSERT INTO pos_order_items (id, order_id, product_id, product_name, quantity, unit_price, total_price, selected_modifiers)
+                                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+                                [
+                                    crypto.randomUUID(),
+                                    orderId,
+                                    null,
+                                    item.menuItem.name,
+                                    item.quantity,
+                                    item.totalPrice / item.quantity,
+                                    item.totalPrice,
+                                    JSON.stringify(metadata)
+                                ]
+                            );
+                        }
+                    });
+
+                    // Update UI immediately
+                    set((state) => ({ orderIdCounter: state.orderIdCounter + 1 }));
+                    cartState.clearCart();
+
+                    // === WRITE 2: Supabase (this will trigger the 1st kitchen alert) ===
+                    if (supabase) {
+                        try {
+                            const itemsForAlert = itemsSnapshot.map(item => ({
+                                product_name: item.menuItem.name,
+                                quantity: item.quantity,
+                                unit_price: item.totalPrice / item.quantity,
+                                total_price: item.totalPrice,
+                                selected_modifiers: { mods: item.selectedModifiers, note: item.note },
+                            }));
+
+                            await supabase.from('pos_orders').upsert({
+                                id: orderId,
+                                total,
+                                status: 'pending',
+                                payment_method: 'unpaid',
+                                payment_details: holdDetails,
+                                created_at: createdAt,
+                                source_device: deviceId,
+                                order_type: orderTypeValue,
+                                customer_name: custName,
+                                pickup_time: pickTime,
+                                items_json: itemsForAlert,
+                            });
+
+                            // Insert items history
+                            const supabaseItems = itemsSnapshot.map(item => ({
+                                id: crypto.randomUUID(),
+                                order_id: orderId,
+                                product_name: item.menuItem.name,
+                                quantity: item.quantity,
+                                unit_price: item.totalPrice / item.quantity,
+                                total_price: item.totalPrice,
+                                selected_modifiers: { mods: item.selectedModifiers, note: item.note },
+                            }));
+                            await supabase.from('pos_order_items').insert(supabaseItems);
+
+                        } catch (syncErr) {
+                            console.error('[PutOnHold] Supabase sync err:', syncErr);
+                        }
+                    }
+                } catch (error) {
+                    console.error("Put On Hold Failed:", error);
+                    alert("Erreur lors de la mise en attente.");
+                }
+            },
+
+            payOnHoldOrder: async (orderId: string, payments: Payment[], sendSecondAlert: boolean, fullOrderData: any) => {
+                const paymentMethod = payments[0]?.method || 'cash';
+                const newDetails = [...payments, { alertCount: sendSecondAlert ? 2 : 1, isHold: false }];
+
+                try {
+                    const db = getPowerSyncDatabase();
+
+                    // === UPDATE Local SQLite ===
+                    await db.writeTransaction(async (tx) => {
+                        await tx.execute(
+                            `UPDATE pos_orders SET status = ?, payment_method = ?, payment_details = ? WHERE id = ?`,
+                            ['completed', paymentMethod, JSON.stringify(newDetails), orderId]
+                        );
+                    });
+
+                    // Update daily revenue logic in store
+                    const totalPaid = payments.reduce((sum, p) => sum + p.amount, 0);
+                    set((state) => ({ dailyRevenue: state.dailyRevenue + totalPaid }));
+
+                    // === UPDATE Supabase ===
+                    if (supabase) {
+                        await supabase.from('pos_orders')
+                            .update({
+                                status: 'completed',
+                                payment_method: paymentMethod,
+                                payment_details: newDetails
+                            })
+                            .eq('id', orderId);
+
+                        // If user requested a second alert, send a specific broadcast so kitchen gets a RAPPEL
+                        if (sendSecondAlert && fullOrderData) {
+                            const payload = { ...fullOrderData, is_rappel: true };
+                            // Send broadcast on the same channel the kitchen listens to
+                            await supabase.channel('kitchen_alerts_v3').send({
+                                type: 'broadcast',
+                                event: 'RE_ALERT',
+                                payload: payload
+                            });
+                        }
+                    }
+
+                } catch (error) {
+                    console.error("Pay On Hold Failed:", error);
+                    alert("Erreur lors de l'encaissement de la commande en attente.");
                 }
             },
 

@@ -1,16 +1,17 @@
 import { useSystemStore } from '@/store/useStore';
 import { formatPrice } from '@/lib/utils';
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { Settings, X, RotateCcw, LayoutDashboard, History, Package, Search, Save, Edit2, WifiOff, CloudUpload, SlidersHorizontal, Monitor, Smartphone } from 'lucide-react';
+import { Settings, X, RotateCcw, LayoutDashboard, History, Package, Search, Save, Edit2, WifiOff, CloudUpload, SlidersHorizontal, Monitor, Smartphone, Clock } from 'lucide-react';
 import { Product, Order } from '@/types';
 import { cn } from '@/lib/utils';
 import { useQuery, usePowerSync } from '@powersync/react';
 import { supabase } from '@/lib/supabase';
+import { PaymentModal } from './PaymentModal';
 
-type Tab = 'dashboard' | 'history' | 'products' | 'settings';
+type Tab = 'dashboard' | 'onhold' | 'history' | 'products' | 'settings';
 
 export function AdminPanel() {
-    const { dailyRevenue, resetDaily, deviceId, setDeviceId, uiZoomLevel, setUiZoomLevel, printerName, setPrinterName } = useSystemStore();
+    const { dailyRevenue, resetDaily, deviceId, setDeviceId, uiZoomLevel, setUiZoomLevel, printerName, setPrinterName, payOnHoldOrder } = useSystemStore();
 
     // PowerSync Data (local) — for products
     const { data: productsData = [] } = useQuery('SELECT * FROM pos_products');
@@ -83,6 +84,11 @@ export function AdminPanel() {
     const [editingProduct, setEditingProduct] = useState<Product | null>(null);
     const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
     const [expandedOrderItems, setExpandedOrderItems] = useState<any[]>([]);
+
+    // On-hold / En Attente state
+    const [onHoldPaymentOrder, setOnHoldPaymentOrder] = useState<any | null>(null);
+    const [sendSecondAlert, setSendSecondAlert] = useState(false);
+
     const [selectedHistoryDate, setSelectedHistoryDate] = useState(() => {
         const d = new Date();
         const offset = d.getTimezoneOffset() * 60000;
@@ -90,9 +96,9 @@ export function AdminPanel() {
     });
     const powersync = usePowerSync();
 
-    // Fetch orders when panel opens or tab changes to history
+    // Fetch orders when panel opens or tab changes to history/onhold
     useEffect(() => {
-        if (isOpen && activeTab === 'history') {
+        if (isOpen && (activeTab === 'history' || activeTab === 'onhold')) {
             fetchOrdersFromSupabase();
         }
     }, [isOpen, activeTab, fetchOrdersFromSupabase]);
@@ -103,9 +109,13 @@ export function AdminPanel() {
             const orderDate = new Date(o.timestamp);
             const offset = orderDate.getTimezoneOffset() * 60000;
             const localDateStr = new Date(orderDate.getTime() - offset).toISOString().split('T')[0];
-            return localDateStr === selectedHistoryDate;
+            return localDateStr === selectedHistoryDate && o.status !== 'pending';
         });
     }, [orderHistory, selectedHistoryDate]);
+
+    const pendingOrders = useMemo(() => {
+        return orderHistory.filter(o => o.status === 'pending').sort((a, b) => b.timestamp - a.timestamp);
+    }, [orderHistory]);
 
     useEffect(() => {
         setIsClient(true);
@@ -186,7 +196,7 @@ export function AdminPanel() {
                             </div>
 
                             <nav className="space-y-2 flex-1">
-                                {(['dashboard', 'history', 'products', 'settings'] as Tab[]).map((tab) => (
+                                {(['dashboard', 'onhold', 'history', 'products', 'settings'] as Tab[]).map((tab) => (
                                     <button
                                         key={tab}
                                         onClick={() => setActiveTab(tab)}
@@ -196,10 +206,11 @@ export function AdminPanel() {
                                         )}
                                     >
                                         {tab === 'dashboard' && <LayoutDashboard size={18} />}
+                                        {tab === 'onhold' && <Clock size={18} />}
                                         {tab === 'history' && <History size={18} />}
                                         {tab === 'products' && <Package size={18} />}
                                         {tab === 'settings' && <SlidersHorizontal size={18} />}
-                                        <span className="capitalize">{tab === 'settings' ? 'paramètres' : tab}</span>
+                                        <span className="capitalize">{tab === 'settings' ? 'paramètres' : tab === 'onhold' ? 'en attente' : tab}</span>
                                     </button>
                                 ))}
                             </nav>
@@ -246,6 +257,77 @@ export function AdminPanel() {
                                             <RotateCcw size={16} />
                                             <span>Reset Journée</span>
                                         </button>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* En Attente (On Hold) Tab */}
+                            {activeTab === 'onhold' && (
+                                <div className="flex flex-col h-full">
+                                    <div className="p-6 border-b border-zinc-800 flex justify-between items-center">
+                                        <h3 className="text-2xl font-bold text-white flex items-center gap-3">
+                                            <Clock className="text-orange-500" /> Commandes en Attente
+                                        </h3>
+                                    </div>
+                                    <div className="flex-1 overflow-y-auto p-6 space-y-4">
+                                        {pendingOrders.length === 0 ? (
+                                            <div className="text-center text-zinc-500 py-10">Aucune commande en attente.</div>
+                                        ) : (
+                                            pendingOrders.map(order => {
+                                                const alertCount = order.payments?.[0]?.alertCount || 1;
+                                                return (
+                                                    <div key={order.id} className="bg-zinc-900/30 border border-zinc-800 rounded-xl p-4 flex flex-col md:flex-row gap-4 justify-between items-center transition-all hover:bg-zinc-800/30">
+                                                        <div className="flex-1">
+                                                            <div className="flex items-center gap-3 mb-1 flex-wrap">
+                                                                <span className="font-mono font-bold text-white bg-zinc-800 px-2 py-1 rounded">{order.id}</span>
+                                                                <span className="text-zinc-400 text-sm font-mono">{new Date(order.timestamp).toLocaleTimeString()}</span>
+                                                                <span className={cn(
+                                                                    "text-xs font-bold px-2 py-1 rounded",
+                                                                    order.orderType === 'emporte' ? "bg-sky-500/20 text-sky-400" : "bg-amber-500/20 text-amber-400"
+                                                                )}>
+                                                                    {order.orderType === 'emporte' ? '📦 Emporté' : '🍽️ Sur Place'}
+                                                                </span>
+                                                                {order.customerName && (
+                                                                    <span className="text-xs font-bold text-yellow-400 bg-yellow-500/10 px-2 py-1 rounded">👤 {order.customerName}</span>
+                                                                )}
+                                                            </div>
+                                                            <div className="text-sm text-zinc-400 line-clamp-2 mt-2">
+                                                                {order.items.map((i: any) => `${i.quantity}x ${i.product_name}`).join(', ')}
+                                                            </div>
+                                                        </div>
+                                                        <div className="flex flex-col md:items-end gap-3 w-full md:w-auto mt-2 md:mt-0">
+                                                            <div className="font-bold text-3xl text-white font-mono">{formatPrice(order.total)}</div>
+                                                            <div className="flex items-center gap-4 justify-between w-full md:w-auto">
+                                                                <label className="flex items-center gap-2 text-sm text-zinc-400 cursor-pointer select-none">
+                                                                    <input
+                                                                        type="checkbox"
+                                                                        disabled={alertCount >= 2}
+                                                                        checked={alertCount >= 2 ? false : sendSecondAlert}
+                                                                        onChange={(e) => setSendSecondAlert(e.target.checked)}
+                                                                        onClick={() => {
+                                                                            if (onHoldPaymentOrder?.id !== order.id) setOnHoldPaymentOrder(order);
+                                                                        }}
+                                                                        className="accent-orange-500 w-4 h-4 cursor-pointer"
+                                                                    />
+                                                                    {alertCount >= 2 ? "Rappel déjà envoyé" : "Renvoyer alerte (Rappel)"}
+                                                                </label>
+                                                                <button
+                                                                    onClick={() => {
+                                                                        if (onHoldPaymentOrder?.id !== order.id) {
+                                                                            setSendSecondAlert(false); // reset toggle when a new order is clicked
+                                                                        }
+                                                                        setOnHoldPaymentOrder(order);
+                                                                    }}
+                                                                    className="bg-emerald-500 hover:bg-emerald-400 text-black font-bold px-6 py-2.5 rounded-xl transition-all active:scale-95 shadow-lg shadow-emerald-500/20"
+                                                                >
+                                                                    ENCAISSER
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                )
+                                            })
+                                        )}
                                     </div>
                                 </div>
                             )}
@@ -646,6 +728,22 @@ export function AdminPanel() {
                         </div>
                     )}
                 </div>
+            )}
+
+            {/* Payment Modal for On Hold Checkout */}
+            {onHoldPaymentOrder && (
+                <PaymentModal
+                    isOpen={!!onHoldPaymentOrder}
+                    totalAmount={onHoldPaymentOrder.total}
+                    onClose={() => setOnHoldPaymentOrder(null)}
+                    onConfirm={async (payments) => {
+                        const rawData = supabaseOrders.find(o => o.id === onHoldPaymentOrder.id);
+                        await payOnHoldOrder(onHoldPaymentOrder.id, payments, sendSecondAlert, rawData);
+                        setOnHoldPaymentOrder(null);
+                        setSendSecondAlert(false);
+                        fetchOrdersFromSupabase(); // refresh
+                    }}
+                />
             )}
         </>
     );
