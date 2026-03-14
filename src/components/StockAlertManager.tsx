@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useSystemStore } from '@/store/useStore';
 import { useStockStatus } from '@/hooks/useStockStatus';
@@ -21,7 +21,6 @@ const STOCK_PRODUCTS = [
     { id: 'harumaki', name: 'Harumaki', emoji: '🌯' },
 ];
 
-// 3 low beeps
 let audioCtx2: AudioContext | null = null;
 const playStockSound = () => {
     if (typeof window === 'undefined') return;
@@ -46,9 +45,111 @@ export function StockAlertManager() {
     const myDeviceId = useSystemStore((s) => s.deviceId);
     const { outOfStock, toggleStock } = useStockStatus();
 
+    // ===== DRAGGABLE BUTTON STATE =====
+    const [pos, setPos] = useState({ x: 0, y: 0 });
+    const [initialized, setInitialized] = useState(false);
+    const dragging = useRef(false);
+    const dragOffset = useRef({ x: 0, y: 0 });
+    const hasMoved = useRef(false);
+    const btnRef = useRef<HTMLButtonElement>(null);
+
+    // Initialize position (top-right area, responsive)
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        // Try to load saved position
+        try {
+            const saved = localStorage.getItem('rupture_btn_pos');
+            if (saved) {
+                const p = JSON.parse(saved);
+                // Validate it's on screen
+                if (p.x >= 0 && p.x < window.innerWidth - 50 && p.y >= 0 && p.y < window.innerHeight - 30) {
+                    setPos(p);
+                    setInitialized(true);
+                    return;
+                }
+            }
+        } catch { }
+        // Default position: top area, centered-right
+        setPos({ x: window.innerWidth - 280, y: 12 });
+        setInitialized(true);
+    }, []);
+
+    // Save position when it changes
+    useEffect(() => {
+        if (initialized) {
+            try { localStorage.setItem('rupture_btn_pos', JSON.stringify(pos)); } catch { }
+        }
+    }, [pos, initialized]);
+
+    // Mouse drag handlers
+    const handleMouseDown = useCallback((e: React.MouseEvent) => {
+        dragging.current = true;
+        hasMoved.current = false;
+        dragOffset.current = {
+            x: e.clientX - pos.x,
+            y: e.clientY - pos.y,
+        };
+        e.preventDefault();
+    }, [pos]);
+
+    useEffect(() => {
+        const handleMouseMove = (e: MouseEvent) => {
+            if (!dragging.current) return;
+            hasMoved.current = true;
+            setPos({
+                x: Math.max(0, Math.min(window.innerWidth - 120, e.clientX - dragOffset.current.x)),
+                y: Math.max(0, Math.min(window.innerHeight - 40, e.clientY - dragOffset.current.y)),
+            });
+        };
+        const handleMouseUp = () => { dragging.current = false; };
+        window.addEventListener('mousemove', handleMouseMove);
+        window.addEventListener('mouseup', handleMouseUp);
+        return () => {
+            window.removeEventListener('mousemove', handleMouseMove);
+            window.removeEventListener('mouseup', handleMouseUp);
+        };
+    }, []);
+
+    // Touch drag handlers
+    const handleTouchStart = useCallback((e: React.TouchEvent) => {
+        const touch = e.touches[0];
+        dragging.current = true;
+        hasMoved.current = false;
+        dragOffset.current = {
+            x: touch.clientX - pos.x,
+            y: touch.clientY - pos.y,
+        };
+    }, [pos]);
+
+    useEffect(() => {
+        const handleTouchMove = (e: TouchEvent) => {
+            if (!dragging.current) return;
+            hasMoved.current = true;
+            const touch = e.touches[0];
+            setPos({
+                x: Math.max(0, Math.min(window.innerWidth - 120, touch.clientX - dragOffset.current.x)),
+                y: Math.max(0, Math.min(window.innerHeight - 40, touch.clientY - dragOffset.current.y)),
+            });
+        };
+        const handleTouchEnd = () => { dragging.current = false; };
+        window.addEventListener('touchmove', handleTouchMove, { passive: true });
+        window.addEventListener('touchend', handleTouchEnd);
+        return () => {
+            window.removeEventListener('touchmove', handleTouchMove);
+            window.removeEventListener('touchend', handleTouchEnd);
+        };
+    }, []);
+
+    const handleClick = useCallback(() => {
+        // Only open panel if we didn't drag
+        if (!hasMoved.current) {
+            setIsPanelOpen(true);
+        }
+    }, []);
+
     const handleToggle = useCallback(async (product: typeof STOCK_PRODUCTS[0]) => {
         const isCurrentlyOut = outOfStock.has(product.id);
-        const newAvailable = isCurrentlyOut; // toggle: if out → make available, if in → make out
+        const newAvailable = isCurrentlyOut;
 
         await toggleStock(product.id, product.name, newAvailable, myDeviceId);
         playStockSound();
@@ -60,16 +161,28 @@ export function StockAlertManager() {
         setTimeout(() => setFlashMsg(null), 3000);
     }, [outOfStock, toggleStock, myDeviceId]);
 
-    if (typeof document === 'undefined') return null;
+    if (typeof document === 'undefined' || !initialized) return null;
 
     const ruptureCount = outOfStock.size;
 
     return createPortal(
         <>
-            {/* FLOATING RUPTURE BUTTON — top-right, hidden on tablet */}
+            {/* DRAGGABLE RUPTURE BUTTON */}
             <button
-                onClick={() => setIsPanelOpen(true)}
-                className="fixed top-4 right-[210px] z-50 px-4 py-2 bg-amber-500/90 hover:bg-amber-500 text-black font-black text-xs rounded-full shadow-lg shadow-amber-500/20 active:scale-95 transition-all flex items-center gap-2 backdrop-blur-lg border border-amber-400/50"
+                ref={btnRef}
+                onMouseDown={handleMouseDown}
+                onTouchStart={handleTouchStart}
+                onClick={handleClick}
+                style={{
+                    position: 'fixed',
+                    left: pos.x,
+                    top: pos.y,
+                    zIndex: 9999,
+                    touchAction: 'none',
+                    userSelect: 'none',
+                    cursor: dragging.current ? 'grabbing' : 'grab',
+                }}
+                className="px-4 py-2.5 bg-amber-500/90 hover:bg-amber-500 text-black font-black text-xs rounded-full shadow-lg shadow-amber-500/30 transition-colors flex items-center gap-2 backdrop-blur-lg border border-amber-400/50 select-none"
             >
                 <Package size={14} />
                 RUPTURE
@@ -94,7 +207,7 @@ export function StockAlertManager() {
                                 </div>
                                 <div>
                                     <h2 className="text-lg font-black text-white">Rupture de Stock</h2>
-                                    <p className="text-zinc-400 text-xs">Appuyez pour basculer l'état du produit</p>
+                                    <p className="text-zinc-400 text-xs">Appuyez pour basculer l&apos;état du produit</p>
                                 </div>
                             </div>
                             <button onClick={() => setIsPanelOpen(false)} className="p-2 hover:bg-white/10 rounded-full">
@@ -128,7 +241,6 @@ export function StockAlertManager() {
                                                 </span>
                                             )}
 
-                                            {/* Red X overlay when out of stock */}
                                             {isOut && (
                                                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                                                     <XCircle size={48} className="text-red-500/30" />
