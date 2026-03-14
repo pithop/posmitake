@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
+import { logger } from '@/lib/logger';
 
 // This hook provides a shared stock status across all components.
 // It reads from Supabase `pos_stock_status` table and syncs in real-time.
@@ -77,6 +78,13 @@ export function useStockStatus() {
             available,
             updated_at: new Date().toISOString(),
             updated_by: deviceId,
+        });
+
+        logger.audit('SYSTEM', 'STOCK_STATUS_CHANGED', {
+            product_id: productId,
+            product_name: productName,
+            is_available: available,
+            updated_by: deviceId
         });
     }, []);
 

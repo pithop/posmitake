@@ -83,6 +83,14 @@ export const useCartStore = create<CartState>()(
                     };
                     set({ items: [...items, newItem], total: get().total + unitPrice });
                 }
+
+                logger.info('ORDER', 'CART_ITEM_ADDED', {
+                    product_id: product.id,
+                    product_name: product.name,
+                    quantity: existingItemIndex > -1 ? (get().items[existingItemIndex]?.quantity || 1) + 1 : 1, // approximate log qty 
+                    unit_price: unitPrice,
+                    cart_total: get().total
+                });
             },
             removeFromCart: (instanceId) => {
                 const items = get().items;
@@ -91,6 +99,12 @@ export const useCartStore = create<CartState>()(
                 set({
                     items: items.filter((i) => i.instanceId !== instanceId),
                     total: get().total - itemToRemove.totalPrice,
+                });
+
+                logger.info('ORDER', 'CART_ITEM_REMOVED', {
+                    product_id: itemToRemove.menuItem.id,
+                    product_name: itemToRemove.menuItem.name,
+                    cart_total: get().total
                 });
             },
             updateQuantity: (instanceId, delta) => {
@@ -117,7 +131,12 @@ export const useCartStore = create<CartState>()(
                     set({ items: newItems, total: newTotal });
                 }
             },
-            clearCart: () => set({ items: [], total: 0 }),
+            clearCart: () => {
+                if (get().items.length > 0) {
+                    logger.info('ORDER', 'CART_CLEARED', { previous_total: get().total });
+                }
+                set({ items: [], total: 0 });
+            },
         }),
         {
             name: 'mitake-cart-storage',

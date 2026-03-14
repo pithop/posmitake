@@ -3,7 +3,10 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { supabase } from '@/lib/supabase';
+import { cn } from "@/lib/utils";
+import { formatPrice } from "@/lib/utils";
 import { useSystemStore } from '@/store/useStore';
+import { logger } from "@/lib/logger";
 import { BellRing, X, ChevronRight, ChevronLeft, Minimize2 } from 'lucide-react';
 
 // Audio
@@ -162,7 +165,14 @@ export function OrderAlertManager() {
     const handleAcknowledge = useCallback((indexToRemove: number) => {
         setAlertQueue(prev => {
             const next = [...prev];
-            next.splice(indexToRemove, 1);
+            const removed = next.splice(indexToRemove, 1);
+
+            if (removed.length > 0) {
+                logger.audit('REALTIME', 'RAPPEL_CUISINE_ACKNOWLEDGED_MANUALLY', {
+                    order_id: removed[0].id,
+                    queue_size_remaining: next.length
+                });
+            }
 
             if (next.length === 0) {
                 stopAlertSound();

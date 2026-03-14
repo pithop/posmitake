@@ -6,6 +6,7 @@ import { Product, Order } from '@/types';
 import { cn } from '@/lib/utils';
 import { useQuery, usePowerSync } from '@powersync/react';
 import { supabase } from '@/lib/supabase';
+import { logger } from '@/lib/logger';
 import { PaymentModal } from './PaymentModal';
 import { ReceiptFromOrder, OrderReceiptData } from './ReceiptFromOrder';
 import { createPortal } from 'react-dom';
@@ -356,6 +357,7 @@ export function AdminPanel() {
                                                                                 items: rawData.items_json || [],
                                                                                 isPending: true,
                                                                             });
+                                                                            logger.audit('PRINT', 'MANUAL_REPRINT_REQUESTED', { order_id: rawData.id, is_pending: true });
                                                                             setTimeout(() => window.print(), 300);
                                                                         }
                                                                     }}
@@ -493,6 +495,7 @@ export function AdminPanel() {
                                                                                 payments: rawData.payment_details,
                                                                                 isPending: false,
                                                                             });
+                                                                            logger.audit('PRINT', 'MANUAL_REPRINT_REQUESTED', { order_id: rawData.id, is_pending: false });
                                                                             setTimeout(() => window.print(), 300);
                                                                         }
                                                                     }}
