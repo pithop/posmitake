@@ -13,7 +13,7 @@ import { createPortal } from 'react-dom';
 type Tab = 'dashboard' | 'onhold' | 'history' | 'products' | 'settings';
 
 export function AdminPanel() {
-    const { dailyRevenue, resetDaily, deviceId, setDeviceId, uiZoomLevel, setUiZoomLevel, printerName, setPrinterName, payOnHoldOrder } = useSystemStore();
+    const { dailyRevenue, resetDaily, deviceId, setDeviceId, uiZoomLevel, setUiZoomLevel, printerName, setPrinterName, payOnHoldOrder, tvaRate, setTvaRate } = useSystemStore();
 
     // PowerSync Data (local) — for products
     const { data: productsData = [] } = useQuery('SELECT * FROM pos_products');
@@ -683,23 +683,35 @@ export function AdminPanel() {
 
                                         <hr className="border-white/5" />
 
-                                        {/* Global POS Zoom Scale */}
-                                        <div className="space-y-6">
+                                        {/* UI Settings */}
+                                        <div className="space-y-4">
                                             <div>
                                                 <h4 className="text-lg font-bold text-white flex items-center gap-2">
-                                                    <Search size={20} className="text-blue-500" />
-                                                    Facteur de Zoom Global (Écran Tactile)
+                                                    🖥️ Interface
                                                 </h4>
                                                 <p className="text-zinc-400 text-sm mt-1">
-                                                    Ajustez ce curseur si l'interface est paramétrée trop petite ou trop grande pour votre écran physique sans toucher au zoom du navigateur Chrome.
+                                                    Personnalisez l'affichage de la caisse.
                                                 </p>
                                             </div>
 
-                                            <div className="bg-zinc-900/50 p-6 rounded-2xl border border-zinc-800 space-y-6">
-                                                <div className="flex justify-between items-center text-white font-mono font-bold text-xl">
-                                                    <span>- 50%</span>
-                                                    <span className="text-3xl text-blue-400">{uiZoomLevel}%</span>
-                                                    <span>+ 150%</span>
+                                            <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-5 space-y-4">
+                                                <div className="flex justify-between items-center mb-2">
+                                                    <span className="font-medium text-white">Taux de TVA (%)</span>
+                                                    <span className="text-orange-400 font-bold">{tvaRate}%</span>
+                                                </div>
+                                                <input
+                                                    type="number"
+                                                    value={tvaRate}
+                                                    onChange={(e) => setTvaRate(Number(e.target.value))}
+                                                    className="w-full bg-black border border-zinc-800 rounded-lg p-3 text-white focus:outline-none focus:border-white/20"
+                                                />
+                                                <p className="text-xs text-zinc-500">S'applique sur les tickets imprimés (ex: 20, 10, 5.5).</p>
+                                            </div>
+
+                                            <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-5 space-y-4">
+                                                <div className="flex justify-between items-center mb-2">
+                                                    <span className="font-medium text-white">Taille de l'interface (Zoom)</span>
+                                                    <span className="text-blue-400 font-bold">{uiZoomLevel}%</span>
                                                 </div>
 
                                                 <input

@@ -1,6 +1,7 @@
 "use client";
 
 import { formatPrice } from '@/lib/utils';
+import { useSystemStore } from '@/store/useStore';
 
 export interface OrderReceiptData {
     id: string;
@@ -20,6 +21,8 @@ interface Props {
 }
 
 export function ReceiptFromOrder({ data }: Props) {
+    const tvaRate = useSystemStore(state => state.tvaRate) || 20;
+
     if (!data) return null;
 
     const date = new Date(data.created_at);
@@ -120,8 +123,16 @@ export function ReceiptFromOrder({ data }: Props) {
             {/* Totals */}
             <div className="receipt-totals">
                 <div className="receipt-total-line">
-                    <span className="receipt-bold receipt-large">TOTAL</span>
+                    <span className="receipt-bold receipt-large">TOTAL TTC</span>
                     <span className="receipt-bold receipt-large">{formatPrice(data.total)}</span>
+                </div>
+                <div className="receipt-row mt-1 text-zinc-600 text-sm">
+                    <span>Total HT</span>
+                    <span>{formatPrice(data.total / (1 + (tvaRate / 100)))}</span>
+                </div>
+                <div className="receipt-row text-zinc-600 text-sm mb-2">
+                    <span>Dont TVA ({tvaRate}%)</span>
+                    <span>{formatPrice(data.total - (data.total / (1 + (tvaRate / 100))))}</span>
                 </div>
             </div>
 

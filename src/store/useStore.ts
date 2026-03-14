@@ -19,11 +19,13 @@ interface SystemState {
     deviceId: string;
     uiZoomLevel: number;
     printerName: string;
+    tvaRate: number;
     checkout: (payments: Payment[], orderType: OrderType, customerName: string, pickupTime: string) => Promise<void>;
     resetDaily: () => void;
     setDeviceId: (id: string) => void;
     setUiZoomLevel: (level: number) => void;
     setPrinterName: (name: string) => void;
+    setTvaRate: (rate: number) => void;
     putOnHold: (orderType: OrderType, customerName: string, pickupTime: string) => Promise<void>;
     payOnHoldOrder: (orderId: string, payments: Payment[], sendSecondAlert: boolean, fullOrderData: any) => Promise<void>;
 }
@@ -114,10 +116,12 @@ export const useSystemStore = create<SystemState>()(
             deviceId: 'caisse_ordi',
             uiZoomLevel: 100,
             printerName: '',
+            tvaRate: 20,
 
             setDeviceId: (id) => set({ deviceId: id }),
             setUiZoomLevel: (level) => set({ uiZoomLevel: level }),
             setPrinterName: (name) => set({ printerName: name }),
+            setTvaRate: (rate) => set({ tvaRate: rate }),
 
             checkout: async (payments: Payment[], orderType: OrderType, customerName: string, pickupTime: string) => {
                 const cartState = useCartStore.getState();
