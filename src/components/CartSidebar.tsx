@@ -54,7 +54,11 @@ export function CartSidebar() {
         };
 
         setLastReceipt(receiptData);
-        setShowPrintOverlay(true);
+
+        // Only show print overlay on main cash register, not tablet
+        if (deviceId !== 'tablette') {
+            setShowPrintOverlay(true);
+        }
         setPrintStatus(null);
     };
 
