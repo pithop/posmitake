@@ -1,4 +1,4 @@
-import { getPowerSyncDatabase } from './powersync/PowerSyncDb';
+import { supabase } from '@/lib/supabase';
 
 export type LogLevel = 'INFO' | 'WARN' | 'ERROR' | 'FATAL' | 'AUDIT';
 export type LogCategory = 'NETWORK' | 'ORDER' | 'REALTIME' | 'PRINT' | 'DB' | 'SYSTEM';
@@ -132,38 +132,30 @@ class PosLogger {
         const entriesToFlush = [...this.batch];
         this.batch = []; // Clear current batch
 
-        try {
-            const db = getPowerSyncDatabase();
-            if (!db.connect) {
-                // DB not ready yet, put them back
-                this.batch = [...entriesToFlush, ...this.batch];
-                return;
-            }
+        if (!supabase) return;
 
-            // PowerSync transaction
-            await db.writeTransaction(async (tx) => {
-                for (const entry of entriesToFlush) {
-                    await tx.execute(
-                        `INSERT INTO pos_logs (id, session_id, trace_id, client_timestamp, level, category, event_name, device_id, user_id, payload) 
-                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-                        [
-                            entry.id,
-                            entry.session_id,
-                            entry.trace_id ?? null,
-                            entry.client_timestamp,
-                            entry.level,
-                            entry.category,
-                            entry.event_name,
-                            entry.device_id ?? null,
-                            entry.user_id ?? null,
-                            entry.payload ?? null
-                        ]
-                    );
-                }
-            });
+        try {
+            // Supabase requires payload as JSONB, so we parse the string back here
+            const supabaseEntries = entriesToFlush.map(entry => ({
+                id: entry.id,
+                session_id: entry.session_id,
+                trace_id: entry.trace_id ?? null,
+                client_timestamp: entry.client_timestamp,
+                level: entry.level,
+                category: entry.category,
+                event_name: entry.event_name,
+                device_id: entry.device_id ?? null,
+                user_id: entry.user_id ?? null,
+                payload: entry.payload ? JSON.parse(entry.payload) : {}
+            }));
+
+            const { error } = await supabase.from('pos_logs').insert(supabaseEntries);
+            if (error) {
+                throw error;
+            }
             // Successfully flushed!
         } catch (err) {
-            console.error('[Logger] Failed to flush to PowerSync:', err);
+            console.error('[Logger] Failed to flush to Supabase:', err);
             // If it fails, we put them back at the beginning of the batch to retry later
             // But to prevent infinite memory growth, we cap it
             if (this.batch.length < 1000) {
