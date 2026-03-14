@@ -37,17 +37,30 @@ export function AdminPanel() {
         setOrdersLoading(false);
     }, []);
 
-    const orderHistory: Order[] = useMemo(() => supabaseOrders.map((o: any) => ({
-        id: o.id,
-        total: o.total,
-        status: o.status,
-        timestamp: new Date(o.created_at).getTime(),
-        items: [],
-        paymentMethod: o.payment_method || 'card',
-        sourceDevice: o.source_device || 'unknown',
-        orderType: o.order_type || 'sur_place',
-        payments: o.payment_details ? (typeof o.payment_details === 'string' ? JSON.parse(o.payment_details) : o.payment_details) : [],
-    })), [supabaseOrders]);
+    const orderHistory = useMemo(() => supabaseOrders.map((o: any) => {
+        // Parse items_json for instant detail display
+        let parsedItems: any[] = [];
+        try {
+            const raw = o.items_json;
+            if (raw) {
+                parsedItems = typeof raw === 'string' ? JSON.parse(raw) : (Array.isArray(raw) ? raw : []);
+            }
+        } catch { }
+
+        return {
+            id: o.id,
+            total: o.total,
+            status: o.status,
+            timestamp: new Date(o.created_at).getTime(),
+            items: parsedItems,
+            paymentMethod: o.payment_method || 'card',
+            sourceDevice: o.source_device || 'unknown',
+            orderType: o.order_type || 'sur_place',
+            customerName: o.customer_name || '',
+            pickupTime: o.pickup_time || '',
+            payments: o.payment_details ? (typeof o.payment_details === 'string' ? JSON.parse(o.payment_details) : o.payment_details) : [],
+        };
+    }), [supabaseOrders]);
 
     const products: Product[] = useMemo(() => productsData.map((p: any) => ({
         id: p.id,
@@ -277,6 +290,16 @@ export function AdminPanel() {
                                                                     )}>
                                                                         {order.orderType === 'emporte' ? '📦 Emporté' : '🍽️ Sur Place'}
                                                                     </span>
+                                                                    {order.customerName && (
+                                                                        <span className="text-xs font-bold text-yellow-400 bg-yellow-500/10 px-2 py-0.5 rounded">
+                                                                            👤 {order.customerName}
+                                                                        </span>
+                                                                    )}
+                                                                    {order.pickupTime && (
+                                                                        <span className="text-xs font-bold text-green-400 bg-green-500/10 px-2 py-0.5 rounded">
+                                                                            🕐 {order.pickupTime}
+                                                                        </span>
+                                                                    )}
                                                                 </div>
                                                             </div>
                                                             <div className="text-right">
@@ -288,38 +311,76 @@ export function AdminPanel() {
                                                         {/* Order Details */}
                                                         {expandedOrderId === order.id && (
                                                             <div className="bg-zinc-950/50 border-t border-zinc-800 p-4 space-y-3 animate-in slide-in-from-top-2 duration-200">
-                                                                {expandedOrderItems.length === 0 ? (
-                                                                    <p className="text-zinc-400 text-sm italic">Chargement...</p>
-                                                                ) : (
-                                                                    expandedOrderItems.map((item, idx) => (
-                                                                        <div key={idx} className="flex justify-between items-start text-sm">
-                                                                            <div className="flex space-x-3">
-                                                                                <span className="font-bold text-zinc-400">{item.quantity}x</span>
-                                                                                <div>
-                                                                                    <p className="text-zinc-200 font-medium">{item.product_name}</p>
-                                                                                    {(() => {
-                                                                                        if (!item.selected_modifiers || item.selected_modifiers === '[]') return null;
-                                                                                        try {
-                                                                                            const parsed = JSON.parse(item.selected_modifiers);
-                                                                                            const modsList = Array.isArray(parsed) ? parsed : (parsed.mods || []);
-                                                                                            const noteStr = !Array.isArray(parsed) && parsed.note ? parsed.note : '';
-
-                                                                                            return (
-                                                                                                <div className="text-zinc-500 text-xs mt-0.5 space-y-1">
-                                                                                                    {modsList.length > 0 && <div>{modsList.map((m: any) => m.name).join(', ')}</div>}
-                                                                                                    {noteStr && <div className="text-yellow-500/80 italic">Note: {noteStr}</div>}
-                                                                                                </div>
-                                                                                            );
-                                                                                        } catch (e) {
-                                                                                            return null;
-                                                                                        }
-                                                                                    })()}
-                                                                                </div>
+                                                                {/* Customer info banner */}
+                                                                {(order.customerName || order.pickupTime) && (
+                                                                    <div className="flex gap-3 mb-3 flex-wrap">
+                                                                        {order.customerName && (
+                                                                            <div className="bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 px-3 py-1.5 rounded-lg text-sm font-bold">
+                                                                                👤 {order.customerName}
                                                                             </div>
-                                                                            <span className="text-zinc-400">{formatPrice(item.total_price)}</span>
+                                                                        )}
+                                                                        {order.pickupTime && (
+                                                                            <div className="bg-green-500/10 border border-green-500/20 text-green-400 px-3 py-1.5 rounded-lg text-sm font-bold">
+                                                                                🕐 {order.pickupTime}
+                                                                            </div>
+                                                                        )}
+                                                                        <div className={cn(
+                                                                            "px-3 py-1.5 rounded-lg text-sm font-bold border",
+                                                                            order.orderType === 'emporte'
+                                                                                ? 'bg-sky-500/10 border-sky-500/20 text-sky-400'
+                                                                                : 'bg-amber-500/10 border-amber-500/20 text-amber-400'
+                                                                        )}>
+                                                                            {order.orderType === 'emporte' ? '📦 Emporté' : '🍽️ Sur Place'}
                                                                         </div>
-                                                                    ))
+                                                                    </div>
                                                                 )}
+
+                                                                {/* Items — use embedded items_json (instant) or fallback to fetched items */}
+                                                                {(() => {
+                                                                    const items = order.items.length > 0 ? order.items : expandedOrderItems;
+                                                                    if (items.length === 0) return <p className="text-zinc-400 text-sm italic">Chargement...</p>;
+                                                                    return items.map((item: any, idx: number) => {
+                                                                        let mods: any[] = [], note = '';
+                                                                        try {
+                                                                            const sm = item.selected_modifiers;
+                                                                            if (sm) {
+                                                                                const parsed = typeof sm === 'string' ? JSON.parse(sm) : sm;
+                                                                                if (Array.isArray(parsed)) {
+                                                                                    mods = parsed;
+                                                                                } else {
+                                                                                    mods = parsed.mods || [];
+                                                                                    note = parsed.note || '';
+                                                                                }
+                                                                            }
+                                                                        } catch { }
+
+                                                                        return (
+                                                                            <div key={idx} className="flex justify-between items-start text-sm">
+                                                                                <div className="flex space-x-3">
+                                                                                    <span className="font-bold text-zinc-400">{item.quantity}x</span>
+                                                                                    <div>
+                                                                                        <p className="text-zinc-200 font-medium">{item.product_name}</p>
+                                                                                        {mods.length > 0 && (
+                                                                                            <div className="text-blue-400 text-xs mt-0.5 space-y-0.5">
+                                                                                                {mods.map((m: any, mi: number) => (
+                                                                                                    <div key={mi} className="flex items-center gap-1">
+                                                                                                        <span className="text-blue-500">+</span>
+                                                                                                        <span>{m.quantity && m.quantity > 1 ? `${m.quantity}× ` : ''}{m.name}</span>
+                                                                                                        {m.price > 0 && <span className="text-zinc-500">({formatPrice(m.price)})</span>}
+                                                                                                    </div>
+                                                                                                ))}
+                                                                                            </div>
+                                                                                        )}
+                                                                                        {note && (
+                                                                                            <div className="text-yellow-400 text-xs mt-0.5 italic">⚠️ {note}</div>
+                                                                                        )}
+                                                                                    </div>
+                                                                                </div>
+                                                                                <span className="text-zinc-400 flex-shrink-0">{formatPrice(item.total_price || item.unit_price * item.quantity)}</span>
+                                                                            </div>
+                                                                        );
+                                                                    });
+                                                                })()}
                                                             </div>
                                                         )}
                                                     </div>
