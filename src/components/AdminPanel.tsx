@@ -1,12 +1,14 @@
 import { useSystemStore } from '@/store/useStore';
 import { formatPrice } from '@/lib/utils';
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { Settings, X, RotateCcw, LayoutDashboard, History, Package, Search, Save, Edit2, WifiOff, CloudUpload, SlidersHorizontal, Monitor, Smartphone, Clock } from 'lucide-react';
+import { Settings, X, RotateCcw, LayoutDashboard, History, Package, Search, Save, Edit2, WifiOff, CloudUpload, SlidersHorizontal, Monitor, Smartphone, Clock, Printer, BellRing } from 'lucide-react';
 import { Product, Order } from '@/types';
 import { cn } from '@/lib/utils';
 import { useQuery, usePowerSync } from '@powersync/react';
 import { supabase } from '@/lib/supabase';
 import { PaymentModal } from './PaymentModal';
+import { ReceiptFromOrder, OrderReceiptData } from './ReceiptFromOrder';
+import { createPortal } from 'react-dom';
 
 type Tab = 'dashboard' | 'onhold' | 'history' | 'products' | 'settings';
 
@@ -71,7 +73,13 @@ export function AdminPanel() {
         description: p.description,
         image: p.image,
         available: p.available === 1 || p.available === true,
-        modifierGroups: p.modifier_groups ? JSON.parse(p.modifier_groups) : [],
+        modifierGroups: p.modifier_groups ? JSON.parse(p.modifier_groups).map((g: any) => ({
+            id: g.id,
+            title: g.name || g.title,
+            required: g.required || false,
+            multiSelect: g.type === 'multiSelect' || g.multiSelect === true,
+            options: (g.options || []).map((o: any) => ({ id: o.id, name: o.name, priceAdjustment: o.priceAdjustment || 0 }))
+        })) : [],
         tags: p.tags ? JSON.parse(p.tags) : []
     })), [productsData]);
 
@@ -87,7 +95,9 @@ export function AdminPanel() {
 
     // On-hold / En Attente state
     const [onHoldPaymentOrder, setOnHoldPaymentOrder] = useState<any | null>(null);
-    const [alertsToResend, setAlertsToResend] = useState<Record<string, boolean>>({});
+
+    // Print state
+    const [printReceipt, setPrintReceipt] = useState<OrderReceiptData | null>(null);
 
     const [selectedHistoryDate, setSelectedHistoryDate] = useState(() => {
         const d = new Date();
@@ -275,7 +285,6 @@ export function AdminPanel() {
                                         ) : (
                                             pendingOrders.map(order => {
                                                 const alertCount = order.payments?.[0]?.alertCount || 1;
-                                                const isAlertChecked = alertsToResend[order.id] || false;
                                                 return (
                                                     <div key={order.id} className="bg-zinc-900/30 border border-zinc-800 rounded-xl p-4 flex flex-col md:flex-row gap-4 justify-between items-center transition-all hover:bg-zinc-800/30">
                                                         <div className="flex-1">
@@ -298,22 +307,72 @@ export function AdminPanel() {
                                                         </div>
                                                         <div className="flex flex-col md:items-end gap-3 w-full md:w-auto mt-2 md:mt-0">
                                                             <div className="font-bold text-3xl text-white font-mono">{formatPrice(order.total)}</div>
-                                                            <div className="flex items-center gap-4 justify-between w-full md:w-auto">
-                                                                <label className="flex items-center gap-2 text-sm text-zinc-400 cursor-pointer select-none">
-                                                                    <input
-                                                                        type="checkbox"
-                                                                        disabled={alertCount >= 2}
-                                                                        checked={alertCount >= 2 ? false : isAlertChecked}
-                                                                        onChange={(e) => setAlertsToResend(prev => ({ ...prev, [order.id]: e.target.checked }))}
-                                                                        onClick={(e) => e.stopPropagation()}
-                                                                        className="accent-orange-500 w-4 h-4 cursor-pointer"
-                                                                    />
-                                                                    {alertCount >= 2 ? "Rappel déjà envoyé" : "Renvoyer alerte (Rappel)"}
-                                                                </label>
+                                                            <div className="flex items-center gap-2 flex-wrap justify-end">
+                                                                {/* Print Ticket */}
                                                                 <button
                                                                     onClick={() => {
-                                                                        setOnHoldPaymentOrder(order);
+                                                                        const rawData = supabaseOrders.find(o => o.id === order.id);
+                                                                        if (rawData) {
+                                                                            setPrintReceipt({
+                                                                                id: rawData.id,
+                                                                                total: rawData.total,
+                                                                                order_type: rawData.order_type,
+                                                                                customer_name: rawData.customer_name,
+                                                                                pickup_time: rawData.pickup_time,
+                                                                                created_at: rawData.created_at,
+                                                                                source_device: rawData.source_device,
+                                                                                items: rawData.items_json || [],
+                                                                                isPending: true,
+                                                                            });
+                                                                            setTimeout(() => window.print(), 300);
+                                                                        }
                                                                     }}
+                                                                    className="flex items-center gap-1.5 bg-zinc-700 hover:bg-zinc-600 text-white font-bold px-4 py-2 rounded-xl transition-all active:scale-95 text-sm"
+                                                                >
+                                                                    <Printer size={16} /> Ticket
+                                                                </button>
+                                                                {/* Send Rappel */}
+                                                                <button
+                                                                    disabled={alertCount >= 2}
+                                                                    onClick={async () => {
+                                                                        if (!supabase) return;
+                                                                        const rawData = supabaseOrders.find(o => o.id === order.id);
+                                                                        if (!rawData) return;
+                                                                        try {
+                                                                            // Send RE_ALERT broadcast immediately
+                                                                            await supabase.channel('kitchen_alerts_v3').send({
+                                                                                type: 'broadcast',
+                                                                                event: 'RE_ALERT',
+                                                                                payload: { ...rawData, items: rawData.items_json || [], is_rappel: true }
+                                                                            });
+                                                                            // Update alertCount in Supabase
+                                                                            const currentDetails = rawData.payment_details || [];
+                                                                            const updatedDetails = Array.isArray(currentDetails)
+                                                                                ? currentDetails.map((d: any) => ({ ...d, alertCount: 2 }))
+                                                                                : [{ alertCount: 2 }];
+                                                                            await supabase.from('pos_orders')
+                                                                                .update({ payment_details: updatedDetails })
+                                                                                .eq('id', order.id);
+                                                                            fetchOrdersFromSupabase(); // refresh
+                                                                            alert('✅ Rappel envoyé en cuisine !');
+                                                                        } catch (err) {
+                                                                            console.error('[Rappel] Error:', err);
+                                                                            alert('❌ Erreur lors de l\'envoi du rappel');
+                                                                        }
+                                                                    }}
+                                                                    className={cn(
+                                                                        "flex items-center gap-1.5 font-bold px-4 py-2 rounded-xl transition-all active:scale-95 text-sm",
+                                                                        alertCount >= 2
+                                                                            ? "bg-zinc-800 text-zinc-500 cursor-not-allowed"
+                                                                            : "bg-orange-500 hover:bg-orange-400 text-black shadow-lg shadow-orange-500/20"
+                                                                    )}
+                                                                >
+                                                                    <BellRing size={16} />
+                                                                    {alertCount >= 2 ? 'Rappel envoyé' : 'Rappel cuisine'}
+                                                                </button>
+                                                                {/* Encaisser */}
+                                                                <button
+                                                                    onClick={() => setOnHoldPaymentOrder(order)}
                                                                     className="bg-emerald-500 hover:bg-emerald-400 text-black font-bold px-6 py-2.5 rounded-xl transition-all active:scale-95 shadow-lg shadow-emerald-500/20"
                                                                 >
                                                                     ENCAISSER
@@ -380,9 +439,35 @@ export function AdminPanel() {
                                                                     )}
                                                                 </div>
                                                             </div>
-                                                            <div className="text-right">
-                                                                <p className="text-xl font-bold text-white">{formatPrice(order.total)}</p>
-                                                                <p className="text-green-500 text-xs font-medium">Payé ({order.paymentMethod})</p>
+                                                            <div className="text-right flex items-center gap-3">
+                                                                <button
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        const rawData = supabaseOrders.find(o => o.id === order.id);
+                                                                        if (rawData) {
+                                                                            setPrintReceipt({
+                                                                                id: rawData.id,
+                                                                                total: rawData.total,
+                                                                                order_type: rawData.order_type,
+                                                                                customer_name: rawData.customer_name,
+                                                                                pickup_time: rawData.pickup_time,
+                                                                                created_at: rawData.created_at,
+                                                                                source_device: rawData.source_device,
+                                                                                items: rawData.items_json || [],
+                                                                                payments: rawData.payment_details,
+                                                                                isPending: false,
+                                                                            });
+                                                                            setTimeout(() => window.print(), 300);
+                                                                        }
+                                                                    }}
+                                                                    className="flex items-center gap-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 px-3 py-1.5 rounded-lg transition-all active:scale-95 text-xs"
+                                                                >
+                                                                    <Printer size={14} />
+                                                                </button>
+                                                                <div>
+                                                                    <p className="text-xl font-bold text-white">{formatPrice(order.total)}</p>
+                                                                    <p className="text-green-500 text-xs font-medium">Payé ({order.paymentMethod})</p>
+                                                                </div>
                                                             </div>
                                                         </div>
 
@@ -734,13 +819,17 @@ export function AdminPanel() {
                     onClose={() => setOnHoldPaymentOrder(null)}
                     onConfirm={async (payments) => {
                         const rawData = supabaseOrders.find(o => o.id === onHoldPaymentOrder.id);
-                        const shouldAlert = alertsToResend[onHoldPaymentOrder.id] || false;
-                        await payOnHoldOrder(onHoldPaymentOrder.id, payments, shouldAlert, rawData);
+                        await payOnHoldOrder(onHoldPaymentOrder.id, payments, false, rawData);
                         setOnHoldPaymentOrder(null);
-                        setAlertsToResend(prev => ({ ...prev, [onHoldPaymentOrder.id]: false }));
                         fetchOrdersFromSupabase(); // refresh
                     }}
                 />
+            )}
+
+            {/* Receipt portal for printing from Admin */}
+            {typeof document !== 'undefined' && printReceipt && createPortal(
+                <ReceiptFromOrder data={printReceipt} />,
+                document.body
             )}
         </>
     );

@@ -82,7 +82,13 @@ export function MenuGrid() {
             description: p.description,
             image: p.image,
             available: p.available === 1 || p.available === true,
-            modifierGroups: p.modifier_groups ? JSON.parse(p.modifier_groups) : [],
+            modifierGroups: p.modifier_groups ? JSON.parse(p.modifier_groups).map((g: any) => ({
+                id: g.id,
+                title: g.name || g.title,
+                required: g.required || false,
+                multiSelect: g.type === 'multiSelect' || g.multiSelect === true,
+                options: (g.options || []).map((o: any) => ({ id: o.id, name: o.name, priceAdjustment: o.priceAdjustment || 0 }))
+            })) : [],
             tags: p.tags ? JSON.parse(p.tags) : []
         }));
     }, [productsData]);
