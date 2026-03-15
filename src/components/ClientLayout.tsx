@@ -2,11 +2,16 @@
 
 import { useSystemStore } from "@/store/useStore";
 import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 import { logger } from "@/lib/logger";
+import { OrderAlertManager } from "@/components/OrderAlertManager";
+import { StockAlertManager } from "@/components/StockAlertManager";
 
 export function ClientLayout({ children }: { children: React.ReactNode }) {
   const { uiZoomLevel } = useSystemStore();
   const [mounted, setMounted] = useState(false);
+  const pathname = usePathname();
+  const isDashboard = pathname === '/dashboard';
 
   useEffect(() => {
     setMounted(true);
@@ -38,6 +43,13 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
             }
           }
       `}</style>
+      {/* Conditionally render global managers so they don't appear on the dashboard */}
+      {!isDashboard && (
+        <>
+          <OrderAlertManager />
+          <StockAlertManager />
+        </>
+      )}
       {children}
     </>
   );

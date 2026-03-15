@@ -53,6 +53,7 @@ export function OrderAlertManager() {
     const [isExpanded, setIsExpanded] = useState(false);
     const [mounted, setMounted] = useState(false);
     const processedIds = useRef<Set<string>>(new Set());
+    const processedRappels = useRef<Set<string>>(new Set());
     const myDeviceId = useSystemStore((s) => s.deviceId);
     const lastPollTime = useRef<string>(new Date().toISOString());
 
@@ -68,24 +69,31 @@ export function OrderAlertManager() {
         return [];
     }, []);
 
-    // Add order to alert queue
     const enqueueAlert = useCallback((order: any) => {
-        if (processedIds.current.has(order.id)) return;
+        const isRappel = !!order.is_rappel;
+        const rappelKey = order.rappel_at ? `${order.id}_${order.rappel_at}` : null;
+
+        if (!isRappel && processedIds.current.has(order.id)) return;
+        if (isRappel && rappelKey && processedRappels.current.has(rappelKey)) return;
 
         // Skip own device orders
         if (order.source_device === myDeviceId) {
-            processedIds.current.add(order.id);
+            if (!isRappel) processedIds.current.add(order.id);
+            if (isRappel && rappelKey) processedRappels.current.add(rappelKey);
             return;
         }
 
         // Skip orders older than 2 minutes
         const age = Date.now() - new Date(order.created_at).getTime();
         if (age > 120000) {
-            processedIds.current.add(order.id);
+            if (!isRappel) processedIds.current.add(order.id);
+            if (isRappel && rappelKey) processedRappels.current.add(rappelKey);
             return;
         }
 
-        processedIds.current.add(order.id);
+        if (!isRappel) processedIds.current.add(order.id);
+        if (isRappel && rappelKey) processedRappels.current.add(rappelKey);
+
         const items = parseItems(order);
 
         const alertOrder: AlertOrder = {
@@ -99,20 +107,29 @@ export function OrderAlertManager() {
             items,
         };
 
-        console.log('[Alert] 🔔 New order:', order.id, '— items:', items.length);
+        console.log('[Alert] 🔔 New order/rappel:', order.id, '— items:', items.length);
 
         setAlertQueue(prev => {
+            // If it's already in the queue, we don't duplicate it. But we will still play the sound below.
             if (prev.some(o => o.id === order.id)) return prev;
             return [...prev, alertOrder];
         });
 
         // SEND ACKNOWLEDGEMENT BACK TO CAISSE
         if (supabase) {
-            supabase.channel('kitchen_alerts_ack').send({
-                type: 'broadcast',
-                event: 'ACK_ORDER',
-                payload: { traceId: order.id, deviceId: myDeviceId }
-            }).catch(console.error);
+            const ackChannel = supabase.channel('kitchen_alerts_ack_send_' + Date.now());
+            ackChannel
+                .on('broadcast', { event: 'ACK_ORDER' }, () => { /* no-op listener to join topic */ })
+                .subscribe(async (status) => {
+                    if (status === 'SUBSCRIBED') {
+                        await ackChannel.send({
+                            type: 'broadcast',
+                            event: 'ACK_ORDER',
+                            payload: { traceId: order.id, deviceId: myDeviceId }
+                        });
+                        setTimeout(() => supabase!.removeChannel(ackChannel), 2000);
+                    }
+                });
         }
 
         // Auto-expand and play sound

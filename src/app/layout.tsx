@@ -3,8 +3,6 @@ import { Inter, Outfit } from "next/font/google";
 import "./globals.css";
 import { PowerSyncProvider } from "@/components/PowerSyncProvider";
 import { ClientLayout } from "@/components/ClientLayout";
-import { OrderAlertManager } from "@/components/OrderAlertManager";
-import { StockAlertManager } from "@/components/StockAlertManager";
 import { logger } from "@/lib/logger";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
@@ -31,8 +29,6 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${inter.variable} ${outfit.variable} font-sans antialiased`} suppressHydrationWarning>
-        <OrderAlertManager />
-        <StockAlertManager />
         <PowerSyncProvider>
           <ClientLayout>
             {children}
