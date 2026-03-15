@@ -8,6 +8,7 @@ import { useQuery, usePowerSync } from '@powersync/react';
 import { supabase } from '@/lib/supabase';
 import { logger } from '@/lib/logger';
 import { PaymentModal } from './PaymentModal';
+import { PaymentCorrectionModal } from './PaymentCorrectionModal';
 import { ReceiptFromOrder, OrderReceiptData } from './ReceiptFromOrder';
 import { createPortal } from 'react-dom';
 
@@ -115,6 +116,9 @@ export function AdminPanel() {
 
     // Print state
     const [printReceipt, setPrintReceipt] = useState<OrderReceiptData | null>(null);
+
+    // Payment Correction state
+    const [orderToCorrect, setOrderToCorrect] = useState<any | null>(null);
 
     const [selectedHistoryDate, setSelectedHistoryDate] = useState(() => {
         const d = new Date();
@@ -502,6 +506,15 @@ export function AdminPanel() {
                                                                     className="flex items-center gap-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 px-3 py-1.5 rounded-lg transition-all active:scale-95 text-xs"
                                                                 >
                                                                     <Printer size={14} />
+                                                                </button>
+                                                                <button
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        setOrderToCorrect(order);
+                                                                    }}
+                                                                    className="flex items-center gap-1 bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 hover:text-amber-400 border border-amber-500/30 px-3 py-1.5 rounded-lg transition-all active:scale-95 text-xs font-bold"
+                                                                >
+                                                                    <Edit2 size={14} /> Corriger
                                                                 </button>
                                                                 <div>
                                                                     <p className="text-xl font-bold text-white">{formatPrice(order.total)}</p>
@@ -979,6 +992,25 @@ export function AdminPanel() {
             {typeof document !== 'undefined' && printReceipt && createPortal(
                 <ReceiptFromOrder data={printReceipt} />,
                 document.body
+            )}
+            {/* Payment Correction Modal */}
+            {orderToCorrect && (
+                <PaymentCorrectionModal
+                    isOpen={!!orderToCorrect}
+                    orderId={orderToCorrect.id}
+                    totalAmount={orderToCorrect.total}
+                    initialPayments={orderToCorrect.payment_details || []}
+                    onClose={() => setOrderToCorrect(null)}
+                    onSuccess={(newPayments) => {
+                        // Optimistically update the UI list
+                        setSupabaseOrders(prev => prev.map(o =>
+                            o.id === orderToCorrect.id
+                                ? { ...o, payment_method: newPayments[0]?.method || 'cash', payment_details: newPayments }
+                                : o
+                        ));
+                        setOrderToCorrect(null);
+                    }}
+                />
             )}
         </>
     );

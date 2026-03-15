@@ -50,6 +50,7 @@ export function PaymentModal({ isOpen, totalAmount, onClose, onConfirm, onPutOnH
 
     const totalPaid = payments.reduce((sum, p) => sum + p.amount, 0);
     const remaining = Math.max(0, totalAmount - totalPaid);
+    const changedAmount = totalPaid > totalAmount ? totalPaid - totalAmount : 0;
     const isComplete = remaining <= 0.001;
 
     // Amount to display in the big counter
@@ -212,8 +213,7 @@ export function PaymentModal({ isOpen, totalAmount, onClose, onConfirm, onPutOnH
                         </div>
                     </div>
 
-                    {/* Totals */}
-                    <div className="px-6 py-4 space-y-3 border-b border-white/5">
+                    <div className="px-6 py-4 space-y-3 border-b border-white/5 bg-black/40">
                         <div className="flex justify-between items-center text-base text-muted-foreground">
                             <span>Total commande</span>
                             <span>{formatPrice(totalAmount)}</span>
@@ -224,6 +224,14 @@ export function PaymentModal({ isOpen, totalAmount, onClose, onConfirm, onPutOnH
                                 {formatPrice(remaining)}
                             </span>
                         </div>
+                        {changedAmount > 0 && (
+                            <div className="flex justify-between items-center text-3xl font-bold font-mono tracking-tight pt-2 border-t border-white/10 animate-fade-in">
+                                <span className="text-emerald-400">À rendre</span>
+                                <span className="text-emerald-400">
+                                    {formatPrice(changedAmount)}
+                                </span>
+                            </div>
+                        )}
                     </div>
 
                     {/* Payment Lines */}
