@@ -130,10 +130,13 @@ export function OrderAlertManager() {
                     console.log('[Alert] Realtime INSERT:', payload.new?.id);
                     enqueueAlert(payload.new);
                 })
-            .on('broadcast', { event: 'RE_ALERT' },
+            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'pos_orders' },
                 (payload: any) => {
-                    console.log('[Alert] Realtime RE_ALERT:', payload.payload?.id);
-                    enqueueAlert(payload.payload);
+                    // Only re-alert if rappel_at was just set (this is the Rappel mechanism)
+                    if (payload.new?.rappel_at && payload.new.rappel_at !== payload.old?.rappel_at) {
+                        console.log('[Alert] Realtime RAPPEL (UPDATE):', payload.new?.id);
+                        enqueueAlert({ ...payload.new, is_rappel: true });
+                    }
                 })
             .subscribe((status) => console.log('[Alert] Realtime:', status));
 

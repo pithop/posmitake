@@ -377,28 +377,27 @@ export function AdminPanel() {
                                                                         const rawData = supabaseOrders.find(o => o.id === order.id);
                                                                         if (!rawData) return;
                                                                         try {
-                                                                            // Send RE_ALERT broadcast immediately
-                                                                            await supabase.channel('kitchen_alerts_v3').send({
-                                                                                type: 'broadcast',
-                                                                                event: 'RE_ALERT',
-                                                                                payload: { ...rawData, items: rawData.items_json || [], is_rappel: true }
-                                                                            });
-                                                                            // Update alertCount in Supabase
+                                                                            // Update order with rappel_at timestamp — this triggers postgres_changes UPDATE on tablet
                                                                             const currentDetails = rawData.payment_details || [];
                                                                             const updatedDetails = Array.isArray(currentDetails)
                                                                                 ? currentDetails.map((d: any) => ({ ...d, alertCount: 2 }))
                                                                                 : [{ alertCount: 2 }];
                                                                             await supabase.from('pos_orders')
-                                                                                .update({ payment_details: updatedDetails })
+                                                                                .update({
+                                                                                    payment_details: updatedDetails,
+                                                                                    rappel_at: new Date().toISOString()
+                                                                                })
                                                                                 .eq('id', order.id);
                                                                             fetchOrdersFromSupabase(); // refresh
 
                                                                             // Register tracking for the rappel
                                                                             registerPendingAck(order.id);
 
+                                                                            logger.audit('REALTIME', 'RAPPEL_BROADCAST_SENT', { order_id: order.id });
                                                                             alert('✅ Rappel envoyé en cuisine !');
                                                                         } catch (err) {
                                                                             console.error('[Rappel] Error:', err);
+                                                                            logger.error('REALTIME', 'RAPPEL_BROADCAST_FAILED', { order_id: order.id, error: String(err) });
                                                                             alert('❌ Erreur lors de l\'envoi du rappel');
                                                                         }
                                                                     }}

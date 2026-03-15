@@ -496,13 +496,10 @@ export const useSystemStore = create<SystemState>()(
 
                         // If user requested a second alert, send a specific broadcast so kitchen gets a RAPPEL
                         if (sendSecondAlert && fullOrderData) {
-                            const payload = { ...fullOrderData, is_rappel: true };
-                            // Send broadcast on the same channel the kitchen listens to
-                            await supabase.channel('kitchen_alerts_v3').send({
-                                type: 'broadcast',
-                                event: 'RE_ALERT',
-                                payload: payload
-                            });
+                            // Update rappel_at to trigger postgres_changes UPDATE on tablet
+                            await supabase.from('pos_orders')
+                                .update({ rappel_at: new Date().toISOString() })
+                                .eq('id', orderId);
                             // Register ACK tracking for the rappel
                             get().registerPendingAck(orderId);
                         }
