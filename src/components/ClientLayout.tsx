@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { logger } from "@/lib/logger";
 import { OrderAlertManager } from "@/components/OrderAlertManager";
 import { StockAlertManager } from "@/components/StockAlertManager";
+import { WebsiteAlertManager } from "@/components/WebsiteAlertManager";
 
 export function ClientLayout({ children }: { children: React.ReactNode }) {
   const { uiZoomLevel } = useSystemStore();
@@ -47,6 +48,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
       {!isDashboard && (
         <>
           <OrderAlertManager />
+          <WebsiteAlertManager />
           <StockAlertManager />
         </>
       )}
