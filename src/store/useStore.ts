@@ -169,7 +169,7 @@ export const useSystemStore = create<SystemState>()(
                 const timeout = setTimeout(() => {
                     if (pendingAcksMap.has(traceId)) {
                         logger.error('REALTIME', 'ACK_TIMEOUT', { trace_id: traceId });
-                        alert(`⚠️ ALERTE CRITIQUE : La tablette cuisine n'a pas confirmé la réception de la commande ${traceId}. L'application cuisine est probablement hors-ligne ou fermée.`);
+                        // alert removed to prevent bothering the cashier
                         pendingAcksMap.delete(traceId);
                     }
                 }, 5000);

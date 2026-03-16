@@ -56,6 +56,7 @@ export function OrderAlertManager() {
     const processedRappels = useRef<Set<string>>(new Set());
     const myDeviceId = useSystemStore((s) => s.deviceId);
     const lastPollTime = useRef<string>(new Date().toISOString());
+    const ackChannelRef = useRef<any>(null);
 
     useEffect(() => setMounted(true), []);
 
@@ -116,20 +117,12 @@ export function OrderAlertManager() {
         });
 
         // SEND ACKNOWLEDGEMENT BACK TO CAISSE
-        if (supabase) {
-            const ackChannel = supabase.channel('kitchen_alerts_ack_send_' + Date.now());
-            ackChannel
-                .on('broadcast', { event: 'ACK_ORDER' }, () => { /* no-op listener to join topic */ })
-                .subscribe(async (status) => {
-                    if (status === 'SUBSCRIBED') {
-                        await ackChannel.send({
-                            type: 'broadcast',
-                            event: 'ACK_ORDER',
-                            payload: { traceId: order.id, deviceId: myDeviceId }
-                        });
-                        setTimeout(() => supabase!.removeChannel(ackChannel), 2000);
-                    }
-                });
+        if (ackChannelRef.current) {
+            ackChannelRef.current.send({
+                type: 'broadcast',
+                event: 'ACK_ORDER',
+                payload: { traceId: order.id, deviceId: myDeviceId }
+            }).catch(console.error);
         }
 
         // Auto-expand and play sound
@@ -140,6 +133,11 @@ export function OrderAlertManager() {
     // Listen for orders
     useEffect(() => {
         if (!supabase) return;
+
+        // Persistent channel for sending ACKs back to Caisse
+        const ackCh = supabase.channel('kitchen_alerts_ack');
+        ackCh.subscribe();
+        ackChannelRef.current = ackCh;
 
         const channel = supabase.channel('kitchen_alerts_v3')
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'pos_orders' },
@@ -172,7 +170,11 @@ export function OrderAlertManager() {
             } catch { }
         }, 2000);
 
-        return () => { supabase!.removeChannel(channel); clearInterval(poll); };
+        return () => {
+            supabase!.removeChannel(channel);
+            supabase!.removeChannel(ackCh);
+            clearInterval(poll);
+        };
     }, [enqueueAlert]);
 
     // MINIMIZE — hide full alert, keep bubble

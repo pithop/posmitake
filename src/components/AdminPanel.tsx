@@ -1,7 +1,7 @@
 import { useSystemStore } from '@/store/useStore';
 import { formatPrice } from '@/lib/utils';
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { Settings, X, RotateCcw, LayoutDashboard, History, Package, Search, Save, Edit2, WifiOff, CloudUpload, SlidersHorizontal, Monitor, Smartphone, Clock, Printer, BellRing } from 'lucide-react';
+import { Settings, X, RotateCcw, LayoutDashboard, History, Package, Search, Save, Edit2, WifiOff, CloudUpload, SlidersHorizontal, Monitor, Smartphone, Clock, Printer, BellRing, Trash2 } from 'lucide-react';
 import { Product, Order } from '@/types';
 import { cn } from '@/lib/utils';
 import { useQuery, usePowerSync } from '@powersync/react';
@@ -145,8 +145,33 @@ export function AdminPanel() {
     }, [orderHistory, selectedHistoryDate]);
 
     const pendingOrders = useMemo(() => {
-        return orderHistory.filter(o => o.status === 'pending').sort((a, b) => b.timestamp - a.timestamp);
+        const todayStr = new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0];
+        return orderHistory.filter(o => {
+            if (o.status !== 'pending') return false;
+            const orderDate = new Date(o.timestamp);
+            const offset = orderDate.getTimezoneOffset() * 60000;
+            const localDateStr = new Date(orderDate.getTime() - offset).toISOString().split('T')[0];
+            return localDateStr === todayStr;
+        }).sort((a, b) => b.timestamp - a.timestamp);
     }, [orderHistory]);
+
+    const handleDeletePendingOrder = async (orderId: string) => {
+        if (!confirm(`Voulez-vous vraiment supprimer la commande en attente ${orderId} ?`)) return;
+        try {
+            // Delete from SQLite
+            await powersync.execute('DELETE FROM pos_orders WHERE id = ?', [orderId]);
+            await powersync.execute('DELETE FROM pos_order_items WHERE order_id = ?', [orderId]);
+            // Delete from Supabase
+            if (supabase) {
+                await supabase.from('pos_order_items').delete().eq('order_id', orderId);
+                await supabase.from('pos_orders').delete().eq('id', orderId);
+            }
+            fetchOrdersFromSupabase();
+        } catch (err) {
+            console.error('[Delete] Erreur:', err);
+            alert('Erreur lors de la suppression de la commande.');
+        }
+    };
 
     useEffect(() => {
         setIsClient(true);
@@ -368,6 +393,14 @@ export function AdminPanel() {
                                                                     className="flex items-center gap-1.5 bg-zinc-700 hover:bg-zinc-600 text-white font-bold px-4 py-2 rounded-xl transition-all active:scale-95 text-sm"
                                                                 >
                                                                     <Printer size={16} /> Ticket
+                                                                </button>
+                                                                {/* Supprimer Pending */}
+                                                                <button
+                                                                    onClick={() => handleDeletePendingOrder(order.id)}
+                                                                    className="flex items-center gap-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/30 font-bold px-3 py-2 rounded-xl transition-all active:scale-95 text-sm"
+                                                                    title="Supprimer la commande en attente"
+                                                                >
+                                                                    <Trash2 size={16} />
                                                                 </button>
                                                                 {/* Send Rappel */}
                                                                 <button
