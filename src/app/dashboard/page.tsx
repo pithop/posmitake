@@ -16,7 +16,8 @@ import {
     Wifi,
     Printer,
     ShoppingBag,
-    Settings
+    Settings,
+    Calendar
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
@@ -61,37 +62,55 @@ export default function DashboardPage() {
     const [loading, setLoading] = useState(true);
     const [filterLevel, setFilterLevel] = useState<LogLevel | 'ALL'>('ALL');
     const [filterCategory, setFilterCategory] = useState<LogCategory | 'ALL'>('ALL');
+    const [filterDate, setFilterDate] = useState<string>(() => {
+        const d = new Date();
+        const offset = d.getTimezoneOffset() * 60000;
+        return new Date(d.getTime() - offset).toISOString().split('T')[0];
+    });
     const [selectedLog, setSelectedLog] = useState<LogEntry | null>(null);
 
-    useEffect(() => {
-        fetchLogs();
-
-        // Subscribe to new logs dynamically
-        const channel = supabase?.channel('public:pos_logs')
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'pos_logs' }, (payload) => {
-                setLogs(prev => [payload.new as LogEntry, ...prev]);
-            })
-            .subscribe();
-
-        return () => {
-            if (channel) supabase?.removeChannel(channel);
-        };
-    }, []);
-
-    const fetchLogs = async () => {
+    const fetchLogs = async (dateStr: string) => {
         setLoading(true);
         if (!supabase) return;
+
+        const startOfDay = `${dateStr}T00:00:00Z`;
+        const endOfDay = `${dateStr}T23:59:59.999Z`;
+
         const { data, error } = await supabase
             .from('pos_logs')
             .select('*')
+            .gte('server_timestamp', startOfDay)
+            .lte('server_timestamp', endOfDay)
             .order('server_timestamp', { ascending: false })
-            .limit(500);
+            .limit(1000);
 
         if (!error && data) {
             setLogs(data);
         }
         setLoading(false);
     };
+
+    useEffect(() => {
+        fetchLogs(filterDate);
+
+        // Subscribe to new logs dynamically
+        const channel = supabase?.channel('public:pos_logs')
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'pos_logs' }, (payload) => {
+                const newLog = payload.new as LogEntry;
+                // Only push to UI if it belongs to the currently selected date
+                const logDate = new Date(newLog.server_timestamp).toISOString().split('T')[0];
+                if (logDate === filterDate) {
+                    setLogs(prev => [newLog, ...prev]);
+                }
+            })
+            .subscribe();
+
+        return () => {
+            if (channel) supabase?.removeChannel(channel);
+        };
+    }, [filterDate]);
+
+
 
     const filteredLogs = logs.filter(log => {
         if (filterLevel !== 'ALL' && log.level !== filterLevel) return false;
@@ -129,6 +148,18 @@ export default function DashboardPage() {
             <main className="flex-1 flex overflow-hidden">
                 {/* Sidebar Filters */}
                 <aside className="w-64 border-r border-white/5 bg-zinc-900/20 p-6 flex flex-col gap-8 overflow-y-auto">
+                    <div>
+                        <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4 flex items-center gap-2">
+                            <Calendar className="w-3 h-3" /> Date
+                        </h3>
+                        <input
+                            type="date"
+                            value={filterDate}
+                            onChange={(e) => setFilterDate(e.target.value)}
+                            className="w-full bg-zinc-900/50 border border-white/10 text-white text-sm rounded-lg px-3 py-2 outline-none focus:border-emerald-500 transition-colors"
+                        />
+                    </div>
+
                     <div>
                         <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4 flex items-center gap-2">
                             <Filter className="w-3 h-3" /> Severity Level

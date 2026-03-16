@@ -155,9 +155,43 @@ export function AdminPanel() {
         }).sort((a, b) => b.timestamp - a.timestamp);
     }, [orderHistory]);
 
+    const todayMetrics = useMemo(() => {
+        const todayStr = new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0];
+        const todaysOrders = orderHistory.filter(o => {
+            const orderDate = new Date(o.timestamp);
+            const offset = orderDate.getTimezoneOffset() * 60000;
+            const localDateStr = new Date(orderDate.getTime() - offset).toISOString().split('T')[0];
+            return localDateStr === todayStr && o.status !== 'pending' && o.status !== 'cancelled';
+        });
+
+        let revenue = 0;
+        let count = todaysOrders.length;
+        let byMethod = { carte: 0, espece: 0, ticket_resto: 0, cheque_vacance: 0 };
+
+        todaysOrders.forEach(o => {
+            revenue += o.total;
+            const p = o.payments && o.payments.length > 0 ? o.payments[0].method : o.paymentMethod;
+            const method = String(p || 'cash').toLowerCase();
+
+            if (method.includes('card') || method.includes('amex') || method.includes('carte') || method.includes('mobile')) {
+                byMethod.carte += o.total;
+            } else if (method.includes('ticket')) {
+                byMethod.ticket_resto += o.total;
+            } else if (method.includes('cheque_vacances') || method.includes('vacance')) {
+                byMethod.cheque_vacance += o.total;
+            } else {
+                byMethod.espece += o.total;
+            }
+        });
+
+        return { revenue, count, byMethod, todaysOrders };
+    }, [orderHistory]);
+
     const handleDeletePendingOrder = async (orderId: string) => {
         if (!confirm(`Voulez-vous vraiment supprimer la commande en attente ${orderId} ?`)) return;
         try {
+            // Log the action before deleting
+            logger.audit('ORDER', 'PENDING_ORDER_DELETED', { order_id: orderId });
             // Delete from SQLite
             await powersync.execute('DELETE FROM pos_orders WHERE id = ?', [orderId]);
             await powersync.execute('DELETE FROM pos_order_items WHERE order_id = ?', [orderId]);
@@ -225,6 +259,44 @@ export function AdminPanel() {
     const handleReset = () => {
         if (confirm('ATTENTION: Cela va effacer le chiffre d\'affaires local (affichage seulement). Continuer ?')) {
             resetDaily();
+        }
+    };
+
+    const handlePrintDailySummary = () => {
+        const { todaysOrders, revenue, byMethod, count } = todayMetrics;
+        if (count === 0) {
+            alert("Aucune commande aujourd'hui.");
+            return;
+        }
+        logger.audit('PRINT', 'DAILY_SUMMARY_PRINTED', { revenue, count });
+        const formatM = (v: number) => new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(v);
+
+        let printContent = `<div style="font-family: monospace; width: 80mm; padding: 10px; font-size: 14px; margin: 0 auto; color: black; background: white;">`;
+        printContent += `<h2 style="text-align: center; margin: 0 0 10px 0;">BILAN DE LA JOURNÉE</h2>`;
+        printContent += `<p style="text-align: center; margin: 0 0 15px 0;">${new Date().toLocaleDateString('fr-FR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>`;
+        printContent += `<hr style="border: 1px dashed black; margin-bottom: 10px;" />`;
+        printContent += `<p style="font-weight: bold; font-size: 18px;">Total CA: <span style="float: right;">${formatM(revenue)}</span></p>`;
+        printContent += `<p>Nb Commandes: <span style="float: right;">${count}</span></p>`;
+        printContent += `<p>Panier Moyen: <span style="float: right;">${formatM(revenue / count)}</span></p>`;
+        printContent += `<hr style="border: 1px dashed black; margin: 10px 0;" />`;
+        printContent += `<h3>PAR MOYEN DE PAIEMENT</h3>`;
+        if (byMethod.carte > 0) printContent += `<p>Carte Bancaire: <span style="float: right;">${formatM(byMethod.carte)}</span></p>`;
+        if (byMethod.espece > 0) printContent += `<p>Espèces: <span style="float: right;">${formatM(byMethod.espece)}</span></p>`;
+        if (byMethod.ticket_resto > 0) printContent += `<p>Ticket Restaurant: <span style="float: right;">${formatM(byMethod.ticket_resto)}</span></p>`;
+        if (byMethod.cheque_vacance > 0) printContent += `<p>Chèque Vacances: <span style="float: right;">${formatM(byMethod.cheque_vacance)}</span></p>`;
+        printContent += `<hr style="border: 1px dashed black; margin: 15px 0;" />`;
+        printContent += `<p style="text-align: center; font-size: 12px;">Fin du rapport</p>`;
+        printContent += `</div>`;
+
+        const printWindow = window.open('', '', 'width=400,height=600');
+        if (printWindow) {
+            printWindow.document.write(`<html><head><title>Bilan Journée</title></head><body style="margin:0;">${printContent}</body></html>`);
+            printWindow.document.close();
+            printWindow.focus();
+            setTimeout(() => {
+                printWindow.print();
+                printWindow.close();
+            }, 500);
         }
     };
 
@@ -301,21 +373,49 @@ export function AdminPanel() {
                             {/* Dashboard Tab */}
                             {activeTab === 'dashboard' && (
                                 <div className="p-8 overflow-y-auto h-full">
-                                    <h3 className="text-2xl font-bold text-white mb-6">Aperçu de la journée</h3>
+                                    <div className="flex justify-between items-center mb-6">
+                                        <h3 className="text-2xl font-bold text-white">Aperçu de la journée</h3>
+                                        <button
+                                            onClick={handlePrintDailySummary}
+                                            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-xl transition-colors font-bold shadow-lg shadow-blue-600/20"
+                                        >
+                                            <Printer size={18} /> Imprimer Bilan Journée
+                                        </button>
+                                    </div>
                                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                                         <div className="bg-zinc-900/50 border border-zinc-800 p-6 rounded-2xl">
                                             <p className="text-zinc-400 text-sm font-medium">Chiffre d'Affaires</p>
-                                            <p className="text-4xl font-bold text-green-500 mt-2">{formatPrice(dailyRevenue)}</p>
+                                            <p className="text-4xl font-bold text-green-500 mt-2">{formatPrice(todayMetrics.revenue)}</p>
                                         </div>
                                         <div className="bg-zinc-900/50 border border-zinc-800 p-6 rounded-2xl">
                                             <p className="text-zinc-400 text-sm font-medium">Commandes</p>
-                                            <p className="text-4xl font-bold text-white mt-2">{orderHistory.length}</p>
+                                            <p className="text-4xl font-bold text-white mt-2">{todayMetrics.count}</p>
                                         </div>
                                         <div className="bg-zinc-900/50 border border-zinc-800 p-6 rounded-2xl">
                                             <p className="text-zinc-400 text-sm font-medium">Panier Moyen</p>
                                             <p className="text-4xl font-bold text-blue-500 mt-2">
-                                                {orderHistory.length > 0 ? formatPrice(dailyRevenue / orderHistory.length) : formatPrice(0)}
+                                                {todayMetrics.count > 0 ? formatPrice(todayMetrics.revenue / todayMetrics.count) : formatPrice(0)}
                                             </p>
+                                        </div>
+                                    </div>
+
+                                    <h4 className="text-xl font-bold text-white mb-4">Répartition des Paiements</h4>
+                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                                        <div className="bg-zinc-900/50 border border-zinc-800 p-4 rounded-xl flex justify-between items-center">
+                                            <span className="text-zinc-400 font-medium">Carte Bancaire</span>
+                                            <span className="text-white font-bold">{formatPrice(todayMetrics.byMethod.carte)}</span>
+                                        </div>
+                                        <div className="bg-zinc-900/50 border border-zinc-800 p-4 rounded-xl flex justify-between items-center">
+                                            <span className="text-zinc-400 font-medium">Espèces</span>
+                                            <span className="text-white font-bold">{formatPrice(todayMetrics.byMethod.espece)}</span>
+                                        </div>
+                                        <div className="bg-zinc-900/50 border border-zinc-800 p-4 rounded-xl flex justify-between items-center">
+                                            <span className="text-zinc-400 font-medium">Ticket Resto</span>
+                                            <span className="text-white font-bold">{formatPrice(todayMetrics.byMethod.ticket_resto)}</span>
+                                        </div>
+                                        <div className="bg-zinc-900/50 border border-zinc-800 p-4 rounded-xl flex justify-between items-center">
+                                            <span className="text-zinc-400 font-medium">Chèque Vacances</span>
+                                            <span className="text-white font-bold">{formatPrice(todayMetrics.byMethod.cheque_vacance)}</span>
                                         </div>
                                     </div>
 
