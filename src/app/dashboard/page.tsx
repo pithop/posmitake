@@ -122,9 +122,9 @@ export default function DashboardPage() {
         <div className="min-h-screen bg-zinc-950 text-slate-300 font-mono flex flex-col selection:bg-emerald-500/30">
 
             {/* Header */}
-            <header className="border-b border-white/10 bg-zinc-900/50 p-6 flex items-center justify-between sticky top-0 z-10 backdrop-blur-md">
+            <header className="border-b border-white/10 bg-zinc-900/50 p-4 md:p-6 flex flex-col md:flex-row md:items-center justify-between gap-4 sticky top-0 z-30 backdrop-blur-md">
                 <div className="flex items-center gap-4">
-                    <div className="p-3 bg-emerald-500/10 rounded-xl border border-emerald-500/20">
+                    <div className="p-3 bg-emerald-500/10 rounded-xl border border-emerald-500/20 flex-shrink-0">
                         <Activity className="w-6 h-6 text-emerald-500" />
                     </div>
                     <div>
@@ -133,23 +133,23 @@ export default function DashboardPage() {
                     </div>
                 </div>
 
-                <div className="flex items-center gap-6">
-                    <div className="flex items-center gap-2 text-sm bg-zinc-900 px-4 py-2 rounded-lg border border-white/5">
+                <div className="flex items-center justify-between md:justify-end gap-6 w-full md:w-auto">
+                    <div className="flex items-center gap-2 text-xs md:text-sm bg-zinc-900 px-3 py-2 rounded-lg border border-white/5 whitespace-nowrap">
                         <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                         <span className="text-emerald-500 font-medium">Live Sync Active</span>
                     </div>
-                    <div className="text-xs text-slate-500 text-right">
-                        <div>{logs.length} Events captured</div>
-                        <div>Last updated: {new Date().toLocaleTimeString()}</div>
+                    <div className="text-[10px] md:text-xs text-slate-500 text-right whitespace-nowrap flex flex-col md:block">
+                        <span>{logs.length} Events captured</span>
+                        <span className="md:block hidden">Last updated: {new Date().toLocaleTimeString()}</span>
                     </div>
                 </div>
             </header>
 
-            <main className="flex-1 flex overflow-hidden">
+            <main className="flex-1 flex flex-col md:flex-row overflow-hidden relative">
                 {/* Sidebar Filters */}
-                <aside className="w-64 border-r border-white/5 bg-zinc-900/20 p-6 flex flex-col gap-8 overflow-y-auto">
-                    <div>
-                        <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4 flex items-center gap-2">
+                <aside className="w-full md:w-64 border-b md:border-b-0 md:border-r border-white/5 bg-zinc-900/20 p-4 md:p-6 flex flex-col sm:flex-row md:flex-col gap-4 md:gap-8 overflow-y-auto z-20">
+                    <div className="flex-1 min-w-[200px]">
+                        <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 md:mb-4 flex items-center gap-2">
                             <Calendar className="w-3 h-3" /> Date
                         </h3>
                         <input
@@ -160,20 +160,20 @@ export default function DashboardPage() {
                         />
                     </div>
 
-                    <div>
-                        <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4 flex items-center gap-2">
+                    <div className="flex-1 min-w-[200px]">
+                        <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 md:mb-4 flex items-center gap-2">
                             <Filter className="w-3 h-3" /> Severity Level
                         </h3>
-                        <div className="flex flex-col gap-2">
+                        <div className="flex flex-row flex-wrap md:flex-col gap-2">
                             {['ALL', 'INFO', 'WARN', 'ERROR', 'FATAL', 'AUDIT'].map(level => (
                                 <button
                                     key={level}
                                     onClick={() => setFilterLevel(level as any)}
                                     className={cn(
-                                        "text-left px-3 py-2 rounded-md text-sm transition-all duration-200 border",
+                                        "text-center md:text-left px-3 py-2 rounded-md text-sm transition-all duration-200 border flex-1 min-w-[60px] md:min-w-0 md:w-full",
                                         filterLevel === level
                                             ? "bg-zinc-800 border-white/20 text-white shadow-lg"
-                                            : "bg-transparent border-transparent text-slate-400 hover:bg-zinc-800/50"
+                                            : "bg-transparent border-white/5 text-slate-400 hover:bg-zinc-800/50"
                                     )}
                                 >
                                     {level}
@@ -182,20 +182,20 @@ export default function DashboardPage() {
                         </div>
                     </div>
 
-                    <div>
-                        <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4 flex items-center gap-2">
+                    <div className="flex-1 min-w-[200px]">
+                        <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 md:mb-4 flex items-center gap-2">
                             <Search className="w-3 h-3" /> Category
                         </h3>
-                        <div className="flex flex-col gap-2">
+                        <div className="flex flex-row flex-wrap md:flex-col gap-2">
                             {['ALL', 'ORDER', 'REALTIME', 'PRINT', 'SYSTEM', 'DB', 'NETWORK'].map(cat => (
                                 <button
                                     key={cat}
                                     onClick={() => setFilterCategory(cat as any)}
                                     className={cn(
-                                        "text-left px-3 py-2 rounded-md text-sm transition-all duration-200 border",
+                                        "text-center md:text-left px-3 py-2 rounded-md text-sm transition-all duration-200 border flex-1 min-w-[80px] md:min-w-0 md:w-full",
                                         filterCategory === cat
                                             ? "bg-zinc-800 border-white/20 text-white shadow-lg"
-                                            : "bg-transparent border-transparent text-slate-400 hover:bg-zinc-800/50"
+                                            : "bg-transparent border-white/5 text-slate-400 hover:bg-zinc-800/50"
                                     )}
                                 >
                                     {cat}
@@ -206,50 +206,50 @@ export default function DashboardPage() {
                 </aside>
 
                 {/* Logs Table */}
-                <div className="flex-1 flex flex-col overflow-hidden relative">
-                    <div className="flex-1 overflow-auto p-6">
+                <div className="flex-1 flex flex-col overflow-hidden relative min-h-[50vh]">
+                    <div className="flex-1 overflow-x-auto overflow-y-auto p-2 md:p-6">
                         {loading ? (
-                            <div className="flex items-center justify-center h-full text-slate-500 gap-3">
+                            <div className="flex items-center justify-center h-[200px] md:h-full text-slate-500 gap-3">
                                 <Clock className="w-5 h-5 animate-spin" /> Fetching telemetry data...
                             </div>
                         ) : filteredLogs.length === 0 ? (
-                            <div className="flex flex-col items-center justify-center h-full text-slate-500">
+                            <div className="flex flex-col items-center justify-center h-[200px] md:h-full text-slate-500">
                                 <Terminal className="w-12 h-12 mb-4 opacity-20" />
                                 <p>No logs found matching your criteria.</p>
                             </div>
                         ) : (
-                            <div className="flex flex-col gap-3">
+                            <div className="flex flex-col gap-2 md:gap-3 min-w-[700px] md:min-w-0">
                                 {filteredLogs.map(log => {
                                     const Icon = categoryIcons[log.category] || Terminal;
                                     return (
                                         <div
                                             key={log.id}
                                             onClick={() => setSelectedLog(log)}
-                                            className="group bg-zinc-900 border border-white/5 rounded-lg p-4 flex items-center gap-4 hover:bg-zinc-800 transition-colors cursor-pointer"
+                                            className="group bg-zinc-900 border border-white/5 rounded-lg p-3 md:p-4 flex flex-row items-center gap-3 md:gap-4 hover:bg-zinc-800 transition-colors cursor-pointer"
                                         >
-                                            <div className="w-32 flex-none text-xs text-slate-500">
+                                            <div className="w-24 md:w-32 flex-none text-[10px] md:text-xs text-slate-500 whitespace-nowrap">
                                                 {format(new Date(log.server_timestamp), 'HH:mm:ss.SSS')}
                                             </div>
 
-                                            <div className={cn("px-2.5 py-1 rounded text-[10px] font-bold border w-16 text-center tracking-wider", levelColors[log.level] || levelColors.INFO)}>
+                                            <div className={cn("px-1.5 py-0.5 md:px-2.5 md:py-1 rounded text-[9px] md:text-[10px] font-bold border w-12 md:w-16 text-center tracking-wider", levelColors[log.level] || levelColors.INFO)}>
                                                 {log.level}
                                             </div>
 
-                                            <div className="flex items-center gap-2 w-32 border-l border-white/10 pl-4">
-                                                <Icon className="w-4 h-4 text-slate-500" />
-                                                <span className="text-xs text-slate-400">{log.category}</span>
+                                            <div className="flex items-center gap-1.5 md:gap-2 w-24 md:w-32 border-l border-white/10 pl-2 md:pl-4">
+                                                <Icon className="w-3 h-3 md:w-4 md:h-4 text-slate-500 hidden sm:block" />
+                                                <span className="text-[10px] md:text-xs text-slate-400 truncate">{log.category}</span>
                                             </div>
 
-                                            <div className="flex-1 font-semibold text-sm text-slate-200 truncate">
+                                            <div className="flex-1 font-semibold text-xs md:text-sm text-slate-200 truncate min-w-[150px]">
                                                 {log.event_name}
                                             </div>
 
-                                            <div className="w-48 flex-none text-xs text-slate-500 truncate flex items-center gap-2">
-                                                <span className="w-2 h-2 rounded-full bg-slate-700" />
-                                                Device: {log.device_id === 'unknown' ? 'Unknown' : log.device_id.substring(0, 8)}
+                                            <div className="w-24 md:w-48 flex-none text-[10px] md:text-xs text-slate-500 truncate flex items-center gap-1.5 md:gap-2 justify-end md:justify-start">
+                                                <span className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-slate-700 hidden sm:block" />
+                                                <span className="truncate">Device: {log.device_id === 'unknown' ? 'Unknown' : log.device_id.substring(0, 8)}</span>
                                             </div>
 
-                                            <ChevronRight className="w-5 h-5 text-slate-600 group-hover:text-emerald-500 transition-colors" />
+                                            <ChevronRight className="w-4 h-4 md:w-5 md:h-5 text-slate-600 group-hover:text-emerald-500 transition-colors flex-none" />
                                         </div>
                                     );
                                 })}
@@ -260,7 +260,7 @@ export default function DashboardPage() {
 
                 {/* Detail Panel */}
                 {selectedLog && (
-                    <div className="w-[500px] border-l border-white/5 bg-zinc-900/50 shadow-2xl flex flex-col p-6 overflow-y-auto animate-slide-in-right z-20">
+                    <div className="fixed inset-0 md:inset-y-0 md:right-0 md:left-auto md:w-[500px] border-l border-white/5 bg-zinc-950/95 md:bg-zinc-900/50 shadow-2xl flex flex-col p-4 md:p-6 overflow-y-auto animate-slide-in-right z-[100] md:z-20 backdrop-blur-xl md:backdrop-blur-none">
                         <div className="flex items-center justify-between mb-8 pb-4 border-b border-white/10">
                             <h2 className="text-lg font-bold text-white flex items-center gap-3">
                                 <div className={cn("w-3 h-3 rounded-full", levelColors[selectedLog.level]?.split(' ')[0].replace('text-', 'bg-') || 'bg-slate-500')} />
@@ -274,8 +274,8 @@ export default function DashboardPage() {
                             </button>
                         </div>
 
-                        <div className="flex flex-col gap-6">
-                            <div className="grid grid-cols-2 gap-4">
+                        <div className="flex flex-col gap-6 -mx-2 md:mx-0 px-2 md:px-0">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <div className="text-xs text-slate-500 mb-1">Event Name</div>
                                     <div className="font-bold text-emerald-400">{selectedLog.event_name}</div>
