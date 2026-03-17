@@ -90,31 +90,44 @@ export function ReceiptFromOrder({ data }: Props) {
                 {data.items.map((item: any, idx: number) => {
                     let mods: any[] = [];
                     let note = '';
+
                     try {
-                        const sm = item.selected_modifiers;
-                        if (sm) {
-                            const parsed = typeof sm === 'string' ? JSON.parse(sm) : sm;
-                            if (Array.isArray(parsed)) {
-                                mods = parsed;
-                            } else {
-                                mods = parsed.mods || [];
-                                note = parsed.note || '';
+                        // Website Format
+                        if (item.options && Array.isArray(item.options)) {
+                            mods = item.options;
+                            note = item.comment || '';
+                        }
+                        // POS format
+                        else {
+                            const sm = item.selected_modifiers || item.modifiers;
+                            if (sm) {
+                                const parsed = typeof sm === 'string' ? JSON.parse(sm) : sm;
+                                if (Array.isArray(parsed)) {
+                                    mods = parsed;
+                                } else {
+                                    mods = parsed.mods || [];
+                                    note = parsed.note || '';
+                                }
                             }
                         }
                     } catch { }
 
+                    const itemName = item.product_name || item.name;
+                    const itemPrice = item.total_price || (item.unit_price || item.price || 0) * (item.quantity || 1);
+
                     return (
                         <div key={idx} className="receipt-item">
                             <div className="receipt-item-main">
-                                <span>{item.quantity}x {item.product_name}</span>
-                                <span>{formatPrice(item.total_price || item.unit_price * item.quantity)}</span>
+                                <span>{item.quantity}x {itemName}</span>
+                                <span>{formatPrice(itemPrice)}</span>
                             </div>
                             {mods.length > 0 && (
                                 <div className="receipt-mods">
                                     {mods.map((m: any, mi: number) => (
                                         <div key={mi} className="receipt-mod">
                                             + {m.quantity && m.quantity > 1 ? `${m.quantity}× ` : ''}{m.name}
-                                            {m.priceAdjustment > 0 && ` (${formatPrice(m.priceAdjustment)})`}
+                                            {m.price > 0 && ` (${formatPrice(Number(m.price) || 0)})`}
+                                            {m.priceAdjustment > 0 && ` (${formatPrice(Number(m.priceAdjustment) || 0)})`}
                                         </div>
                                     ))}
                                 </div>

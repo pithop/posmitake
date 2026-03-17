@@ -464,7 +464,24 @@ export function AdminPanel() {
                                                                 )}
                                                             </div>
                                                             <div className="text-sm text-zinc-400 line-clamp-2 mt-2">
-                                                                {order.items.map((i: any) => `${i.quantity}x ${i.product_name || i.name}`).join(', ')}
+                                                                {order.items.map((item: any) => {
+                                                                    let mods: string[] = [];
+                                                                    try {
+                                                                        if (item.options && Array.isArray(item.options)) {
+                                                                            mods = item.options.map((m: any) => m.name);
+                                                                        } else {
+                                                                            const sm = item.selected_modifiers || item.modifiers;
+                                                                            if (sm) {
+                                                                                const parsed = typeof sm === 'string' ? JSON.parse(sm) : sm;
+                                                                                const mArr = Array.isArray(parsed) ? parsed : (parsed.mods || []);
+                                                                                mods = mArr.map((m: any) => m.name);
+                                                                            }
+                                                                        }
+                                                                    } catch { }
+                                                                    const baseName = item.product_name || item.name;
+                                                                    const modStr = mods.length > 0 ? ` (+ ${mods.join(', ')})` : '';
+                                                                    return `${item.quantity}x ${baseName}${modStr}`;
+                                                                }).join(', ')}
                                                             </div>
                                                         </div>
                                                         <div className="flex flex-col md:items-end gap-3 w-full md:w-auto mt-2 md:mt-0">
