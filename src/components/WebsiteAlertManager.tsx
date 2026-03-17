@@ -224,19 +224,21 @@ export function WebsiteAlertManager() {
                                     </div>
                                     <div className="flex-1">
                                         <h3 className="text-3xl font-bold text-slate-100 uppercase">{item.name}</h3>
-                                        {(item.modifiers || item.note) && (
+                                        {(item.options || item.modifiers || item.comment || item.note) && (
                                             <div className="mt-2 text-slate-300 bg-zinc-800/80 p-3 rounded-lg border border-white/5">
-                                                {item.modifiers?.length > 0 && (
+                                                {((item.options && item.options.length > 0) || (item.modifiers && item.modifiers.length > 0)) && (
                                                     <p className="font-medium text-lg flex flex-wrap gap-2">
                                                         <span className="text-emerald-400">SUPPLÉMENTS:</span>
-                                                        {item.modifiers.map((m: any, idx: number) => (
-                                                            <span key={idx} className="bg-zinc-700 px-2 py-0.5 rounded text-white">{m.name}</span>
+                                                        {(item.options || item.modifiers).map((m: any, idx: number) => (
+                                                            <span key={idx} className="bg-zinc-700 px-2 py-0.5 rounded text-white text-base">
+                                                                {m.name} {m.price > 0 ? `(+${formatPrice(Number(m.price) || 0)})` : ''}
+                                                            </span>
                                                         ))}
                                                     </p>
                                                 )}
-                                                {item.note && (
+                                                {(item.comment || item.note) && (
                                                     <p className="mt-2 text-red-400 font-bold block text-lg bg-red-950/40 p-2 rounded-lg border border-red-500/20">
-                                                        ⚠️ NOTES: {item.note}
+                                                        ⚠️ NOTES: {item.comment || item.note}
                                                     </p>
                                                 )}
                                             </div>

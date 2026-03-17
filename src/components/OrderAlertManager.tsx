@@ -84,6 +84,11 @@ export function OrderAlertManager() {
             return;
         }
 
+        // Skip website orders (handled by WebsiteAlertManager)
+        if (order.source_device === 'website') {
+            return;
+        }
+
         // Skip orders older than 2 minutes
         const age = Date.now() - new Date(order.created_at).getTime();
         if (age > 120000) {

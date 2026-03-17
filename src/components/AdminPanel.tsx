@@ -464,7 +464,7 @@ export function AdminPanel() {
                                                                 )}
                                                             </div>
                                                             <div className="text-sm text-zinc-400 line-clamp-2 mt-2">
-                                                                {order.items.map((i: any) => `${i.quantity}x ${i.product_name}`).join(', ')}
+                                                                {order.items.map((i: any) => `${i.quantity}x ${i.product_name || i.name}`).join(', ')}
                                                             </div>
                                                         </div>
                                                         <div className="flex flex-col md:items-end gap-3 w-full md:w-auto mt-2 md:mt-0">
@@ -689,14 +689,22 @@ export function AdminPanel() {
                                                                     return items.map((item: any, idx: number) => {
                                                                         let mods: any[] = [], note = '';
                                                                         try {
-                                                                            const sm = item.selected_modifiers;
-                                                                            if (sm) {
-                                                                                const parsed = typeof sm === 'string' ? JSON.parse(sm) : sm;
-                                                                                if (Array.isArray(parsed)) {
-                                                                                    mods = parsed;
-                                                                                } else {
-                                                                                    mods = parsed.mods || [];
-                                                                                    note = parsed.note || '';
+                                                                            // Website format
+                                                                            if (item.options && Array.isArray(item.options)) {
+                                                                                mods = item.options;
+                                                                                note = item.comment || '';
+                                                                            }
+                                                                            // POS format
+                                                                            else {
+                                                                                const sm = item.selected_modifiers || item.modifiers;
+                                                                                if (sm) {
+                                                                                    const parsed = typeof sm === 'string' ? JSON.parse(sm) : sm;
+                                                                                    if (Array.isArray(parsed)) {
+                                                                                        mods = parsed;
+                                                                                    } else {
+                                                                                        mods = parsed.mods || [];
+                                                                                        note = parsed.note || '';
+                                                                                    }
                                                                                 }
                                                                             }
                                                                         } catch { }
@@ -706,14 +714,14 @@ export function AdminPanel() {
                                                                                 <div className="flex space-x-3">
                                                                                     <span className="font-bold text-zinc-400">{item.quantity}x</span>
                                                                                     <div>
-                                                                                        <p className="text-zinc-200 font-medium">{item.product_name}</p>
+                                                                                        <p className="text-zinc-200 font-medium">{item.product_name || item.name}</p>
                                                                                         {mods.length > 0 && (
                                                                                             <div className="text-blue-400 text-xs mt-0.5 space-y-0.5">
                                                                                                 {mods.map((m: any, mi: number) => (
                                                                                                     <div key={mi} className="flex items-center gap-1">
                                                                                                         <span className="text-blue-500">+</span>
                                                                                                         <span>{m.quantity && m.quantity > 1 ? `${m.quantity}× ` : ''}{m.name}</span>
-                                                                                                        {m.price > 0 && <span className="text-zinc-500">({formatPrice(m.price)})</span>}
+                                                                                                        {m.price > 0 && <span className="text-zinc-500">({formatPrice(Number(m.price) || 0)})</span>}
                                                                                                     </div>
                                                                                                 ))}
                                                                                             </div>
@@ -723,7 +731,7 @@ export function AdminPanel() {
                                                                                         )}
                                                                                     </div>
                                                                                 </div>
-                                                                                <span className="text-zinc-400 flex-shrink-0">{formatPrice(item.total_price || item.unit_price * item.quantity)}</span>
+                                                                                <span className="text-zinc-400 flex-shrink-0">{formatPrice(item.total_price || (item.unit_price || item.price) * item.quantity)}</span>
                                                                             </div>
                                                                         );
                                                                     });
