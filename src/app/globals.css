@@ -163,7 +163,7 @@ h6 {
 
 .receipt-container {
   font-family: 'Courier New', Courier, monospace;
-  font-size: 12px;
+  font-size: 14px;
   line-height: 1.4;
   color: #000;
   background: #fff;
@@ -183,20 +183,22 @@ h6 {
 }
 
 .receipt-logo {
-  font-size: 18px;
+  font-size: 22px;
   font-weight: 900;
   letter-spacing: 1px;
 }
 
 .receipt-sub {
-  font-size: 11px;
-  color: #333;
+  font-size: 13px;
+  color: #000;
+  font-weight: 700;
 }
 
 .receipt-divider {
   text-align: center;
-  color: #999;
-  font-size: 10px;
+  color: #000;
+  font-size: 14px;
+  font-weight: 700;
   margin: 4px 0;
   white-space: pre;
 }
@@ -216,12 +218,13 @@ h6 {
 }
 
 .receipt-large {
-  font-size: 16px;
+  font-size: 18px;
 }
 
 .receipt-small {
-  font-size: 9px;
-  color: #666;
+  font-size: 11px;
+  color: #000;
+  font-weight: 600;
 }
 
 .receipt-center {
@@ -240,12 +243,13 @@ h6 {
   display: flex;
   justify-content: space-between;
   font-weight: 700;
+  font-size: 14px;
 }
 
 .receipt-mods {
   padding-left: 8px;
-  font-size: 11px;
-  color: #333;
+  font-size: 13px;
+  color: #000;
 }
 
 .receipt-mod {
@@ -254,9 +258,10 @@ h6 {
 
 .receipt-note {
   padding-left: 8px;
-  font-size: 10px;
+  font-size: 12px;
   font-style: italic;
-  color: #555;
+  font-weight: bold;
+  color: #000;
 }
 
 .receipt-totals {

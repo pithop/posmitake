@@ -148,11 +148,11 @@ export function ReceiptFromOrder({ data }: Props) {
                     <span className="receipt-bold receipt-large">TOTAL TTC</span>
                     <span className="receipt-bold receipt-large">{formatPrice(data.total)}</span>
                 </div>
-                <div className="receipt-row mt-1 text-zinc-600 text-sm">
+                <div className="receipt-row mt-1 receipt-small">
                     <span>Total HT</span>
                     <span>{formatPrice(data.total / (1 + (tvaRate / 100)))}</span>
                 </div>
-                <div className="receipt-row text-zinc-600 text-sm mb-2">
+                <div className="receipt-row receipt-small mb-2">
                     <span>Dont TVA ({tvaRate}%)</span>
                     <span>{formatPrice(data.total - (data.total / (1 + (tvaRate / 100))))}</span>
                 </div>
@@ -164,8 +164,8 @@ export function ReceiptFromOrder({ data }: Props) {
             <div className="receipt-payments">
                 {data.isPending ? (
                     <div className="receipt-row">
-                        <span className="receipt-bold" style={{ fontSize: '14px' }}>⏳ À PAYER</span>
-                        <span className="receipt-bold">{formatPrice(data.total)}</span>
+                        <span className="receipt-bold" style={{ fontSize: '16px' }}>À PAYER</span>
+                        <span className="receipt-bold" style={{ fontSize: '16px' }}>{formatPrice(data.total)}</span>
                     </div>
                 ) : (
                     data.payments && data.payments.filter((p: any) => p.method && p.method !== 'unpaid').map((p: any, i: number) => (
