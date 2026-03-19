@@ -410,11 +410,18 @@ export const useSystemStore = create<SystemState>()(
                             if (isEditing) {
                                 const diff = computeOrderDiff(cartState.originalOrderItems, itemsSnapshot);
                                 if (diff.added.length > 0 || diff.removed.length > 0) {
-                                    supabase.channel('kitchen_alerts_v3').send({
-                                        type: 'broadcast',
+                                    const channel = supabase.channel('kitchen_alerts_v3');
+                                    const broadcastPayload = {
+                                        type: 'broadcast' as const,
                                         event: 'ORDER_MODIFIED',
                                         payload: { ...payload, diff, is_modification: true }
-                                    }).catch(console.error);
+                                    };
+
+                                    channel.subscribe((status) => {
+                                        if (status === 'SUBSCRIBED') {
+                                            channel.send(broadcastPayload as any).catch(console.error);
+                                        }
+                                    });
                                 }
                             }
 
@@ -549,11 +556,18 @@ export const useSystemStore = create<SystemState>()(
                             if (isEditing) {
                                 const diff = computeOrderDiff(cartState.originalOrderItems, itemsSnapshot);
                                 if (diff.added.length > 0 || diff.removed.length > 0) {
-                                    supabase.channel('kitchen_alerts_v3').send({
-                                        type: 'broadcast',
+                                    const channel = supabase.channel('kitchen_alerts_v3');
+                                    const broadcastPayload = {
+                                        type: 'broadcast' as const,
                                         event: 'ORDER_MODIFIED',
                                         payload: { ...payload, diff, is_modification: true }
-                                    }).catch(console.error);
+                                    };
+
+                                    channel.subscribe((status) => {
+                                        if (status === 'SUBSCRIBED') {
+                                            channel.send(broadcastPayload as any).catch(console.error);
+                                        }
+                                    });
                                 }
                             }
 
