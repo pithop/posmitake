@@ -1,4 +1,4 @@
-import { useSystemStore } from '@/store/useStore';
+import { useSystemStore, useCartStore } from '@/store/useStore';
 import { formatPrice } from '@/lib/utils';
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Settings, X, RotateCcw, LayoutDashboard, History, Package, Search, Save, Edit2, WifiOff, CloudUpload, SlidersHorizontal, Monitor, Smartphone, Clock, Printer, BellRing, Trash2 } from 'lucide-react';
@@ -15,7 +15,8 @@ import { createPortal } from 'react-dom';
 type Tab = 'dashboard' | 'onhold' | 'history' | 'products' | 'settings';
 
 export function AdminPanel() {
-    const { dailyRevenue, resetDaily, deviceId, setDeviceId, uiZoomLevel, setUiZoomLevel, printerName, setPrinterName, payOnHoldOrder, tvaRate, setTvaRate, settings, fetchSettings, updateSettings, resolveAck, registerPendingAck } = useSystemStore();
+    const { dailyRevenue, resetDaily, deviceId, setDeviceId, uiZoomLevel, setUiZoomLevel, printerName, setPrinterName, payOnHoldOrder, putOnHold, tvaRate, setTvaRate, settings, fetchSettings, updateSettings, resolveAck, registerPendingAck } = useSystemStore();
+    const { items: cartItems, loadCart } = useCartStore();
 
     // PowerSync Data (local) — for products
     const { data: productsData = [] } = useQuery('SELECT * FROM pos_products');
@@ -88,6 +89,75 @@ export function AdminPanel() {
     const [isOpen, setIsOpen] = useState(false);
     const [activeTab, setActiveTab] = useState<Tab>('dashboard');
     const [isClient, setIsClient] = useState(false);
+
+    const handleEditPendingOrder = useCallback(async (order: any) => {
+        // Auto-save current cart if it exists
+        if (cartItems.length > 0) {
+            const stashedId = await putOnHold('emporte', 'Panier Automatique', '', true);
+            if (stashedId) {
+                useCartStore.getState().stashCurrentCart(stashedId);
+            }
+        }
+
+        // Reconstruct CartItems from the pending order
+        const mappedItems = order.items.map((item: any) => {
+            // Try to find the actual product from the local menu, if not create a fallback
+            const productMatch = products.find((p: any) => p.name === (item.product_name || item.name)) || {
+                id: item.product_id || 'unknown',
+                name: item.product_name || item.name || 'Produit Inconnu',
+                price: item.unit_price || item.price || 0,
+                description: '',
+                category_id: '',
+                available: true,
+                image: '',
+                modifierGroups: [],
+                tags: []
+            };
+
+            // Parse modifiers
+            let mods: any[] = [];
+            let note = '';
+            try {
+                if (item.options && Array.isArray(item.options)) {
+                    mods = item.options.map((m: any) => ({
+                        id: m.id || m.name,
+                        name: m.name,
+                        priceAdjustment: m.price || 0,
+                        quantity: m.quantity || 1
+                    }));
+                    note = item.comment || '';
+                } else {
+                    const sm = item.selected_modifiers || item.modifiers;
+                    if (sm) {
+                        const parsed = typeof sm === 'string' ? JSON.parse(sm) : sm;
+                        if (Array.isArray(parsed)) {
+                            mods = parsed;
+                        } else {
+                            mods = parsed.mods || [];
+                            note = parsed.note || '';
+                        }
+                    }
+                }
+            } catch (e) {
+                console.error("Failed to parse modifiers for item reconstruction", e);
+            }
+
+            return {
+                instanceId: crypto.randomUUID(),
+                menuItem: productMatch,
+                selectedModifiers: mods,
+                quantity: item.quantity,
+                totalPrice: item.total_price || ((item.unit_price || item.price || 0) * item.quantity),
+                note: note
+            };
+        });
+
+        // Load into the cart
+        loadCart(order.id, mappedItems, order.items);
+
+        // Close AdminPanel and return to checkout
+        setIsOpen(false);
+    }, [cartItems, putOnHold, products, loadCart]);
 
     // Fetch settings on mount
     useEffect(() => {
@@ -463,25 +533,56 @@ export function AdminPanel() {
                                                                     <span className="text-xs font-bold text-yellow-400 bg-yellow-500/10 px-2 py-1 rounded">👤 {order.customerName}</span>
                                                                 )}
                                                             </div>
-                                                            <div className="text-sm text-zinc-400 line-clamp-2 mt-2">
-                                                                {order.items.map((item: any) => {
-                                                                    let mods: string[] = [];
-                                                                    try {
-                                                                        if (item.options && Array.isArray(item.options)) {
-                                                                            mods = item.options.map((m: any) => m.name);
-                                                                        } else {
-                                                                            const sm = item.selected_modifiers || item.modifiers;
-                                                                            if (sm) {
-                                                                                const parsed = typeof sm === 'string' ? JSON.parse(sm) : sm;
-                                                                                const mArr = Array.isArray(parsed) ? parsed : (parsed.mods || []);
-                                                                                mods = mArr.map((m: any) => m.name);
+                                                            <div
+                                                                className={`text-sm mt-2 cursor-pointer transition-all hover:text-zinc-300 ${expandedOrderId === order.id ? 'text-zinc-300 bg-zinc-800/50 p-3 rounded-lg' : 'text-zinc-400 line-clamp-2'}`}
+                                                                onClick={() => setExpandedOrderId(expandedOrderId === order.id ? null : order.id)}
+                                                                title={expandedOrderId === order.id ? "Réduire" : "Cliquer pour voir tous les détails"}
+                                                            >
+                                                                {expandedOrderId === order.id ? (
+                                                                    <div className="flex flex-col gap-2">
+                                                                        {order.items.map((item: any, i: number) => {
+                                                                            let mods: string[] = [];
+                                                                            try {
+                                                                                if (item.options && Array.isArray(item.options)) {
+                                                                                    mods = item.options.map((m: any) => m.name);
+                                                                                } else {
+                                                                                    const sm = item.selected_modifiers || item.modifiers;
+                                                                                    if (sm) {
+                                                                                        const parsed = typeof sm === 'string' ? JSON.parse(sm) : sm;
+                                                                                        const mArr = Array.isArray(parsed) ? parsed : (parsed.mods || []);
+                                                                                        mods = mArr.map((m: any) => m.name);
+                                                                                    }
+                                                                                }
+                                                                            } catch { }
+                                                                            const baseName = item.product_name || item.name;
+                                                                            return (
+                                                                                <div key={i} className="flex flex-col bg-zinc-900/50 p-2 rounded">
+                                                                                    <span className="font-bold text-white text-base">{item.quantity}x {baseName}</span>
+                                                                                    {mods.length > 0 && <span className="text-xs text-sky-300 pl-4 mt-1">+ {mods.join(', ')}</span>}
+                                                                                </div>
+                                                                            );
+                                                                        })}
+                                                                    </div>
+                                                                ) : (
+                                                                    order.items.map((item: any) => {
+                                                                        let mods: string[] = [];
+                                                                        try {
+                                                                            if (item.options && Array.isArray(item.options)) {
+                                                                                mods = item.options.map((m: any) => m.name);
+                                                                            } else {
+                                                                                const sm = item.selected_modifiers || item.modifiers;
+                                                                                if (sm) {
+                                                                                    const parsed = typeof sm === 'string' ? JSON.parse(sm) : sm;
+                                                                                    const mArr = Array.isArray(parsed) ? parsed : (parsed.mods || []);
+                                                                                    mods = mArr.map((m: any) => m.name);
+                                                                                }
                                                                             }
-                                                                        }
-                                                                    } catch { }
-                                                                    const baseName = item.product_name || item.name;
-                                                                    const modStr = mods.length > 0 ? ` (+ ${mods.join(', ')})` : '';
-                                                                    return `${item.quantity}x ${baseName}${modStr}`;
-                                                                }).join(', ')}
+                                                                        } catch { }
+                                                                        const baseName = item.product_name || item.name;
+                                                                        const modStr = mods.length > 0 ? ` (+ ${mods.join(', ')})` : '';
+                                                                        return `${item.quantity}x ${baseName}${modStr}`;
+                                                                    }).join(', ')
+                                                                )}
                                                             </div>
                                                         </div>
                                                         <div className="flex flex-col md:items-end gap-3 w-full md:w-auto mt-2 md:mt-0">
@@ -510,6 +611,14 @@ export function AdminPanel() {
                                                                     className="flex items-center gap-1.5 bg-zinc-700 hover:bg-zinc-600 text-white font-bold px-4 py-2 rounded-xl transition-all active:scale-95 text-sm"
                                                                 >
                                                                     <Printer size={16} /> Ticket
+                                                                </button>
+                                                                {/* Modifier Pending */}
+                                                                <button
+                                                                    onClick={() => handleEditPendingOrder(order)}
+                                                                    className="flex items-center gap-1.5 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/30 font-bold px-3 py-2 rounded-xl transition-all active:scale-95 text-sm"
+                                                                    title="Modifier la commande"
+                                                                >
+                                                                    <Edit2 size={16} /> Modifier
                                                                 </button>
                                                                 {/* Supprimer Pending */}
                                                                 <button

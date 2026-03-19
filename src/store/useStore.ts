@@ -7,6 +7,48 @@ import { logger } from '@/lib/logger';
 
 const pendingAcksMap = new Map<string, NodeJS.Timeout>();
 
+export const computeOrderDiff = (originalItems: any[] | null, currentItems: any[]) => {
+    if (!originalItems) return { added: [], removed: [] };
+
+    const hashItem = (item: any) => {
+        // Handle both pos_order_items format (from original) and CartItem format (from current)
+        const name = item.product_name || item.menuItem?.name || item.name;
+        const mods = item.selectedModifiers || item.selected_modifiers?.mods || item.modifiers || [];
+        const modsStr = Array.isArray(mods) ? mods.map((m: any) => m.name).sort().join('|') : '';
+        return `${name}::${modsStr}`;
+    };
+
+    const oldMap = new Map<string, any>();
+    originalItems.forEach((i: any) => {
+        const h = hashItem(i);
+        const qty = i.quantity;
+        if (oldMap.has(h)) oldMap.get(h).qty += qty;
+        else oldMap.set(h, { ...i, qty, name: i.product_name || i.name });
+    });
+
+    const newMap = new Map<string, any>();
+    currentItems.forEach((i: any) => {
+        const h = hashItem(i);
+        const qty = i.quantity;
+        if (newMap.has(h)) newMap.get(h).qty += qty;
+        else newMap.set(h, { ...i, qty, name: i.menuItem?.name || i.name });
+    });
+
+    const added: any[] = [];
+    newMap.forEach((val, hash) => {
+        const oldQty = oldMap.get(hash)?.qty || 0;
+        if (val.qty > oldQty) added.push({ name: val.name, quantity: val.qty - oldQty, hash });
+    });
+
+    const removed: any[] = [];
+    oldMap.forEach((val, hash) => {
+        const newQty = newMap.get(hash)?.qty || 0;
+        if (val.qty > newQty) removed.push({ name: val.name, quantity: val.qty - newQty, hash });
+    });
+
+    return { added, removed };
+};
+
 export interface PosSettings {
     store_name: string;
     subtitle: string;
@@ -24,6 +66,12 @@ interface CartState {
     updateQuantity: (instanceId: string, delta: number) => void;
     clearCart: () => void;
     total: number;
+    editingOrderId: string | null;
+    originalOrderItems: any[] | null;
+    loadCart: (orderId: string, items: CartItem[], originalItems: any[]) => void;
+    stashedCart: { orderId: string | null, items: CartItem[], total: number, originalItems: any[] | null } | null;
+    stashCurrentCart: (orderId: string | null) => void;
+    restoreStashedCart: () => void;
 }
 
 interface SystemState {
@@ -42,7 +90,7 @@ interface SystemState {
     setUiZoomLevel: (level: number) => void;
     setPrinterName: (name: string) => void;
     setTvaRate: (rate: number) => void;
-    putOnHold: (orderType: OrderType, customerName: string, pickupTime: string) => Promise<void>;
+    putOnHold: (orderType: OrderType, customerName: string, pickupTime: string, isStashing?: boolean) => Promise<string | undefined>;
     payOnHoldOrder: (orderId: string, payments: Payment[], sendSecondAlert: boolean, fullOrderData: any) => Promise<void>;
     registerPendingAck: (traceId: string) => void;
     resolveAck: (traceId: string) => void;
@@ -53,6 +101,31 @@ export const useCartStore = create<CartState>()(
         (set, get) => ({
             items: [],
             total: 0,
+            editingOrderId: null,
+            originalOrderItems: null,
+            stashedCart: null,
+            stashCurrentCart: (orderId) => {
+                set({
+                    stashedCart: {
+                        orderId,
+                        items: get().items,
+                        total: get().total,
+                        originalItems: get().originalOrderItems
+                    }
+                });
+            },
+            restoreStashedCart: () => {
+                const stashed = get().stashedCart;
+                if (stashed) {
+                    set({
+                        items: stashed.items,
+                        total: stashed.total,
+                        editingOrderId: stashed.orderId,
+                        originalOrderItems: stashed.originalItems,
+                        stashedCart: null
+                    });
+                }
+            },
             addToCart: (product, modifiers = [], note = '') => {
                 const items = get().items;
                 // Check if identical item exists (including exact same modifiers, quantities, and note)
@@ -135,7 +208,16 @@ export const useCartStore = create<CartState>()(
                 if (get().items.length > 0) {
                     logger.info('ORDER', 'CART_CLEARED', { previous_total: get().total });
                 }
-                set({ items: [], total: 0 });
+                set({ items: [], total: 0, editingOrderId: null, originalOrderItems: null });
+            },
+            loadCart: (orderId, items, originalItems) => {
+                const total = items.reduce((acc, item) => acc + item.totalPrice, 0);
+                set({
+                    items,
+                    total,
+                    editingOrderId: orderId,
+                    originalOrderItems: originalItems
+                });
             },
         }),
         {
@@ -236,7 +318,9 @@ export const useSystemStore = create<SystemState>()(
                 const cartState = useCartStore.getState();
                 if (cartState.items.length === 0) return;
 
-                const orderId = `#${String(get().orderIdCounter).padStart(3, '0')}`;
+                const isEditing = !!cartState.editingOrderId;
+                const orderId = isEditing ? cartState.editingOrderId! : `#${String(get().orderIdCounter).padStart(3, '0')}`;
+
                 const timestamp = Date.now();
                 const total = cartState.total;
                 const deviceId = get().deviceId;
@@ -252,11 +336,15 @@ export const useSystemStore = create<SystemState>()(
 
                     // === WRITE 1: Local SQLite (PowerSync) — for local history & offline ===
                     await db.writeTransaction(async (tx) => {
+                        // Upsert pos_orders (using REPLACE or INSERT OR REPLACE equivalent)
                         await tx.execute(
-                            `INSERT INTO pos_orders (id, total, status, payment_method, payment_details, created_at, source_device, order_type, customer_name, pickup_time)
-                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-                            [orderId, total, 'completed', payments[0].method, paymentDetailsJson, createdAt, deviceId, orderTypeValue, custName, pickTime]
+                            `INSERT OR REPLACE INTO pos_orders (id, total, status, payment_method, payment_details, created_at, source_device, order_type, customer_name, pickup_time)
+                             VALUES (?, ?, ?, ?, ?, COALESCE((SELECT created_at FROM pos_orders WHERE id = ?), ?), ?, ?, ?, ?)`,
+                            [orderId, total, 'completed', payments[0].method, paymentDetailsJson, orderId, createdAt, deviceId, orderTypeValue, custName, pickTime]
                         );
+
+                        // Clear old items
+                        await tx.execute(`DELETE FROM pos_order_items WHERE order_id = ?`, [orderId]);
 
                         for (const item of itemsSnapshot) {
                             const metadata = { mods: item.selectedModifiers, note: item.note };
@@ -280,9 +368,10 @@ export const useSystemStore = create<SystemState>()(
                     // Update local state immediately so UI reflects the order
                     set((state) => ({
                         dailyRevenue: state.dailyRevenue + total,
-                        orderIdCounter: state.orderIdCounter + 1,
+                        orderIdCounter: isEditing ? state.orderIdCounter : state.orderIdCounter + 1,
                     }));
                     cartState.clearCart();
+                    cartState.restoreStashedCart();
 
                     // === WRITE 2: Direct Supabase — for cross-device visibility & Realtime alerts ===
                     if (supabase) {
@@ -296,20 +385,38 @@ export const useSystemStore = create<SystemState>()(
                                 selected_modifiers: { mods: item.selectedModifiers, note: item.note },
                             }));
 
-                            // Insert order row with embedded items — triggers Realtime INSERT
-                            const { error: orderError } = await supabase.from('pos_orders').upsert({
+                            // Prepare payload
+                            const payload: any = {
                                 id: orderId,
                                 total,
                                 status: 'completed',
                                 payment_method: payments[0].method,
                                 payment_details: payments,
-                                created_at: createdAt,
                                 source_device: deviceId,
                                 order_type: orderTypeValue,
                                 customer_name: custName,
                                 pickup_time: pickTime,
                                 items_json: itemsForAlert,
-                            });
+                            };
+
+                            // Only set created_at for new orders (Supabase upsert doesn't ignore created_at if provided)
+                            if (!isEditing) {
+                                payload.created_at = createdAt;
+                            }
+
+                            // Insert/Update order row
+                            const { error: orderError } = await supabase.from('pos_orders').upsert(payload);
+
+                            if (isEditing) {
+                                const diff = computeOrderDiff(cartState.originalOrderItems, itemsSnapshot);
+                                if (diff.added.length > 0 || diff.removed.length > 0) {
+                                    supabase.channel('kitchen_alerts_v3').send({
+                                        type: 'broadcast',
+                                        event: 'ORDER_MODIFIED',
+                                        payload: { ...payload, diff, is_modification: true }
+                                    }).catch(console.error);
+                                }
+                            }
 
                             if (orderError) {
                                 console.error('[Checkout] Supabase order write FAILED:', JSON.stringify(orderError));
@@ -349,11 +456,13 @@ export const useSystemStore = create<SystemState>()(
                 }
             },
 
-            putOnHold: async (orderType: OrderType, customerName: string, pickupTime: string) => {
+            putOnHold: async (orderType: OrderType, customerName: string, pickupTime: string, isStashing?: boolean) => {
                 const cartState = useCartStore.getState();
-                if (cartState.items.length === 0) return;
+                if (cartState.items.length === 0) return undefined;
 
-                const orderId = `#${String(get().orderIdCounter).padStart(3, '0')}`;
+                const isEditing = !!cartState.editingOrderId;
+                const orderId = isEditing ? cartState.editingOrderId! : `#${String(get().orderIdCounter).padStart(3, '0')}`;
+
                 const timestamp = Date.now();
                 const total = cartState.total;
                 const deviceId = get().deviceId;
@@ -373,10 +482,13 @@ export const useSystemStore = create<SystemState>()(
                     // === WRITE 1: Local SQLite ===
                     await db.writeTransaction(async (tx) => {
                         await tx.execute(
-                            `INSERT INTO pos_orders (id, total, status, payment_method, payment_details, created_at, source_device, order_type, customer_name, pickup_time)
-                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-                            [orderId, total, 'pending', 'unpaid', paymentDetailsJson, createdAt, deviceId, orderTypeValue, custName, pickTime]
+                            `INSERT OR REPLACE INTO pos_orders (id, total, status, payment_method, payment_details, created_at, source_device, order_type, customer_name, pickup_time)
+                             VALUES (?, ?, ?, ?, ?, COALESCE((SELECT created_at FROM pos_orders WHERE id = ?), ?), ?, ?, ?, ?)`,
+                            [orderId, total, 'pending', 'unpaid', paymentDetailsJson, orderId, createdAt, deviceId, orderTypeValue, custName, pickTime]
                         );
+
+                        // Clear old items
+                        await tx.execute(`DELETE FROM pos_order_items WHERE order_id = ?`, [orderId]);
 
                         for (const item of itemsSnapshot) {
                             const metadata = { mods: item.selectedModifiers, note: item.note };
@@ -398,8 +510,11 @@ export const useSystemStore = create<SystemState>()(
                     });
 
                     // Update UI immediately
-                    set((state) => ({ orderIdCounter: state.orderIdCounter + 1 }));
+                    set((state) => ({ orderIdCounter: (isEditing || isStashing) ? state.orderIdCounter : state.orderIdCounter + 1 }));
                     cartState.clearCart();
+                    if (!isStashing) {
+                        cartState.restoreStashedCart();
+                    }
 
                     // === WRITE 2: Supabase (this will trigger the 1st kitchen alert) ===
                     if (supabase) {
@@ -412,19 +527,35 @@ export const useSystemStore = create<SystemState>()(
                                 selected_modifiers: { mods: item.selectedModifiers, note: item.note },
                             }));
 
-                            await supabase.from('pos_orders').upsert({
+                            const payload: any = {
                                 id: orderId,
                                 total,
                                 status: 'pending',
                                 payment_method: 'unpaid',
                                 payment_details: holdDetails,
-                                created_at: createdAt,
                                 source_device: deviceId,
                                 order_type: orderTypeValue,
                                 customer_name: custName,
                                 pickup_time: pickTime,
                                 items_json: itemsForAlert,
-                            });
+                            };
+
+                            if (!isEditing) {
+                                payload.created_at = createdAt;
+                            }
+
+                            await supabase.from('pos_orders').upsert(payload);
+
+                            if (isEditing) {
+                                const diff = computeOrderDiff(cartState.originalOrderItems, itemsSnapshot);
+                                if (diff.added.length > 0 || diff.removed.length > 0) {
+                                    supabase.channel('kitchen_alerts_v3').send({
+                                        type: 'broadcast',
+                                        event: 'ORDER_MODIFIED',
+                                        payload: { ...payload, diff, is_modification: true }
+                                    }).catch(console.error);
+                                }
+                            }
 
                             logger.info('ORDER', 'ORDER_HELD', {
                                 order_id: orderId,
@@ -452,9 +583,11 @@ export const useSystemStore = create<SystemState>()(
                             console.error('[PutOnHold] Supabase sync err:', syncErr);
                         }
                     }
+                    return orderId;
                 } catch (error) {
                     console.error("Put On Hold Failed:", error);
                     alert("Erreur lors de la mise en attente.");
+                    return undefined;
                 }
             },
 
