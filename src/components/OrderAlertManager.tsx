@@ -75,14 +75,21 @@ export function OrderAlertManager() {
     const enqueueAlert = useCallback((order: any) => {
         const isRappel = !!order.is_rappel;
         const rappelKey = order.rappel_at ? `${order.id}_${order.rappel_at}` : null;
+        const orderKey = `${order.id}_${order.created_at}`;
 
-        if (!isRappel && processedIds.current.has(order.id)) return;
-        if (isRappel && rappelKey && processedRappels.current.has(rappelKey)) return;
+        if (order.is_modification) {
+            // Modifications shouldn't be rigidly deduplicated by ID, let them through to update the queue
+        } else if (isRappel && rappelKey) {
+            if (processedRappels.current.has(rappelKey)) return;
+        } else {
+            if (processedIds.current.has(orderKey)) return;
+        }
 
         // Skip own device orders
         if (order.source_device === myDeviceId) {
-            if (!isRappel) processedIds.current.add(order.id);
+            if (order.is_modification) return;
             if (isRappel && rappelKey) processedRappels.current.add(rappelKey);
+            else processedIds.current.add(orderKey);
             return;
         }
 
@@ -94,13 +101,16 @@ export function OrderAlertManager() {
         // Skip orders older than 2 minutes
         const age = Date.now() - new Date(order.created_at).getTime();
         if (age > 120000) {
-            if (!isRappel) processedIds.current.add(order.id);
+            if (order.is_modification) return;
             if (isRappel && rappelKey) processedRappels.current.add(rappelKey);
+            else processedIds.current.add(orderKey);
             return;
         }
 
-        if (!isRappel) processedIds.current.add(order.id);
-        if (isRappel && rappelKey) processedRappels.current.add(rappelKey);
+        if (!order.is_modification) {
+            if (isRappel && rappelKey) processedRappels.current.add(rappelKey);
+            else processedIds.current.add(orderKey);
+        }
 
         const items = parseItems(order);
 
@@ -121,8 +131,17 @@ export function OrderAlertManager() {
         console.log('[Alert] 🔔 New order/rappel:', order.id, '— items:', items.length);
 
         setAlertQueue(prev => {
-            // If it's already in the queue, we don't duplicate it. But we will still play the sound below.
-            if (prev.some(o => o.id === order.id)) return prev;
+            const existingIndex = prev.findIndex(o => o.id === order.id);
+            if (existingIndex !== -1) {
+                // If the order is already in the queue and this is a modification or rappel, update it
+                if (order.is_modification || isRappel) {
+                    const newQ = [...prev];
+                    newQ[existingIndex] = alertOrder;
+                    return newQ;
+                }
+                // Otherwise, ignore duplicate inserts
+                return prev;
+            }
             return [...prev, alertOrder];
         });
 
