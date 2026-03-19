@@ -162,6 +162,11 @@ export function OrderAlertManager() {
                         console.log('[Alert] Realtime RAPPEL (UPDATE):', payload.new?.id);
                         enqueueAlert({ ...payload.new, is_rappel: true });
                     }
+                    // Or if this is actually a new order re-using an existing ID (e.g. daily counter reset mismatch)
+                    else if (payload.new?.created_at && payload.new.created_at !== payload.old?.created_at) {
+                        console.log('[Alert] Realtime NEW ORDER (UPDATE):', payload.new?.id);
+                        enqueueAlert(payload.new);
+                    }
                 })
             .on('broadcast', { event: 'ORDER_MODIFIED' }, (payload: any) => {
                 console.log('[Alert] Realtime MODIFICATION:', payload.payload?.id);

@@ -327,6 +327,7 @@ export const useSystemStore = create<SystemState>()(
                 const createdAt = new Date(timestamp).toISOString();
                 const paymentDetailsJson = JSON.stringify(payments);
                 const itemsSnapshot = [...cartState.items];
+                const originalItemsSnapshot = cartState.originalOrderItems;
                 const orderTypeValue = orderType || 'sur_place';
                 const custName = customerName || '';
                 const pickTime = pickupTime || '';
@@ -408,7 +409,7 @@ export const useSystemStore = create<SystemState>()(
                             const { error: orderError } = await supabase.from('pos_orders').upsert(payload);
 
                             if (isEditing) {
-                                const diff = computeOrderDiff(cartState.originalOrderItems, itemsSnapshot);
+                                const diff = computeOrderDiff(originalItemsSnapshot, itemsSnapshot);
                                 if (diff.added.length > 0 || diff.removed.length > 0) {
                                     const channel = supabase.channel('kitchen_alerts_v3');
                                     const broadcastPayload = {
@@ -475,6 +476,7 @@ export const useSystemStore = create<SystemState>()(
                 const deviceId = get().deviceId;
                 const createdAt = new Date(timestamp).toISOString();
                 const itemsSnapshot = [...cartState.items];
+                const originalItemsSnapshot = cartState.originalOrderItems;
                 const orderTypeValue = orderType || 'sur_place';
                 const custName = customerName || '';
                 const pickTime = pickupTime || '';
@@ -554,7 +556,7 @@ export const useSystemStore = create<SystemState>()(
                             await supabase.from('pos_orders').upsert(payload);
 
                             if (isEditing) {
-                                const diff = computeOrderDiff(cartState.originalOrderItems, itemsSnapshot);
+                                const diff = computeOrderDiff(originalItemsSnapshot, itemsSnapshot);
                                 if (diff.added.length > 0 || diff.removed.length > 0) {
                                     const channel = supabase.channel('kitchen_alerts_v3');
                                     const broadcastPayload = {
