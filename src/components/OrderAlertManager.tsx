@@ -42,6 +42,8 @@ interface AlertOrder {
     pickup_time?: string;
     items: any[];
     is_rappel?: boolean;
+    is_modification?: boolean;
+    diff?: { added: any[], removed: any[] };
 }
 
 export function OrderAlertManager() {
@@ -111,6 +113,9 @@ export function OrderAlertManager() {
             customer_name: order.customer_name || '',
             pickup_time: order.pickup_time || '',
             items,
+            is_rappel: order.is_rappel,
+            is_modification: order.is_modification,
+            diff: order.diff
         };
 
         console.log('[Alert] 🔔 New order/rappel:', order.id, '— items:', items.length);
@@ -158,6 +163,10 @@ export function OrderAlertManager() {
                         enqueueAlert({ ...payload.new, is_rappel: true });
                     }
                 })
+            .on('broadcast', { event: 'ORDER_MODIFIED' }, (payload: any) => {
+                console.log('[Alert] Realtime MODIFICATION:', payload.payload?.id);
+                enqueueAlert(payload.payload);
+            })
             .subscribe((status) => console.log('[Alert] Realtime:', status));
 
         const poll = setInterval(async () => {
@@ -240,17 +249,17 @@ export function OrderAlertManager() {
 
             {/* ===== FULL ALERT MODAL ===== */}
             {isExpanded && currentAlert && (
-                <div className="fixed inset-0 z-[99999] flex flex-col bg-red-600 overflow-hidden">
+                <div className={`fixed inset-0 z-[99999] flex flex-col overflow-hidden ${currentAlert.is_modification ? 'bg-blue-600' : 'bg-red-600'}`}>
                     {/* Header */}
                     <div className="bg-black/40 p-4 md:p-6 flex items-center justify-between shadow-2xl flex-shrink-0">
                         <div className="flex items-center gap-3 md:gap-5 text-white flex-1 min-w-0">
-                            <div className="w-14 h-14 md:w-20 md:h-20 bg-red-500 rounded-full flex items-center justify-center shadow-[0_0_40px_rgba(255,255,255,0.4)] animate-bounce flex-shrink-0">
+                            <div className={`w-14 h-14 md:w-20 md:h-20 rounded-full flex items-center justify-center shadow-[0_0_40px_rgba(255,255,255,0.4)] animate-bounce flex-shrink-0 ${currentAlert.is_modification ? 'bg-blue-500' : 'bg-red-500'}`}>
                                 <BellRing size={32} className="md:hidden" />
                                 <BellRing size={48} className="hidden md:block" />
                             </div>
                             <div className="min-w-0">
-                                <h1 className={`text-2xl md:text-4xl font-black tracking-wider uppercase ${currentAlert.is_rappel ? 'text-yellow-400 drop-shadow-[0_0_15px_rgba(250,204,21,0.5)]' : ''}`}>
-                                    {currentAlert.is_rappel ? "⚠️ RAPPEL COMMANDE" : "NOUVELLE COMMANDE"}
+                                <h1 className={`text-2xl md:text-4xl font-black tracking-wider uppercase ${currentAlert.is_rappel ? 'text-yellow-400 drop-shadow-[0_0_15px_rgba(250,204,21,0.5)]' : currentAlert.is_modification ? 'text-blue-200 drop-shadow-[0_0_15px_rgba(59,130,246,0.5)]' : ''}`}>
+                                    {currentAlert.is_modification ? "🔄 MODIFICATION COMMANDE" : currentAlert.is_rappel ? "⚠️ RAPPEL COMMANDE" : "NOUVELLE COMMANDE"}
                                 </h1>
                                 {/* Order type — huge badge */}
                                 <div className="mt-2 flex flex-wrap items-center gap-3">
@@ -320,7 +329,59 @@ export function OrderAlertManager() {
 
                     {/* Items */}
                     <div className="flex-1 p-3 md:p-6 overflow-y-auto w-full max-w-5xl mx-auto flex flex-col gap-3 md:gap-5">
-                        {currentAlert.items.length === 0 ? (
+                        {currentAlert.is_modification && currentAlert.diff ? (
+                            <>
+                                {currentAlert.diff.added.map((item: any, idx: number) => (
+                                    <div key={`add-${idx}`} className="bg-white rounded-2xl p-4 md:p-6 shadow-[0_10px_30px_rgba(0,0,0,0.4)] border-l-[12px] border-green-500 relative overflow-hidden">
+                                        <div className="absolute top-2 right-2 md:top-4 md:right-4 bg-green-100 text-green-700 font-bold px-3 py-1 rounded-full text-sm md:text-xl">AJOUTÉ</div>
+                                        <div className="flex items-start gap-4 md:gap-6">
+                                            <div className="w-12 h-12 md:w-16 md:h-16 rounded-xl bg-green-500 text-white flex items-center justify-center font-black text-2xl md:text-4xl border-2 border-green-700 flex-shrink-0">
+                                                +{item.quantity}
+                                            </div>
+                                            <div className="flex-1">
+                                                <h3 className="text-3xl md:text-5xl font-black text-gray-900 uppercase leading-none mt-1">{item.name}</h3>
+                                                {item.hash.split('::')[1] && (
+                                                    <div className="mt-3 bg-zinc-100 rounded-xl p-3 md:p-5 space-y-1 border-l-[6px] md:border-l-[10px] border-green-500">
+                                                        {item.hash.split('::')[1].split('|').map((m: any, mi: number) => (
+                                                            <div key={mi} className="flex items-center gap-2 text-lg md:text-2xl font-bold text-zinc-800">
+                                                                <span className="text-green-500">+</span>
+                                                                <span>{m}</span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                                {currentAlert.diff.removed.map((item: any, idx: number) => (
+                                    <div key={`rem-${idx}`} className="bg-gray-100 rounded-2xl p-4 md:p-6 shadow-xl border-l-[12px] border-red-500 relative overflow-hidden opacity-90">
+                                        <div className="absolute top-2 right-2 md:top-4 md:right-4 bg-red-100 text-red-700 font-bold px-3 py-1 rounded-full text-sm md:text-xl line-through">SUPPRIMÉ</div>
+                                        <div className="flex items-start gap-4 md:gap-6 opacity-70">
+                                            <div className="w-12 h-12 md:w-16 md:h-16 rounded-xl bg-red-600 text-white flex items-center justify-center font-black text-2xl md:text-4xl border-2 border-red-800 flex-shrink-0 line-through">
+                                                -{item.quantity}
+                                            </div>
+                                            <div className="flex-1">
+                                                <h3 className="text-3xl md:text-5xl font-black text-gray-500 uppercase leading-none mt-1 line-through">{item.name}</h3>
+                                                {item.hash.split('::')[1] && (
+                                                    <div className="mt-3 bg-zinc-200 rounded-xl p-3 md:p-5 space-y-1 border-l-[6px] md:border-l-[10px] border-red-400">
+                                                        {item.hash.split('::')[1].split('|').map((m: any, mi: number) => (
+                                                            <div key={mi} className="flex items-center gap-2 text-lg md:text-2xl font-bold text-zinc-600 line-through">
+                                                                <span className="text-red-400">-</span>
+                                                                <span>{m}</span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                                {currentAlert.diff.added.length === 0 && currentAlert.diff.removed.length === 0 && (
+                                    <div className="text-white text-2xl font-bold text-center mt-10">Aucune modification d'articles détectée.</div>
+                                )}
+                            </>
+                        ) : currentAlert.items.length === 0 ? (
                             <div className="flex items-center justify-center h-full">
                                 <div className="text-white/70 text-xl md:text-3xl font-bold text-center">Détails non disponibles</div>
                             </div>

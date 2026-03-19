@@ -28,7 +28,7 @@ export function PaymentModal({ isOpen, totalAmount, onClose, onConfirm, onPutOnH
     const [payments, setPayments] = useState<Payment[]>([]);
     const [inputAmount, setInputAmount] = useState<string>('');
     const [mounted, setMounted] = useState(false);
-    const [orderType, setOrderType] = useState<OrderType>('sur_place');
+    const [orderType, setOrderType] = useState<OrderType>('emporte');
     const [customerName, setCustomerName] = useState('');
     const [pickupTime, setPickupTime] = useState('');
 
@@ -40,7 +40,7 @@ export function PaymentModal({ isOpen, totalAmount, onClose, onConfirm, onPutOnH
         if (isOpen) {
             setPayments([]);
             setInputAmount('');
-            setOrderType('sur_place');
+            setOrderType('emporte');
             setCustomerName('');
             // Default pickup time = now (HH:MM)
             const now = new Date();
