@@ -320,7 +320,7 @@ export function PaymentModal({ isOpen, totalAmount, onClose, onConfirm, onPutOnH
                                         key={`split-${num}`}
                                         onClick={() => {
                                             const splitAmount = (remaining / num).toFixed(2);
-                                            setInputAmount(splitAmount.replace('.', ''));
+                                            setInputAmount(splitAmount);
                                         }}
                                         className="py-2 bg-sky-500/10 hover:bg-sky-500/20 text-sky-400 border border-sky-500/30 rounded-xl font-bold text-lg md:text-xl flex items-center justify-center transition-all active:scale-95 shadow-[0_4px_20px_rgba(14,165,233,0.1)]"
                                     >
