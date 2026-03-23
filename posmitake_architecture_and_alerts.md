@@ -35,3 +35,7 @@ C'est le composant le plus sensible du système. Il gère l'affichage et la sonn
 *   Maintenir cette architecture asynchrone à haute résilience.
 *   Effectuer un audit ligne par ligne pour repérer les "Race Conditions", les fuites de mémoire (memory leaks sur les WebSockets), ou les erreurs de typage silencieuses.
 *   Garantir une disponibilité ("Uptime" d'alertes) de 100%. Rien ne doit empêcher une alerte de sonner en cuisine.
+
+## 🚨 RÈGLES STRICTES DE TEST (POUR L'AGENT)
+*   **INTERDICTION D'UTILISER LE NAVIGATEUR :** Tu ne dois en aucun cas ouvrir de navigateur interne (`open_browser`, `browser_subagent`, etc.) pour tester l'application toi-même.
+*   **DÉLÉGATION AU USER :** Si tu as besoin de tester une interaction, un rendu visuel ou un flux métier, **demande explicitement au User** de le faire. Le User se chargera du test manuel et te fournira des descriptions détaillées ou des captures d'écran (screenshots) du résultat.
