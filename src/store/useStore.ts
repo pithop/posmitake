@@ -411,16 +411,20 @@ export const useSystemStore = create<SystemState>()(
                             if (isEditing) {
                                 const diff = computeOrderDiff(originalItemsSnapshot, itemsSnapshot);
                                 if (diff.added.length > 0 || diff.removed.length > 0) {
-                                    const channel = supabase.channel('kitchen_alerts_v3');
+                                    const sendChannel = supabase.channel(`send_mod_${Date.now()}`);
                                     const broadcastPayload = {
                                         type: 'broadcast' as const,
                                         event: 'ORDER_MODIFIED',
                                         payload: { ...payload, diff, is_modification: true }
                                     };
 
-                                    channel.subscribe((status) => {
+                                    sendChannel.subscribe((status) => {
                                         if (status === 'SUBSCRIBED') {
-                                            channel.send(broadcastPayload as any).catch(console.error);
+                                            sendChannel.send(broadcastPayload as any)
+                                                .catch(console.error)
+                                                .finally(() => {
+                                                    setTimeout(() => supabase!.removeChannel(sendChannel), 2000);
+                                                });
                                         }
                                     });
                                 }
@@ -558,16 +562,20 @@ export const useSystemStore = create<SystemState>()(
                             if (isEditing) {
                                 const diff = computeOrderDiff(originalItemsSnapshot, itemsSnapshot);
                                 if (diff.added.length > 0 || diff.removed.length > 0) {
-                                    const channel = supabase.channel('kitchen_alerts_v3');
+                                    const sendChannel = supabase.channel(`send_mod_${Date.now()}`);
                                     const broadcastPayload = {
                                         type: 'broadcast' as const,
                                         event: 'ORDER_MODIFIED',
                                         payload: { ...payload, diff, is_modification: true }
                                     };
 
-                                    channel.subscribe((status) => {
+                                    sendChannel.subscribe((status) => {
                                         if (status === 'SUBSCRIBED') {
-                                            channel.send(broadcastPayload as any).catch(console.error);
+                                            sendChannel.send(broadcastPayload as any)
+                                                .catch(console.error)
+                                                .finally(() => {
+                                                    setTimeout(() => supabase!.removeChannel(sendChannel), 2000);
+                                                });
                                         }
                                     });
                                 }

@@ -26,6 +26,7 @@ const playAlertSound = () => {
             g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.5, t + 0.02);
             g.gain.linearRampToValueAtTime(0, t + 0.15);
             o.connect(g); g.connect(audioCtx!.destination); o.start(t); o.stop(t + 0.15);
+            o.onended = () => { o.disconnect(); g.disconnect(); };
         };
         const now = audioCtx.currentTime; beep(now); beep(now + 0.2);
     }, 1500);
@@ -54,13 +55,27 @@ export function OrderAlertManager() {
     // Whether the full alert modal is open or minimized to bubble
     const [isExpanded, setIsExpanded] = useState(false);
     const [mounted, setMounted] = useState(false);
-    const processedIds = useRef<Set<string>>(new Set());
-    const processedRappels = useRef<Set<string>>(new Set());
+    const processedIds = useRef<Map<string, number>>(new Map());
+    const processedRappels = useRef<Map<string, number>>(new Map());
     const myDeviceId = useSystemStore((s) => s.deviceId);
+    const myDeviceIdRef = useRef(myDeviceId);
     const lastPollTime = useRef<string>(new Date().toISOString());
     const ackChannelRef = useRef<any>(null);
 
     useEffect(() => setMounted(true), []);
+
+    // Keep deviceId ref in sync without triggering callback/effect recreation
+    useEffect(() => { myDeviceIdRef.current = myDeviceId; }, [myDeviceId]);
+
+    // Periodic cleanup of processed IDs to prevent unbounded memory growth (every 5 min, purge entries older than 10 min)
+    useEffect(() => {
+        const cleanup = setInterval(() => {
+            const now = Date.now();
+            processedIds.current.forEach((ts, key) => { if (now - ts > 600_000) processedIds.current.delete(key); });
+            processedRappels.current.forEach((ts, key) => { if (now - ts > 600_000) processedRappels.current.delete(key); });
+        }, 300_000);
+        return () => clearInterval(cleanup);
+    }, []);
 
     const parseItems = useCallback((order: any): any[] => {
         const raw = order.items_json;
@@ -85,11 +100,13 @@ export function OrderAlertManager() {
             if (processedIds.current.has(orderKey)) return;
         }
 
+        const now = Date.now();
+
         // Skip own device orders
-        if (order.source_device === myDeviceId) {
+        if (order.source_device === myDeviceIdRef.current) {
             if (order.is_modification) return;
-            if (isRappel && rappelKey) processedRappels.current.add(rappelKey);
-            else processedIds.current.add(orderKey);
+            if (isRappel && rappelKey) processedRappels.current.set(rappelKey, now);
+            else processedIds.current.set(orderKey, now);
             return;
         }
 
@@ -99,17 +116,17 @@ export function OrderAlertManager() {
         }
 
         // Skip orders older than 2 minutes
-        const age = Date.now() - new Date(order.created_at).getTime();
+        const age = now - new Date(order.created_at).getTime();
         if (age > 120000) {
             if (order.is_modification) return;
-            if (isRappel && rappelKey) processedRappels.current.add(rappelKey);
-            else processedIds.current.add(orderKey);
+            if (isRappel && rappelKey) processedRappels.current.set(rappelKey, now);
+            else processedIds.current.set(orderKey, now);
             return;
         }
 
         if (!order.is_modification) {
-            if (isRappel && rappelKey) processedRappels.current.add(rappelKey);
-            else processedIds.current.add(orderKey);
+            if (isRappel && rappelKey) processedRappels.current.set(rappelKey, now);
+            else processedIds.current.set(orderKey, now);
         }
 
         const items = parseItems(order);
@@ -157,7 +174,7 @@ export function OrderAlertManager() {
         // Auto-expand and play sound
         setIsExpanded(true);
         playAlertSound();
-    }, [myDeviceId, parseItems]);
+    }, [parseItems]);
 
     // Listen for orders
     useEffect(() => {
@@ -165,8 +182,11 @@ export function OrderAlertManager() {
 
         // Persistent channel for sending ACKs back to Caisse
         const ackCh = supabase.channel('kitchen_alerts_ack');
-        ackCh.subscribe();
-        ackChannelRef.current = ackCh;
+        ackCh.subscribe((status) => {
+            if (status === 'SUBSCRIBED') {
+                ackChannelRef.current = ackCh;
+            }
+        });
 
         const channel = supabase.channel('kitchen_alerts_v3')
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'pos_orders' },
@@ -205,7 +225,9 @@ export function OrderAlertManager() {
                     lastPollTime.current = data[data.length - 1].created_at;
                     for (const order of data) enqueueAlert(order);
                 }
-            } catch { }
+            } catch (err) {
+                console.error('[Alert] Polling fallback error:', err);
+            }
         }, 2000);
 
         return () => {
