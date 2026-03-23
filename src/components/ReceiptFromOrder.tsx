@@ -36,7 +36,7 @@ export function ReceiptFromOrder({ data, isInvoice }: Props) {
             {/* Header */}
             <div className="receipt-header">
                 {isInvoice ? (
-                    <div className="receipt-logo" style={{ fontSize: '28px', marginBottom: '8px' }}>FACTURE</div>
+                    <div className="receipt-logo" style={{ fontSize: '38px', marginBottom: '12px' }}>FACTURE</div>
                 ) : (
                     <>
                         <div className="receipt-logo">{settings?.store_name || 'MITAKE RAMEN'}</div>
@@ -170,9 +170,9 @@ export function ReceiptFromOrder({ data, isInvoice }: Props) {
             {/* Payments or Pending */}
             <div className="receipt-payments">
                 {data.isPending ? (
-                    <div className="receipt-row">
-                        <span className="receipt-bold" style={{ fontSize: '16px' }}>À PAYER</span>
-                        <span className="receipt-bold" style={{ fontSize: '16px' }}>{formatPrice(data.total)}</span>
+                    <div className="receipt-row mt-2">
+                        <span className="receipt-bold" style={{ fontSize: '24px' }}>À PAYER</span>
+                        <span className="receipt-bold" style={{ fontSize: '24px' }}>{formatPrice(data.total)}</span>
                     </div>
                 ) : (
                     data.payments && data.payments.filter((p: any) => p.method && p.method !== 'unpaid').map((p: any, i: number) => (
@@ -186,9 +186,9 @@ export function ReceiptFromOrder({ data, isInvoice }: Props) {
 
             {/* Footer */}
             {isInvoice && (
-                <div className="receipt-invoice-details" style={{ marginTop: '15px', marginBottom: '15px', fontSize: '14px', lineHeight: '2' }}>
-                    <div style={{ borderBottom: '1px dotted #000' }}>Client :</div>
-                    <div style={{ borderBottom: '1px dotted #000' }}>Entreprise :</div>
+                <div className="receipt-invoice-details" style={{ marginTop: '20px', marginBottom: '20px', fontSize: '20px', lineHeight: '2.5', fontWeight: 900 }}>
+                    <div style={{ borderBottom: '2px dotted #000' }}>Client :</div>
+                    <div style={{ borderBottom: '2px dotted #000' }}>Entreprise :</div>
                 </div>
             )}
             <div className="receipt-footer">

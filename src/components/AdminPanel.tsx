@@ -1303,49 +1303,49 @@ export function AdminPanel() {
                     </div>
                     <div style={{ borderBottom: '2px dashed #000', margin: '10px 0' }}></div>
                     <div className="receipt-totals">
-                        <div className="receipt-total-line" style={{ fontSize: '24px' }}>
+                        <div className="receipt-total-line" style={{ fontSize: '32px' }}>
                             <span>Total CA</span>
                             <span>{new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(printSummary.revenue)}</span>
                         </div>
-                        <div className="receipt-row mt-2" style={{ fontSize: '18px', fontWeight: 900 }}>
+                        <div className="receipt-row mt-2" style={{ fontSize: '24px', fontWeight: 900 }}>
                             <span>Nb Commandes</span>
                             <span>{printSummary.count}</span>
                         </div>
-                        <div className="receipt-row mt-1" style={{ fontSize: '16px', fontWeight: 900 }}>
+                        <div className="receipt-row mt-1" style={{ fontSize: '22px', fontWeight: 900 }}>
                             <span>Panier Moyen</span>
                             <span>{new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(printSummary.revenue / printSummary.count)}</span>
                         </div>
                     </div>
                     <div style={{ borderBottom: '2px dashed #000', margin: '10px 0' }}></div>
                     <div className="receipt-info">
-                        <div style={{ fontSize: '20px', fontWeight: 900, textAlign: 'center', marginBottom: '8px' }}>RÉPARTITION</div>
+                        <div style={{ fontSize: '26px', fontWeight: 900, textAlign: 'center', marginBottom: '12px' }}>RÉPARTITION</div>
                         {printSummary.byMethod.carte > 0 && (
-                            <div className="receipt-row" style={{ fontSize: '16px', fontWeight: 900 }}>
+                            <div className="receipt-row" style={{ fontSize: '20px', fontWeight: 900 }}>
                                 <span>Carte Bancaire</span>
                                 <span>{new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(printSummary.byMethod.carte)}</span>
                             </div>
                         )}
                         {printSummary.byMethod.espece > 0 && (
-                            <div className="receipt-row" style={{ fontSize: '16px', fontWeight: 900 }}>
+                            <div className="receipt-row" style={{ fontSize: '20px', fontWeight: 900 }}>
                                 <span>Espèces</span>
                                 <span>{new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(printSummary.byMethod.espece)}</span>
                             </div>
                         )}
                         {printSummary.byMethod.ticket_resto > 0 && (
-                            <div className="receipt-row" style={{ fontSize: '16px', fontWeight: 900 }}>
+                            <div className="receipt-row" style={{ fontSize: '20px', fontWeight: 900 }}>
                                 <span>Ticket Resto</span>
                                 <span>{new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(printSummary.byMethod.ticket_resto)}</span>
                             </div>
                         )}
                         {printSummary.byMethod.cheque_vacance > 0 && (
-                            <div className="receipt-row" style={{ fontSize: '16px', fontWeight: 900 }}>
+                            <div className="receipt-row" style={{ fontSize: '20px', fontWeight: 900 }}>
                                 <span>Chèque Vacances</span>
                                 <span>{new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(printSummary.byMethod.cheque_vacance)}</span>
                             </div>
                         )}
                     </div>
-                    <div style={{ borderBottom: '2px dashed #000', margin: '10px 0' }}></div>
-                    <div className="receipt-center receipt-small" style={{ fontSize: '14px', marginTop: '15px' }}>
+                    <div style={{ borderBottom: '2px dashed #000', margin: '14px 0' }}></div>
+                    <div className="receipt-center receipt-small" style={{ fontSize: '20px', marginTop: '15px', fontWeight: 900 }}>
                         Fin du rapport Z
                     </div>
                 </div>,
