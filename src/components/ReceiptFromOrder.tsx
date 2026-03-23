@@ -18,9 +18,10 @@ export interface OrderReceiptData {
 
 interface Props {
     data: OrderReceiptData | null;
+    isInvoice?: boolean;
 }
 
-export function ReceiptFromOrder({ data }: Props) {
+export function ReceiptFromOrder({ data, isInvoice }: Props) {
     const tvaRate = useSystemStore(state => state.tvaRate) || 20;
     const settings = useSystemStore(state => state.settings);
 
@@ -34,8 +35,14 @@ export function ReceiptFromOrder({ data }: Props) {
         <div id="receipt-print-area" className="receipt-container">
             {/* Header */}
             <div className="receipt-header">
-                <div className="receipt-logo">{settings?.store_name || 'MITAKE RAMEN'}</div>
-                <div className="receipt-sub">{settings?.subtitle || 'Japanese Kitchen'}</div>
+                {isInvoice ? (
+                    <div className="receipt-logo" style={{ fontSize: '28px', marginBottom: '8px' }}>FACTURE</div>
+                ) : (
+                    <>
+                        <div className="receipt-logo">{settings?.store_name || 'MITAKE RAMEN'}</div>
+                        <div className="receipt-sub">{settings?.subtitle || 'Japanese Kitchen'}</div>
+                    </>
+                )}
             </div>
 
             <div style={{ borderBottom: '1px dashed #000', margin: '8px 0' }}></div>
@@ -178,6 +185,12 @@ export function ReceiptFromOrder({ data }: Props) {
             </div>
 
             {/* Footer */}
+            {isInvoice && (
+                <div className="receipt-invoice-details" style={{ marginTop: '15px', marginBottom: '15px', fontSize: '14px', lineHeight: '2' }}>
+                    <div style={{ borderBottom: '1px dotted #000' }}>Client :</div>
+                    <div style={{ borderBottom: '1px dotted #000' }}>Entreprise :</div>
+                </div>
+            )}
             <div className="receipt-footer">
                 <div style={{ borderTop: '1px dashed #000', paddingTop: '8px', marginTop: '8px' }}></div>
                 <div className="receipt-center">{settings?.footer_message_1 || 'Merci de votre visite !'}</div>

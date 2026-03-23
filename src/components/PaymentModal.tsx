@@ -311,17 +311,36 @@ export function PaymentModal({ isOpen, totalAmount, onClose, onConfirm, onPutOnH
                         isComplete && "opacity-20 pointer-events-none blur-sm scale-95"
                     )}>
 
-                        {/* Numpad */}
-                        <div className="w-full xl:w-[320px] grid grid-cols-3 gap-2 place-content-start shrink-0">
-                            {numpadKeys.map(key => (
-                                <button
-                                    key={key}
-                                    onClick={() => handleNumpad(key)}
-                                    className={cn("aspect-square bg-secondary/50 hover:bg-white/10 active:bg-white/20 border border-white/5 rounded-2xl text-2xl lg:text-3xl font-medium transition-all flex items-center justify-center font-mono hover:scale-[1.02] active:scale-95", key === 'C' ? "text-red-400" : "")}
-                                >
-                                    {key}
-                                </button>
-                            ))}
+                        {/* Numpad Column */}
+                        <div className="w-full xl:w-[320px] flex flex-col gap-3 shrink-0">
+                            {/* Split Bill Express */}
+                            <div className="grid grid-cols-3 gap-2">
+                                {[2, 3, 4].map(num => (
+                                    <button
+                                        key={`split-${num}`}
+                                        onClick={() => {
+                                            const splitAmount = (remaining / num).toFixed(2);
+                                            setInputAmount(splitAmount.replace('.', ''));
+                                        }}
+                                        className="py-2 bg-sky-500/10 hover:bg-sky-500/20 text-sky-400 border border-sky-500/30 rounded-xl font-bold text-lg md:text-xl flex items-center justify-center transition-all active:scale-95 shadow-[0_4px_20px_rgba(14,165,233,0.1)]"
+                                    >
+                                        ÷{num}
+                                    </button>
+                                ))}
+                            </div>
+
+                            {/* Numpad */}
+                            <div className="grid grid-cols-3 gap-2 place-content-start">
+                                {numpadKeys.map(key => (
+                                    <button
+                                        key={key}
+                                        onClick={() => handleNumpad(key)}
+                                        className={cn("aspect-square bg-secondary/50 hover:bg-white/10 active:bg-white/20 border border-white/5 rounded-2xl text-2xl lg:text-3xl font-medium transition-all flex items-center justify-center font-mono hover:scale-[1.02] active:scale-95", key === 'C' ? "text-red-400" : "")}
+                                    >
+                                        {key}
+                                    </button>
+                                ))}
+                            </div>
                         </div>
 
                         {/* Payment Methods */}

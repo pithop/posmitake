@@ -1,7 +1,7 @@
 import { useSystemStore, useCartStore } from '@/store/useStore';
 import { formatPrice } from '@/lib/utils';
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { Settings, X, RotateCcw, LayoutDashboard, History, Package, Search, Save, Edit2, WifiOff, CloudUpload, SlidersHorizontal, Monitor, Smartphone, Clock, Printer, BellRing, Trash2 } from 'lucide-react';
+import { Settings, X, RotateCcw, LayoutDashboard, History, Package, Search, Save, Edit2, WifiOff, CloudUpload, SlidersHorizontal, Monitor, Smartphone, Clock, Printer, BellRing, Trash2, FileText } from 'lucide-react';
 import { Product, Order } from '@/types';
 import { cn } from '@/lib/utils';
 import { useQuery, usePowerSync } from '@powersync/react';
@@ -186,6 +186,8 @@ export function AdminPanel() {
 
     // Print state
     const [printReceipt, setPrintReceipt] = useState<OrderReceiptData | null>(null);
+    const [printFacture, setPrintFacture] = useState<OrderReceiptData | null>(null);
+    const [printSummary, setPrintSummary] = useState<any | null>(null);
 
     // Payment Correction state
     const [orderToCorrect, setOrderToCorrect] = useState<any | null>(null);
@@ -339,35 +341,13 @@ export function AdminPanel() {
             return;
         }
         logger.audit('PRINT', 'DAILY_SUMMARY_PRINTED', { revenue, count });
-        const formatM = (v: number) => new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(v);
-
-        let printContent = `<div style="font-family: monospace; width: 80mm; padding: 10px; font-size: 14px; margin: 0 auto; color: black; background: white;">`;
-        printContent += `<h2 style="text-align: center; margin: 0 0 10px 0;">BILAN DE LA JOURNÉE</h2>`;
-        printContent += `<p style="text-align: center; margin: 0 0 15px 0;">${new Date().toLocaleDateString('fr-FR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>`;
-        printContent += `<hr style="border: 1px dashed black; margin-bottom: 10px;" />`;
-        printContent += `<p style="font-weight: bold; font-size: 18px;">Total CA: <span style="float: right;">${formatM(revenue)}</span></p>`;
-        printContent += `<p>Nb Commandes: <span style="float: right;">${count}</span></p>`;
-        printContent += `<p>Panier Moyen: <span style="float: right;">${formatM(revenue / count)}</span></p>`;
-        printContent += `<hr style="border: 1px dashed black; margin: 10px 0;" />`;
-        printContent += `<h3>PAR MOYEN DE PAIEMENT</h3>`;
-        if (byMethod.carte > 0) printContent += `<p>Carte Bancaire: <span style="float: right;">${formatM(byMethod.carte)}</span></p>`;
-        if (byMethod.espece > 0) printContent += `<p>Espèces: <span style="float: right;">${formatM(byMethod.espece)}</span></p>`;
-        if (byMethod.ticket_resto > 0) printContent += `<p>Ticket Restaurant: <span style="float: right;">${formatM(byMethod.ticket_resto)}</span></p>`;
-        if (byMethod.cheque_vacance > 0) printContent += `<p>Chèque Vacances: <span style="float: right;">${formatM(byMethod.cheque_vacance)}</span></p>`;
-        printContent += `<hr style="border: 1px dashed black; margin: 15px 0;" />`;
-        printContent += `<p style="text-align: center; font-size: 12px;">Fin du rapport</p>`;
-        printContent += `</div>`;
-
-        const printWindow = window.open('', '', 'width=400,height=600');
-        if (printWindow) {
-            printWindow.document.write(`<html><head><title>Bilan Journée</title></head><body style="margin:0;">${printContent}</body></html>`);
-            printWindow.document.close();
-            printWindow.focus();
-            setTimeout(() => {
-                printWindow.print();
-                printWindow.close();
-            }, 500);
-        }
+        setPrintSummary({
+            date: new Date().toISOString(),
+            revenue,
+            count,
+            byMethod
+        });
+        setTimeout(() => window.print(), 300);
     };
 
     const handleSaveProduct = (e: React.FormEvent) => {
@@ -612,6 +592,30 @@ export function AdminPanel() {
                                                                 >
                                                                     <Printer size={16} /> Ticket
                                                                 </button>
+                                                                {/* Print Facture */}
+                                                                <button
+                                                                    onClick={() => {
+                                                                        const rawData = supabaseOrders.find(o => o.id === order.id);
+                                                                        if (rawData) {
+                                                                            setPrintFacture({
+                                                                                id: rawData.id,
+                                                                                total: rawData.total,
+                                                                                order_type: rawData.order_type,
+                                                                                customer_name: rawData.customer_name,
+                                                                                pickup_time: rawData.pickup_time,
+                                                                                created_at: rawData.created_at,
+                                                                                source_device: rawData.source_device,
+                                                                                items: rawData.items_json || [],
+                                                                                isPending: true,
+                                                                            });
+                                                                            logger.audit('PRINT', 'MANUAL_FACTURE_REQUESTED', { order_id: rawData.id, is_pending: true });
+                                                                            setTimeout(() => window.print(), 300);
+                                                                        }
+                                                                    }}
+                                                                    className="flex items-center gap-1.5 bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 border border-blue-500/30 font-bold px-4 py-2 rounded-xl transition-all active:scale-95 text-sm"
+                                                                >
+                                                                    <FileText size={16} /> Facture
+                                                                </button>
                                                                 {/* Modifier Pending */}
                                                                 <button
                                                                     onClick={() => handleEditPendingOrder(order)}
@@ -764,6 +768,32 @@ export function AdminPanel() {
                                                                     className="flex items-center gap-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 px-3 py-1.5 rounded-lg transition-all active:scale-95 text-xs"
                                                                 >
                                                                     <Printer size={14} />
+                                                                </button>
+                                                                {/* Facture History */}
+                                                                <button
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        const rawData = supabaseOrders.find(o => o.id === order.id);
+                                                                        if (rawData) {
+                                                                            setPrintFacture({
+                                                                                id: rawData.id,
+                                                                                total: rawData.total,
+                                                                                order_type: rawData.order_type,
+                                                                                customer_name: rawData.customer_name,
+                                                                                pickup_time: rawData.pickup_time,
+                                                                                created_at: rawData.created_at,
+                                                                                source_device: rawData.source_device,
+                                                                                items: rawData.items_json || [],
+                                                                                payments: rawData.payment_details,
+                                                                                isPending: false,
+                                                                            });
+                                                                            logger.audit('PRINT', 'MANUAL_FACTURE_REQUESTED', { order_id: rawData.id, is_pending: false });
+                                                                            setTimeout(() => window.print(), 300);
+                                                                        }
+                                                                    }}
+                                                                    className="flex items-center gap-1 bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 border border-blue-500/30 px-3 py-1.5 rounded-lg transition-all active:scale-95 text-xs font-bold"
+                                                                >
+                                                                    <FileText size={14} />
                                                                 </button>
                                                                 <button
                                                                     onClick={(e) => {
@@ -1257,6 +1287,68 @@ export function AdminPanel() {
             {/* Receipt portal for printing from Admin */}
             {typeof document !== 'undefined' && printReceipt && createPortal(
                 <ReceiptFromOrder data={printReceipt} />,
+                document.body
+            )}
+            {/* Facture portal */}
+            {typeof document !== 'undefined' && printFacture && createPortal(
+                <ReceiptFromOrder data={printFacture} isInvoice={true} />,
+                document.body
+            )}
+            {/* Z-Ticket portal */}
+            {typeof document !== 'undefined' && printSummary && createPortal(
+                <div id="receipt-print-area" className="receipt-container">
+                    <div className="receipt-header">
+                        <div className="receipt-logo">BILAN DE JOURNÉE</div>
+                        <div className="receipt-sub">{new Date(printSummary.date).toLocaleDateString('fr-FR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</div>
+                    </div>
+                    <div style={{ borderBottom: '2px dashed #000', margin: '10px 0' }}></div>
+                    <div className="receipt-totals">
+                        <div className="receipt-total-line" style={{ fontSize: '24px' }}>
+                            <span>Total CA</span>
+                            <span>{new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(printSummary.revenue)}</span>
+                        </div>
+                        <div className="receipt-row mt-2" style={{ fontSize: '18px', fontWeight: 900 }}>
+                            <span>Nb Commandes</span>
+                            <span>{printSummary.count}</span>
+                        </div>
+                        <div className="receipt-row mt-1" style={{ fontSize: '16px', fontWeight: 900 }}>
+                            <span>Panier Moyen</span>
+                            <span>{new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(printSummary.revenue / printSummary.count)}</span>
+                        </div>
+                    </div>
+                    <div style={{ borderBottom: '2px dashed #000', margin: '10px 0' }}></div>
+                    <div className="receipt-info">
+                        <div style={{ fontSize: '20px', fontWeight: 900, textAlign: 'center', marginBottom: '8px' }}>RÉPARTITION</div>
+                        {printSummary.byMethod.carte > 0 && (
+                            <div className="receipt-row" style={{ fontSize: '16px', fontWeight: 900 }}>
+                                <span>Carte Bancaire</span>
+                                <span>{new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(printSummary.byMethod.carte)}</span>
+                            </div>
+                        )}
+                        {printSummary.byMethod.espece > 0 && (
+                            <div className="receipt-row" style={{ fontSize: '16px', fontWeight: 900 }}>
+                                <span>Espèces</span>
+                                <span>{new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(printSummary.byMethod.espece)}</span>
+                            </div>
+                        )}
+                        {printSummary.byMethod.ticket_resto > 0 && (
+                            <div className="receipt-row" style={{ fontSize: '16px', fontWeight: 900 }}>
+                                <span>Ticket Resto</span>
+                                <span>{new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(printSummary.byMethod.ticket_resto)}</span>
+                            </div>
+                        )}
+                        {printSummary.byMethod.cheque_vacance > 0 && (
+                            <div className="receipt-row" style={{ fontSize: '16px', fontWeight: 900 }}>
+                                <span>Chèque Vacances</span>
+                                <span>{new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(printSummary.byMethod.cheque_vacance)}</span>
+                            </div>
+                        )}
+                    </div>
+                    <div style={{ borderBottom: '2px dashed #000', margin: '10px 0' }}></div>
+                    <div className="receipt-center receipt-small" style={{ fontSize: '14px', marginTop: '15px' }}>
+                        Fin du rapport Z
+                    </div>
+                </div>,
                 document.body
             )}
             {/* Payment Correction Modal */}
