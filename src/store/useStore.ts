@@ -411,13 +411,15 @@ export const useSystemStore = create<SystemState>()(
                             if (isEditing) {
                                 const diff = computeOrderDiff(originalItemsSnapshot, itemsSnapshot);
                                 if (diff.added.length > 0 || diff.removed.length > 0) {
-                                    const sendChannel = supabase.channel(`send_mod_${Date.now()}`);
                                     const broadcastPayload = {
                                         type: 'broadcast' as const,
                                         event: 'ORDER_MODIFIED',
                                         payload: { ...payload, diff, is_modification: true }
                                     };
 
+                                    // Must use 'kitchen_alerts_v3' — broadcast events are channel-scoped.
+                                    // Kitchen listens on this exact channel name.
+                                    const sendChannel = supabase.channel('kitchen_alerts_v3');
                                     sendChannel.subscribe((status) => {
                                         if (status === 'SUBSCRIBED') {
                                             sendChannel.send(broadcastPayload as any)
@@ -562,13 +564,15 @@ export const useSystemStore = create<SystemState>()(
                             if (isEditing) {
                                 const diff = computeOrderDiff(originalItemsSnapshot, itemsSnapshot);
                                 if (diff.added.length > 0 || diff.removed.length > 0) {
-                                    const sendChannel = supabase.channel(`send_mod_${Date.now()}`);
                                     const broadcastPayload = {
                                         type: 'broadcast' as const,
                                         event: 'ORDER_MODIFIED',
                                         payload: { ...payload, diff, is_modification: true }
                                     };
 
+                                    // Must use 'kitchen_alerts_v3' — broadcast events are channel-scoped.
+                                    // Kitchen listens on this exact channel name.
+                                    const sendChannel = supabase.channel('kitchen_alerts_v3');
                                     sendChannel.subscribe((status) => {
                                         if (status === 'SUBSCRIBED') {
                                             sendChannel.send(broadcastPayload as any)
