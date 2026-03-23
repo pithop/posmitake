@@ -556,15 +556,15 @@ export function AdminPanel() {
                                                                             } catch { }
                                                                             const baseName = item.product_name || item.name;
                                                                             return (
-                                                                                <div key={i} className="flex flex-col bg-zinc-900/50 p-2 rounded">
-                                                                                    <span className="font-bold text-white text-base">{item.quantity}x {baseName}</span>
-                                                                                    {mods.length > 0 && <span className="text-xs text-sky-300 pl-4 mt-1">+ {mods.join(', ')}</span>}
+                                                                                <div key={i} className="flex flex-col bg-zinc-900/50 p-3 rounded border border-zinc-800/50">
+                                                                                    <span className="font-bold text-white text-lg">{item.quantity}x {baseName}</span>
+                                                                                    {mods.length > 0 && <span className="text-sm font-medium text-sky-300 pl-6 mt-1.5 leading-relaxed">+ {mods.join(', ')}</span>}
                                                                                 </div>
                                                                             );
                                                                         })}
                                                                     </div>
                                                                 ) : (
-                                                                    order.items.map((item: any) => {
+                                                                    order.items.map((item: any, i: number) => {
                                                                         let mods: string[] = [];
                                                                         try {
                                                                             if (item.options && Array.isArray(item.options)) {
@@ -580,8 +580,8 @@ export function AdminPanel() {
                                                                         } catch { }
                                                                         const baseName = item.product_name || item.name;
                                                                         const modStr = mods.length > 0 ? ` (+ ${mods.join(', ')})` : '';
-                                                                        return `${item.quantity}x ${baseName}${modStr}`;
-                                                                    }).join(', ')
+                                                                        return <span key={item.id || baseName + i} className="text-base font-medium">{item.quantity}x {baseName}<span className="text-sky-400">{modStr}</span>{i < order.items.length - 1 ? ', ' : ''}</span>;
+                                                                    })
                                                                 )}
                                                             </div>
                                                         </div>
@@ -836,28 +836,28 @@ export function AdminPanel() {
                                                                         } catch { }
 
                                                                         return (
-                                                                            <div key={idx} className="flex justify-between items-start text-sm">
-                                                                                <div className="flex space-x-3">
-                                                                                    <span className="font-bold text-zinc-400">{item.quantity}x</span>
+                                                                            <div key={idx} className="flex justify-between items-start text-base border-b border-zinc-800/30 pb-3 last:border-0 last:pb-0">
+                                                                                <div className="flex space-x-4">
+                                                                                    <span className="font-bold text-zinc-300 text-lg">{item.quantity}x</span>
                                                                                     <div>
-                                                                                        <p className="text-zinc-200 font-medium">{item.product_name || item.name}</p>
+                                                                                        <p className="text-zinc-100 font-bold text-lg">{item.product_name || item.name}</p>
                                                                                         {mods.length > 0 && (
-                                                                                            <div className="text-blue-400 text-xs mt-0.5 space-y-0.5">
+                                                                                            <div className="text-blue-300 text-sm mt-1.5 space-y-1">
                                                                                                 {mods.map((m: any, mi: number) => (
-                                                                                                    <div key={mi} className="flex items-center gap-1">
-                                                                                                        <span className="text-blue-500">+</span>
-                                                                                                        <span>{m.quantity && m.quantity > 1 ? `${m.quantity}× ` : ''}{m.name}</span>
-                                                                                                        {m.price > 0 && <span className="text-zinc-500">({formatPrice(Number(m.price) || 0)})</span>}
+                                                                                                    <div key={mi} className="flex items-center gap-1.5">
+                                                                                                        <span className="text-blue-500 font-bold">+</span>
+                                                                                                        <span className="font-medium">{m.quantity && m.quantity > 1 ? `${m.quantity}× ` : ''}{m.name}</span>
+                                                                                                        {m.price > 0 && <span className="text-zinc-400">({formatPrice(Number(m.price) || 0)})</span>}
                                                                                                     </div>
                                                                                                 ))}
                                                                                             </div>
                                                                                         )}
                                                                                         {note && (
-                                                                                            <div className="text-yellow-400 text-xs mt-0.5 italic">⚠️ {note}</div>
+                                                                                            <div className="text-yellow-400 text-sm mt-1 mb-1 italic bg-yellow-400/10 inline-block px-2 py-0.5 rounded">⚠️ {note}</div>
                                                                                         )}
                                                                                     </div>
                                                                                 </div>
-                                                                                <span className="text-zinc-400 flex-shrink-0">{formatPrice(item.total_price || (item.unit_price || item.price) * item.quantity)}</span>
+                                                                                <span className="text-zinc-300 font-medium flex-shrink-0 text-lg">{formatPrice(item.total_price || (item.unit_price || item.price) * item.quantity)}</span>
                                                                             </div>
                                                                         );
                                                                     });

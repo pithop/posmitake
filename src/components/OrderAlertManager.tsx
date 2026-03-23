@@ -224,16 +224,12 @@ export function OrderAlertManager() {
                         console.log('[Alert] Realtime RAPPEL (UPDATE):', payload.new?.id);
                         enqueueAlert({ ...payload.new, is_rappel: true });
                     }
-                    // 2. Modification: modified_at changed → compute diff from old/new items_json
+                    // 2. Modification: modified_at changed → read precomputed diff from modification_diff column
                     else if (payload.new?.modified_at && payload.new.modified_at !== payload.old?.modified_at) {
                         console.log('[Alert] Realtime MODIFICATION (UPDATE):', payload.new?.id);
-                        const parseJson = (v: any) => {
-                            if (!v) return [];
-                            try { return typeof v === 'string' ? JSON.parse(v) : Array.isArray(v) ? v : []; } catch { return []; }
-                        };
-                        const oldItems = parseJson(payload.old?.items_json);
-                        const newItems = parseJson(payload.new?.items_json);
-                        const diff = computeOrderDiff(oldItems, newItems);
+                        let diff = payload.new?.modification_diff;
+                        if (typeof diff === 'string') { try { diff = JSON.parse(diff); } catch { diff = { added: [], removed: [] }; } }
+                        if (!diff) diff = { added: [], removed: [] };
                         enqueueAlert({ ...payload.new, is_modification: true, diff });
                     }
                     // 3. New order re-using an existing ID (recycled daily counter)

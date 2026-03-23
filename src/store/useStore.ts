@@ -413,11 +413,12 @@ export const useSystemStore = create<SystemState>()(
                             if (isEditing) {
                                 const diff = computeOrderDiff(originalItemsSnapshot, itemsSnapshot);
                                 if (diff.added.length > 0 || diff.removed.length > 0) {
-                                    // PRIMARY: Write modified_at to trigger postgres_changes UPDATE on tablet
-                                    // The diff is embedded in items_json (already updated by upsert)
+                                    // PRIMARY: Write modified_at + diff to trigger postgres_changes UPDATE on tablet
+                                    // Diff stored directly so tablet doesn't need payload.old (requires REPLICA IDENTITY FULL)
                                     await supabase.from('pos_orders')
                                         .update({
                                             modified_at: new Date().toISOString(),
+                                            modification_diff: diff,
                                             items_json: payload.items_json
                                         })
                                         .eq('id', orderId);
@@ -577,10 +578,11 @@ export const useSystemStore = create<SystemState>()(
                             if (isEditing) {
                                 const diff = computeOrderDiff(originalItemsSnapshot, itemsSnapshot);
                                 if (diff.added.length > 0 || diff.removed.length > 0) {
-                                    // PRIMARY: Write modified_at to trigger postgres_changes UPDATE on tablet
+                                    // PRIMARY: Write modified_at + diff to trigger postgres_changes UPDATE on tablet
                                     await supabase.from('pos_orders')
                                         .update({
                                             modified_at: new Date().toISOString(),
+                                            modification_diff: diff,
                                             items_json: payload.items_json
                                         })
                                         .eq('id', orderId);
