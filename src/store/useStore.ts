@@ -411,24 +411,35 @@ export const useSystemStore = create<SystemState>()(
                             if (isEditing) {
                                 const diff = computeOrderDiff(originalItemsSnapshot, itemsSnapshot);
                                 if (diff.added.length > 0 || diff.removed.length > 0) {
-                                    const broadcastPayload = {
-                                        type: 'broadcast' as const,
-                                        event: 'ORDER_MODIFIED',
-                                        payload: { ...payload, diff, is_modification: true }
-                                    };
+                                    // PRIMARY: Write modified_at to trigger postgres_changes UPDATE on tablet
+                                    // The diff is embedded in items_json (already updated by upsert)
+                                    await supabase.from('pos_orders')
+                                        .update({
+                                            modified_at: new Date().toISOString(),
+                                            items_json: payload.items_json
+                                        })
+                                        .eq('id', orderId);
 
-                                    // Must use 'kitchen_alerts_v3' — broadcast events are channel-scoped.
-                                    // Kitchen listens on this exact channel name.
-                                    const sendChannel = supabase.channel('kitchen_alerts_v3');
-                                    sendChannel.subscribe((status) => {
-                                        if (status === 'SUBSCRIBED') {
-                                            sendChannel.send(broadcastPayload as any)
-                                                .catch(console.error)
-                                                .finally(() => {
-                                                    setTimeout(() => supabase!.removeChannel(sendChannel), 2000);
-                                                });
-                                        }
-                                    });
+                                    // BACKUP: Also send broadcast for immediate delivery
+                                    try {
+                                        const sendChannel = supabase.channel('kitchen_alerts_v3');
+                                        const broadcastPayload = {
+                                            type: 'broadcast' as const,
+                                            event: 'ORDER_MODIFIED',
+                                            payload: { ...payload, diff, is_modification: true }
+                                        };
+                                        sendChannel.subscribe((status) => {
+                                            if (status === 'SUBSCRIBED') {
+                                                sendChannel.send(broadcastPayload as any)
+                                                    .catch(console.error)
+                                                    .finally(() => {
+                                                        setTimeout(() => supabase!.removeChannel(sendChannel), 2000);
+                                                    });
+                                            }
+                                        });
+                                    } catch (broadcastErr) {
+                                        console.warn('[Checkout] Broadcast backup failed (non-critical):', broadcastErr);
+                                    }
                                 }
                             }
 
@@ -564,24 +575,34 @@ export const useSystemStore = create<SystemState>()(
                             if (isEditing) {
                                 const diff = computeOrderDiff(originalItemsSnapshot, itemsSnapshot);
                                 if (diff.added.length > 0 || diff.removed.length > 0) {
-                                    const broadcastPayload = {
-                                        type: 'broadcast' as const,
-                                        event: 'ORDER_MODIFIED',
-                                        payload: { ...payload, diff, is_modification: true }
-                                    };
+                                    // PRIMARY: Write modified_at to trigger postgres_changes UPDATE on tablet
+                                    await supabase.from('pos_orders')
+                                        .update({
+                                            modified_at: new Date().toISOString(),
+                                            items_json: payload.items_json
+                                        })
+                                        .eq('id', orderId);
 
-                                    // Must use 'kitchen_alerts_v3' — broadcast events are channel-scoped.
-                                    // Kitchen listens on this exact channel name.
-                                    const sendChannel = supabase.channel('kitchen_alerts_v3');
-                                    sendChannel.subscribe((status) => {
-                                        if (status === 'SUBSCRIBED') {
-                                            sendChannel.send(broadcastPayload as any)
-                                                .catch(console.error)
-                                                .finally(() => {
-                                                    setTimeout(() => supabase!.removeChannel(sendChannel), 2000);
-                                                });
-                                        }
-                                    });
+                                    // BACKUP: Also send broadcast for immediate delivery
+                                    try {
+                                        const sendChannel = supabase.channel('kitchen_alerts_v3');
+                                        const broadcastPayload = {
+                                            type: 'broadcast' as const,
+                                            event: 'ORDER_MODIFIED',
+                                            payload: { ...payload, diff, is_modification: true }
+                                        };
+                                        sendChannel.subscribe((status) => {
+                                            if (status === 'SUBSCRIBED') {
+                                                sendChannel.send(broadcastPayload as any)
+                                                    .catch(console.error)
+                                                    .finally(() => {
+                                                        setTimeout(() => supabase!.removeChannel(sendChannel), 2000);
+                                                    });
+                                            }
+                                        });
+                                    } catch (broadcastErr) {
+                                        console.warn('[PutOnHold] Broadcast backup failed (non-critical):', broadcastErr);
+                                    }
                                 }
                             }
 

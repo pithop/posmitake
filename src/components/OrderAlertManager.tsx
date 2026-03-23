@@ -5,7 +5,7 @@ import { createPortal } from 'react-dom';
 import { supabase } from '@/lib/supabase';
 import { cn } from "@/lib/utils";
 import { formatPrice } from "@/lib/utils";
-import { useSystemStore } from '@/store/useStore';
+import { useSystemStore, computeOrderDiff } from '@/store/useStore';
 import { logger } from "@/lib/logger";
 import { BellRing, X, ChevronRight, ChevronLeft, Minimize2 } from 'lucide-react';
 
@@ -196,12 +196,24 @@ export function OrderAlertManager() {
                 })
             .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'pos_orders' },
                 (payload: any) => {
-                    // Only re-alert if rappel_at was just set (this is the Rappel mechanism)
+                    // 1. Rappel: rappel_at was just set
                     if (payload.new?.rappel_at && payload.new.rappel_at !== payload.old?.rappel_at) {
                         console.log('[Alert] Realtime RAPPEL (UPDATE):', payload.new?.id);
                         enqueueAlert({ ...payload.new, is_rappel: true });
                     }
-                    // Or if this is actually a new order re-using an existing ID (e.g. daily counter reset mismatch)
+                    // 2. Modification: modified_at changed → compute diff from old/new items_json
+                    else if (payload.new?.modified_at && payload.new.modified_at !== payload.old?.modified_at) {
+                        console.log('[Alert] Realtime MODIFICATION (UPDATE):', payload.new?.id);
+                        const parseJson = (v: any) => {
+                            if (!v) return [];
+                            try { return typeof v === 'string' ? JSON.parse(v) : Array.isArray(v) ? v : []; } catch { return []; }
+                        };
+                        const oldItems = parseJson(payload.old?.items_json);
+                        const newItems = parseJson(payload.new?.items_json);
+                        const diff = computeOrderDiff(oldItems, newItems);
+                        enqueueAlert({ ...payload.new, is_modification: true, diff });
+                    }
+                    // 3. New order re-using an existing ID (recycled daily counter)
                     else if (payload.new?.created_at && payload.new.created_at !== payload.old?.created_at) {
                         console.log('[Alert] Realtime NEW ORDER (UPDATE):', payload.new?.id);
                         enqueueAlert(payload.new);
