@@ -181,10 +181,33 @@ export function OrderAlertManager() {
         if (!supabase) return;
 
         // Persistent channel for sending ACKs back to Caisse
+        // Queue ACKs that arrive before SUBSCRIBED and flush when ready
+        const pendingAcks: any[] = [];
+        let ackReady = false;
         const ackCh = supabase.channel('kitchen_alerts_ack');
+        
+        // Set ref immediately so enqueueAlert can queue ACKs
+        ackChannelRef.current = {
+            send: (payload: any) => {
+                if (ackReady) {
+                    return ackCh.send(payload);
+                } else {
+                    pendingAcks.push(payload);
+                    return Promise.resolve();
+                }
+            }
+        };
+
         ackCh.subscribe((status) => {
             if (status === 'SUBSCRIBED') {
+                ackReady = true;
+                // Replace proxy with real channel
                 ackChannelRef.current = ackCh;
+                // Flush any ACKs that were queued before SUBSCRIBED
+                for (const p of pendingAcks) {
+                    ackCh.send(p).catch(console.error);
+                }
+                pendingAcks.length = 0;
             }
         });
 

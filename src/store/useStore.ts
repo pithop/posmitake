@@ -10,9 +10,11 @@ const pendingAcksMap = new Map<string, NodeJS.Timeout>();
 export const computeOrderDiff = (originalItems: any[] | null, currentItems: any[]) => {
     if (!originalItems) return { added: [], removed: [] };
 
+    // Unified name extraction: handles CartItem (menuItem.name), pos_order_items (product_name), and items_json (product_name)
+    const getName = (item: any) => item.product_name || item.menuItem?.name || item.name || '';
+
     const hashItem = (item: any) => {
-        // Handle both pos_order_items format (from original) and CartItem format (from current)
-        const name = item.product_name || item.menuItem?.name || item.name;
+        const name = getName(item);
         const mods = item.selectedModifiers || item.selected_modifiers?.mods || item.modifiers || [];
         const modsStr = Array.isArray(mods) ? mods.map((m: any) => m.name).sort().join('|') : '';
         return `${name}::${modsStr}`;
@@ -23,7 +25,7 @@ export const computeOrderDiff = (originalItems: any[] | null, currentItems: any[
         const h = hashItem(i);
         const qty = i.quantity;
         if (oldMap.has(h)) oldMap.get(h).qty += qty;
-        else oldMap.set(h, { ...i, qty, name: i.product_name || i.name });
+        else oldMap.set(h, { ...i, qty, name: getName(i) });
     });
 
     const newMap = new Map<string, any>();
@@ -31,7 +33,7 @@ export const computeOrderDiff = (originalItems: any[] | null, currentItems: any[
         const h = hashItem(i);
         const qty = i.quantity;
         if (newMap.has(h)) newMap.get(h).qty += qty;
-        else newMap.set(h, { ...i, qty, name: i.menuItem?.name || i.name });
+        else newMap.set(h, { ...i, qty, name: getName(i) });
     });
 
     const added: any[] = [];
