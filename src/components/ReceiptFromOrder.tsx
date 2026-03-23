@@ -133,7 +133,7 @@ export function ReceiptFromOrder({ data }: Props) {
                                 </div>
                             )}
                             {note && (
-                                <div className="receipt-note">⚠ {note}</div>
+                                <div className="receipt-note">* NOTE: {note}</div>
                             )}
                         </div>
                     );
