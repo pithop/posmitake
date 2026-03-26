@@ -1,6 +1,33 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { useVoipStore } from '../store/useVoipStore';
 
+// Singleton pour contourner le blocage Audio Safari de manière radicale (Web Audio API)
+let audioCtx: AudioContext | null = null;
+let gainNode: GainNode | null = null;
+let currentSource: MediaStreamAudioSourceNode | null = null;
+
+export const initSharedAudio = () => {
+    if (!audioCtx) {
+        audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+        gainNode = audioCtx.createGain();
+        gainNode.connect(audioCtx.destination);
+    }
+    if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+    }
+};
+
+const playStreamWebAudio = (stream: MediaStream) => {
+    initSharedAudio();
+    if (audioCtx && gainNode) {
+        if (currentSource) {
+            currentSource.disconnect();
+        }
+        currentSource = audioCtx.createMediaStreamSource(stream);
+        currentSource.connect(gainNode);
+    }
+};
+
 export const useWebRTC = (terminalId: string) => {
     const wsRef = useRef<WebSocket | null>(null);
     const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
@@ -10,6 +37,7 @@ export const useWebRTC = (terminalId: string) => {
     // Nouveaux états vitaux pour le debug UI
     const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
+    const [iceState, setIceState] = useState<string>('init');
 
     const incomingOfferRef = useRef<any>(null);
     const ringtoneIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -186,12 +214,14 @@ export const useWebRTC = (terminalId: string) => {
             if (e.streams && e.streams[0]) {
                 console.log('🔊 P2P Stream received, locking remote stream state');
                 setRemoteStream(e.streams[0]);
+                playStreamWebAudio(e.streams[0]); // Bypass total HTML5
                 setPhase('CONNECTED');
             }
         };
 
         pc.oniceconnectionstatechange = () => {
             console.log("P2P ICE State changed to:", pc.iceConnectionState);
+            setIceState(pc.iceConnectionState);
             if (pc.iceConnectionState === 'failed') {
                 setErrorMsg("La connexion directe a échoué (réseau strict ou pare-feu).");
                 teardown();
@@ -268,5 +298,5 @@ export const useWebRTC = (terminalId: string) => {
         teardown();
     }, [teardown, targetId]);
 
-    return { initiateCall, acceptCall, stopCall, remoteStream, errorMsg, clearError };
+    return { initiateCall, acceptCall, stopCall, remoteStream, errorMsg, clearError, iceState };
 };

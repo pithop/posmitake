@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useVoipStore } from '../store/useVoipStore';
-import { useWebRTC } from '../hooks/useWebRTC';
+import { useWebRTC, initSharedAudio } from '../hooks/useWebRTC';
 import { useSystemStore } from '../store/useStore';
 import { Mic, PhoneCall, Phone, PhoneOff, Radio, PhoneIncoming, AlertTriangle } from 'lucide-react';
 
@@ -12,18 +12,10 @@ export const WalkieTalkieModule = () => {
     const defaultTarget = deviceId === 'tablette' ? 'caisse_ordi' : 'tablette';
     
     const { phase, isMuted, targetId, setIsMuted } = useVoipStore();
-    const { initiateCall, acceptCall, stopCall, remoteStream, errorMsg, clearError } = useWebRTC(terminalId);
+    const { initiateCall, acceptCall, stopCall, remoteStream, errorMsg, clearError, iceState } = useWebRTC(terminalId);
     
     const [target, setTarget] = useState(defaultTarget);
     const [isExpanded, setIsExpanded] = useState(false);
-    const audioRef = useRef<HTMLAudioElement>(null);
-
-    useEffect(() => {
-        if (audioRef.current && remoteStream) {
-            audioRef.current.srcObject = remoteStream;
-            audioRef.current.play().catch(e => console.error("Audio interdit par navigateur:", e));
-        }
-    }, [remoteStream]);
 
     useEffect(() => {
         setTarget(deviceId === 'tablette' ? 'caisse_ordi' : 'tablette');
@@ -39,12 +31,6 @@ export const WalkieTalkieModule = () => {
 
     const handlePushToTalkStart = () => setIsMuted(false);
     const handlePushToTalkEnd = () => setIsMuted(true);
-
-    const unlockSafariAudio = () => {
-        if (audioRef.current) {
-            audioRef.current.play().catch(() => {});
-        }
-    };
 
     if (!isExpanded && phase === 'IDLE') {
         return (
@@ -84,7 +70,13 @@ export const WalkieTalkieModule = () => {
             <div className="text-sm mb-5 text-slate-400 bg-slate-800 p-2 rounded-lg">
                 <div className="flex justify-between">
                     <span>Statut:</span>
-                    <span className="font-mono text-slate-200">{phase}</span>
+                    <span className="font-mono text-emerald-400 capitalize">{phase.toLowerCase()}</span>
+                </div>
+                <div className="flex justify-between">
+                    <span>Réseau (ICE):</span>
+                    <span className={`font-mono ${iceState === 'connected' ? 'text-emerald-400' : 'text-blue-400'}`}>
+                        {iceState}
+                    </span>
                 </div>
                 {targetId && (
                     <div className="flex justify-between mt-1">
@@ -97,7 +89,7 @@ export const WalkieTalkieModule = () => {
             {phase === 'IDLE' && (
                 <div className="flex flex-col gap-3">
                     <button 
-                        onClick={() => { unlockSafariAudio(); initiateCall(target); }}
+                        onClick={() => { initSharedAudio(); initiateCall(target); }}
                         className="w-full bg-blue-600 hover:bg-blue-500 py-3 rounded-xl font-bold transition-colors flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(37,99,235,0.4)] text-lg"
                     >
                         <Phone size={20} />
@@ -115,7 +107,7 @@ export const WalkieTalkieModule = () => {
             {phase === 'RINGING' && (
                 <div className="flex flex-col gap-4">
                     <button
-                        onClick={() => { unlockSafariAudio(); acceptCall(); }}
+                        onClick={() => { initSharedAudio(); acceptCall(); }}
                         className="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-6 rounded-xl text-xl font-bold transition-transform active:scale-95 flex items-center justify-center gap-3 shadow-[0_0_20px_rgba(16,185,129,0.5)]"
                     >
                         <PhoneIncoming size={28} className="animate-bounce" />
@@ -175,7 +167,6 @@ export const WalkieTalkieModule = () => {
                     </button>
                 </div>
             )}
-            <audio ref={audioRef} autoPlay playsInline className="absolute w-0 h-0 opacity-0 pointer-events-none" />
         </div>
     );
 };
