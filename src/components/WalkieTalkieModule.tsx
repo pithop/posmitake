@@ -175,7 +175,7 @@ export const WalkieTalkieModule = () => {
                     </button>
                 </div>
             )}
-            <audio ref={audioRef} autoPlay playsInline className="hidden" />
+            <audio ref={audioRef} autoPlay playsInline className="absolute w-0 h-0 opacity-0 pointer-events-none" />
         </div>
     );
 };

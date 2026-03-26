@@ -161,13 +161,14 @@ export const useWebRTC = (terminalId: string) => {
         const pc = new RTCPeerConnection({ 
             iceServers: [
                 { urls: 'stun:stun.l.google.com:19302' },
+                { urls: 'stun:stun1.l.google.com:19302' },
                 { 
                     urls: 'turn:openrelay.metered.ca:80',
                     username: 'openrelayproject',
                     credential: 'openrelayproject'
                 },
                 { 
-                    urls: 'turn:openrelay.metered.ca:443',
+                    urls: 'turn:openrelay.metered.ca:443?transport=tcp',
                     username: 'openrelayproject',
                     credential: 'openrelayproject'
                 }
@@ -218,7 +219,6 @@ export const useWebRTC = (terminalId: string) => {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
             localStreamRef.current = stream;
             
-            stream.getAudioTracks().forEach(track => { track.enabled = false; });
             stream.getTracks().forEach(track => pc.addTrack(track, stream));
 
             await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
@@ -244,7 +244,6 @@ export const useWebRTC = (terminalId: string) => {
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
             localStreamRef.current = stream;
-            stream.getAudioTracks().forEach(track => { track.enabled = false; });
 
             const pc = setupPeerConnection(target);
             stream.getTracks().forEach(track => pc.addTrack(track, stream));
