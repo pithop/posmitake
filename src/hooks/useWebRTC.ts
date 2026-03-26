@@ -156,9 +156,23 @@ export const useWebRTC = (terminalId: string) => {
     };
 
     const setupPeerConnection = (target: string) => {
-        // En cas de NAT strict (4G, routeur box free/orange), des serveurs TURN (payants) pourraient être requis.
-        // Google STUN est utilisé en best effort.
-        const pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
+        // Ajout d'un serveur TURN gratuit (OpenRelay) pour garantir 100% de connexion
+        // même derrière un pare-feu strict (très commun sur les ordinateurs de caisse).
+        const pc = new RTCPeerConnection({ 
+            iceServers: [
+                { urls: 'stun:stun.l.google.com:19302' },
+                { 
+                    urls: 'turn:openrelay.metered.ca:80',
+                    username: 'openrelayproject',
+                    credential: 'openrelayproject'
+                },
+                { 
+                    urls: 'turn:openrelay.metered.ca:443',
+                    username: 'openrelayproject',
+                    credential: 'openrelayproject'
+                }
+            ] 
+        });
         peerConnectionRef.current = pc;
 
         pc.onicecandidate = (e) => {
