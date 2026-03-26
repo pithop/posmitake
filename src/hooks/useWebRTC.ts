@@ -202,6 +202,7 @@ export const useWebRTC = (terminalId: string) => {
     };
 
     const acceptCall = useCallback(async () => {
+        setErrorMsg(null);
         const data = incomingOfferRef.current;
         if (!data || !wsRef.current) return;
 
@@ -236,6 +237,7 @@ export const useWebRTC = (terminalId: string) => {
     }, [setPhase, teardown]);
 
     const initiateCall = useCallback(async (target: string) => {
+        setErrorMsg(null);
         setTargetId(target);
         setPhase('INITIALIZING');
 

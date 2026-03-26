@@ -40,6 +40,12 @@ export const WalkieTalkieModule = () => {
     const handlePushToTalkStart = () => setIsMuted(false);
     const handlePushToTalkEnd = () => setIsMuted(true);
 
+    const unlockSafariAudio = () => {
+        if (audioRef.current) {
+            audioRef.current.play().catch(() => {});
+        }
+    };
+
     if (!isExpanded && phase === 'IDLE') {
         return (
             <button 
@@ -91,7 +97,7 @@ export const WalkieTalkieModule = () => {
             {phase === 'IDLE' && (
                 <div className="flex flex-col gap-3">
                     <button 
-                        onClick={() => initiateCall(target)}
+                        onClick={() => { unlockSafariAudio(); initiateCall(target); }}
                         className="w-full bg-blue-600 hover:bg-blue-500 py-3 rounded-xl font-bold transition-colors flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(37,99,235,0.4)] text-lg"
                     >
                         <Phone size={20} />
@@ -109,7 +115,7 @@ export const WalkieTalkieModule = () => {
             {phase === 'RINGING' && (
                 <div className="flex flex-col gap-4">
                     <button
-                        onClick={acceptCall}
+                        onClick={() => { unlockSafariAudio(); acceptCall(); }}
                         className="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-6 rounded-xl text-xl font-bold transition-transform active:scale-95 flex items-center justify-center gap-3 shadow-[0_0_20px_rgba(16,185,129,0.5)]"
                     >
                         <PhoneIncoming size={28} className="animate-bounce" />
