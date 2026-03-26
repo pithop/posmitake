@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useVoipStore } from '../store/useVoipStore';
 import { useWebRTC } from '../hooks/useWebRTC';
 import { useSystemStore } from '../store/useStore';
-import { Mic, PhoneCall, Phone, PhoneOff, Radio, PhoneIncoming } from 'lucide-react';
+import { Mic, PhoneCall, Phone, PhoneOff, Radio, PhoneIncoming, AlertTriangle } from 'lucide-react';
 
 export const WalkieTalkieModule = () => {
     const deviceId = useSystemStore((state) => state.deviceId);
@@ -12,10 +12,18 @@ export const WalkieTalkieModule = () => {
     const defaultTarget = deviceId === 'tablette' ? 'caisse_ordi' : 'tablette';
     
     const { phase, isMuted, targetId, setIsMuted } = useVoipStore();
-    const { initiateCall, acceptCall, stopCall } = useWebRTC(terminalId);
+    const { initiateCall, acceptCall, stopCall, remoteStream, errorMsg, clearError } = useWebRTC(terminalId);
     
     const [target, setTarget] = useState(defaultTarget);
     const [isExpanded, setIsExpanded] = useState(false);
+    const audioRef = useRef<HTMLAudioElement>(null);
+
+    useEffect(() => {
+        if (audioRef.current && remoteStream) {
+            audioRef.current.srcObject = remoteStream;
+            audioRef.current.play().catch(e => console.error("Audio interdit par navigateur:", e));
+        }
+    }, [remoteStream]);
 
     useEffect(() => {
         setTarget(deviceId === 'tablette' ? 'caisse_ordi' : 'tablette');
@@ -57,6 +65,16 @@ export const WalkieTalkieModule = () => {
                 {phase === 'SIGNALING' && <PhoneCall className="text-yellow-400 animate-bounce" size={20} />}
             </h3>
             
+            {errorMsg && (
+                <div className="bg-red-900/80 border border-red-500 text-white p-3 rounded-lg text-sm mb-4 relative shadow-lg">
+                    <div className="flex gap-2 items-start">
+                        <AlertTriangle size={16} className="text-red-400 mt-0.5 shrink-0" />
+                        <span>{errorMsg}</span>
+                    </div>
+                    <button onClick={clearError} className="absolute top-1 right-2 text-red-200 hover:text-white font-bold p-1">✕</button>
+                </div>
+            )}
+
             <div className="text-sm mb-5 text-slate-400 bg-slate-800 p-2 rounded-lg">
                 <div className="flex justify-between">
                     <span>Statut:</span>
@@ -151,6 +169,7 @@ export const WalkieTalkieModule = () => {
                     </button>
                 </div>
             )}
+            <audio ref={audioRef} autoPlay playsInline className="hidden" />
         </div>
     );
 };
