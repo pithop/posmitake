@@ -69,6 +69,7 @@ export const useWebRTC = (terminalId: string) => {
 
                 if (data.type === 'offer') {
                     console.log(`📞 Incoming call from ${data.source}`);
+                    pendingCandidates.current = []; // Purge vitale des vieux paquets avant décrochage
                     incomingOfferRef.current = data;
                     setTargetId(data.source);
                     setPhase('RINGING');
@@ -110,12 +111,11 @@ export const useWebRTC = (terminalId: string) => {
                         }
                     }
                 } else if (data.type === 'ice-candidate') {
-                    if (peerConnectionRef.current) {
-                        if (peerConnectionRef.current.remoteDescription) {
-                            peerConnectionRef.current.addIceCandidate(new RTCIceCandidate(data.candidate)).catch(console.error);
-                        } else {
-                            pendingCandidates.current.push(data.candidate);
-                        }
+                    if (peerConnectionRef.current && peerConnectionRef.current.remoteDescription) {
+                        peerConnectionRef.current.addIceCandidate(new RTCIceCandidate(data.candidate)).catch(console.error);
+                    } else {
+                        // CRITIQUE : on stocke les candidats reçus PENDANT que ça sonne (avant le clic "Accepter")
+                        pendingCandidates.current.push(data.candidate);
                     }
                 } else if (data.type === 'bye') {
                     console.log('👋 Raccrochage reçu depuis le correspondant.');
