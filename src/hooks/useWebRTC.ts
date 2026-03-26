@@ -117,6 +117,9 @@ export const useWebRTC = (terminalId: string) => {
                             pendingCandidates.current.push(data.candidate);
                         }
                     }
+                } else if (data.type === 'bye') {
+                    console.log('👋 Raccrochage reçu depuis le correspondant.');
+                    teardown();
                 }
             };
             
@@ -174,10 +177,11 @@ export const useWebRTC = (terminalId: string) => {
 
         pc.oniceconnectionstatechange = () => {
             console.log("P2P ICE State changed to:", pc.iceConnectionState);
-            if (pc.iceConnectionState === 'failed' || pc.iceConnectionState === 'disconnected') {
+            if (pc.iceConnectionState === 'failed') {
                 setErrorMsg("La connexion directe a échoué (réseau strict ou pare-feu).");
                 teardown();
             }
+            // On ne crash plus sur 'disconnected' car c'est passager (ou causé par le raccrochage de l'autre)
         };
 
         return pc;
@@ -243,8 +247,11 @@ export const useWebRTC = (terminalId: string) => {
     }, [setTargetId, setPhase, teardown]);
 
     const stopCall = useCallback(() => {
+        if (wsRef.current && targetId) {
+            wsRef.current.send(JSON.stringify({ type: 'bye', target: targetId }));
+        }
         teardown();
-    }, [teardown]);
+    }, [teardown, targetId]);
 
     return { initiateCall, acceptCall, stopCall, remoteStream, errorMsg, clearError };
 };
