@@ -2,46 +2,99 @@ import { useEffect, useRef, useCallback, useState } from 'react';
 import { useVoipStore } from '../store/useVoipStore';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Web Audio API Singleton (contournement du blocage Audio sur Safari/iOS)
+// Audio distant — On utilise un élément <audio> HTML standard plutôt que la
+// Web Audio API. C'est l'approche recommandée pour WebRTC car :
+//  1. Fonctionne nativement sur Safari, iOS, Chrome, Firefox
+//  2. Pas de problème de suspension de contexte audio
+//  3. Volume géré par le système (pas de risque de silence silencieux)
 // ─────────────────────────────────────────────────────────────────────────────
-let audioCtx: AudioContext | null = null;
-let gainNode: GainNode | null = null;
-let currentSource: MediaStreamAudioSourceNode | null = null;
+let remoteAudioEl: HTMLAudioElement | null = null;
 
+const getAudioEl = (): HTMLAudioElement => {
+    if (!remoteAudioEl) {
+        remoteAudioEl = document.createElement('audio');
+        remoteAudioEl.autoplay = true;
+        (remoteAudioEl as any).playsInline = true; // attribut iOS WebKit (non dans les typedefs TS)
+        remoteAudioEl.muted = false;
+        // On attache l'élément au DOM pour garantir la lecture sur certains navigateurs
+        remoteAudioEl.style.display = 'none';
+        document.body.appendChild(remoteAudioEl);
+    }
+    return remoteAudioEl;
+};
+
+/**
+ * DOIT être appelé depuis un geste utilisateur (click/touchstart).
+ * Ça "débloque" la politique d'autoplay du navigateur pour la session entière.
+ */
 export const initSharedAudio = () => {
-    if (!audioCtx) {
-        audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
-        gainNode = audioCtx.createGain();
-        gainNode.connect(audioCtx.destination);
-    }
-    if (audioCtx.state === 'suspended') {
-        audioCtx.resume();
+    const el = getAudioEl();
+    // Un play() depuis un handler utilisateur déverrouille l'audio sur Safari/iOS
+    el.play().catch(() => { /* Silencieux si pas de srcObject encore, c'est ok */ });
+};
+
+const playRemoteStream = (stream: MediaStream) => {
+    const el = getAudioEl();
+    el.srcObject = stream;
+    el.play().catch(err => {
+        console.warn('⚠️ Remote audio play() bloqué (peut nécessiter interaction):', err.name);
+    });
+};
+
+const stopRemoteAudio = () => {
+    if (remoteAudioEl) {
+        remoteAudioEl.pause();
+        remoteAudioEl.srcObject = null;
     }
 };
 
-const playStreamWebAudio = (stream: MediaStream) => {
-    initSharedAudio();
-    if (audioCtx && gainNode) {
-        if (currentSource) {
-            currentSource.disconnect();
-            currentSource = null;
+// ─────────────────────────────────────────────────────────────────────────────
+// Sonnerie WebAudio (séparée du flux distant, courte durée, pas de contexte persistant)
+// ─────────────────────────────────────────────────────────────────────────────
+let ringtoneCtx: AudioContext | null = null;
+
+const playRingTone = () => {
+    try {
+        // Réutiliser le même contexte pour ne pas dépasser la limite iOS (6 max)
+        if (!ringtoneCtx || ringtoneCtx.state === 'closed') {
+            ringtoneCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
         }
-        currentSource = audioCtx.createMediaStreamSource(stream);
-        currentSource.connect(gainNode);
-    }
+        if (ringtoneCtx.state === 'suspended') {
+            ringtoneCtx.resume();
+        }
+        const osc1 = ringtoneCtx.createOscillator();
+        const osc2 = ringtoneCtx.createOscillator();
+        const gain = ringtoneCtx.createGain();
+
+        osc1.type = 'sine'; osc1.frequency.setValueAtTime(1046.5, ringtoneCtx.currentTime);
+        osc2.type = 'sine'; osc2.frequency.setValueAtTime(1318.51, ringtoneCtx.currentTime);
+        gain.gain.setValueAtTime(0, ringtoneCtx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.4, ringtoneCtx.currentTime + 0.08);
+        gain.gain.exponentialRampToValueAtTime(0.001, ringtoneCtx.currentTime + 1.2);
+
+        osc1.connect(gain); osc2.connect(gain);
+        gain.connect(ringtoneCtx.destination);
+        osc1.start(); osc2.start();
+        osc1.stop(ringtoneCtx.currentTime + 1.2);
+        osc2.stop(ringtoneCtx.currentTime + 1.2);
+    } catch (_) { /* Silencieux */ }
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Hook principal
+// ICE / TURN servers
 // ─────────────────────────────────────────────────────────────────────────────
-export type WsStatus = 'connecting' | 'connected' | 'disconnected';
-
 const ICE_CONFIG: RTCConfiguration = {
     iceServers: [
         { urls: 'stun:stun.l.google.com:19302' },
         { urls: 'stun:stun1.l.google.com:19302' },
+        // OpenRelay TURN (gratuit, fiable pour production petite échelle)
         {
             urls: 'turn:openrelay.metered.ca:80',
+            username: 'openrelayproject',
+            credential: 'openrelayproject'
+        },
+        {
+            urls: 'turn:openrelay.metered.ca:443',
             username: 'openrelayproject',
             credential: 'openrelayproject'
         },
@@ -49,75 +102,60 @@ const ICE_CONFIG: RTCConfiguration = {
             urls: 'turn:openrelay.metered.ca:443?transport=tcp',
             username: 'openrelayproject',
             credential: 'openrelayproject'
-        }
+        },
     ]
 };
 
-// Backoff exponentiel : 1s, 2s, 4s, 8s, 16s, 30s max
+export type WsStatus = 'connecting' | 'connected' | 'disconnected';
+
 const getReconnectDelay = (attempt: number) =>
     Math.min(1000 * Math.pow(2, attempt), 30000);
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Hook principal
+// ─────────────────────────────────────────────────────────────────────────────
 export const useWebRTC = (terminalId: string) => {
     const wsRef = useRef<WebSocket | null>(null);
     const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
     const localStreamRef = useRef<MediaStream | null>(null);
     const pendingCandidates = useRef<RTCIceCandidateInit[]>([]);
 
-    // Reconnexion WS
     const reconnectAttempt = useRef(0);
     const reconnectTimer = useRef<NodeJS.Timeout | null>(null);
-    const shouldReconnect = useRef(true); // mis à false au unmount
+    const shouldReconnect = useRef(true);
 
-    // Timeout appel sortant (30s sans réponse → annuler)
     const callTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-    // Récupération ICE : 5s après 'disconnected' avant d'abandonner
     const iceRecoveryTimer = useRef<NodeJS.Timeout | null>(null);
+    const ringtoneIntervalRef = useRef<NodeJS.Timeout | null>(null);
+    const incomingOfferRef = useRef<any>(null);
 
     const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
     const [iceState, setIceState] = useState<string>('init');
     const [wsStatus, setWsStatus] = useState<WsStatus>('connecting');
 
-    const incomingOfferRef = useRef<any>(null);
-    const ringtoneIntervalRef = useRef<NodeJS.Timeout | null>(null);
-
     const { setPhase, setTargetId, setIsMuted, isMuted, targetId } = useVoipStore();
     const clearError = () => setErrorMsg(null);
 
-    // ── Teardown complet de la session P2P ──────────────────────────────────
+    // ── Teardown complet ────────────────────────────────────────────────────
     const teardown = useCallback(() => {
-        // Annuler tous les timers actifs
-        if (ringtoneIntervalRef.current) {
-            clearInterval(ringtoneIntervalRef.current);
-            ringtoneIntervalRef.current = null;
-        }
-        if (callTimeoutRef.current) {
-            clearTimeout(callTimeoutRef.current);
-            callTimeoutRef.current = null;
-        }
-        if (iceRecoveryTimer.current) {
-            clearTimeout(iceRecoveryTimer.current);
-            iceRecoveryTimer.current = null;
-        }
+        if (ringtoneIntervalRef.current) { clearInterval(ringtoneIntervalRef.current); ringtoneIntervalRef.current = null; }
+        if (callTimeoutRef.current) { clearTimeout(callTimeoutRef.current); callTimeoutRef.current = null; }
+        if (iceRecoveryTimer.current) { clearTimeout(iceRecoveryTimer.current); iceRecoveryTimer.current = null; }
 
         incomingOfferRef.current = null;
 
         if (localStreamRef.current) {
-            localStreamRef.current.getTracks().forEach(track => track.stop());
+            localStreamRef.current.getTracks().forEach(t => t.stop());
+            localStreamRef.current = null;
         }
         if (peerConnectionRef.current) {
             peerConnectionRef.current.close();
+            peerConnectionRef.current = null;
         }
 
-        localStreamRef.current = null;
-        peerConnectionRef.current = null;
         pendingCandidates.current = [];
-
-        if (currentSource) {
-            currentSource.disconnect();
-            currentSource = null;
-        }
+        stopRemoteAudio();
         setRemoteStream(null);
 
         setPhase('IDLE');
@@ -125,17 +163,96 @@ export const useWebRTC = (terminalId: string) => {
         setIsMuted(true);
     }, [setPhase, setTargetId, setIsMuted]);
 
-    // ── Connexion WebSocket (et reconnexion automatique) ────────────────────
+    // ── Gestion des erreurs ─────────────────────────────────────────────────
+    const handleWebRTCError = useCallback((err: any) => {
+        console.error('🎤 WebRTC/Mic error:', err.name, err.message);
+        if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+            setErrorMsg("Aucun microphone détecté. Veuillez brancher un micro.");
+        } else if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+            setErrorMsg("Accès micro refusé. Autorisez le micro dans les réglages du navigateur.");
+        } else {
+            setErrorMsg('Erreur : ' + err.message);
+        }
+        teardown();
+    }, [teardown]);
+
+    // ── Setup PeerConnection ─────────────────────────────────────────────────
+    const setupPeerConnection = useCallback((target: string): RTCPeerConnection => {
+        const pc = new RTCPeerConnection(ICE_CONFIG);
+        peerConnectionRef.current = pc;
+
+        pc.onicecandidate = (e) => {
+            if (e.candidate && wsRef.current?.readyState === WebSocket.OPEN) {
+                wsRef.current.send(JSON.stringify({
+                    type: 'ice-candidate', target, candidate: e.candidate
+                }));
+            }
+        };
+
+        pc.ontrack = (e) => {
+            console.log('🔊 Flux audio distant reçu, démarrage lecture');
+            const stream = e.streams?.[0] ?? new MediaStream([e.track]);
+            setRemoteStream(stream);
+            playRemoteStream(stream);
+            setPhase('CONNECTED');
+        };
+
+        pc.oniceconnectionstatechange = () => {
+            const state = pc.iceConnectionState;
+            console.log('ICE →', state);
+            setIceState(state);
+
+            if (state === 'failed') {
+                setErrorMsg("Connexion audio échouée (réseau strict). Essayez de relancer l'appel.");
+                teardown();
+            } else if (state === 'disconnected') {
+                // Glitch réseau passager : on attend 5s avant d'abandonner
+                iceRecoveryTimer.current = setTimeout(() => {
+                    if (
+                        peerConnectionRef.current &&
+                        (peerConnectionRef.current.iceConnectionState === 'disconnected' ||
+                         peerConnectionRef.current.iceConnectionState === 'failed')
+                    ) {
+                        setErrorMsg("Connexion audio perdue.");
+                        teardown();
+                    }
+                }, 5000);
+            } else if (state === 'connected' || state === 'completed') {
+                if (iceRecoveryTimer.current) {
+                    clearTimeout(iceRecoveryTimer.current);
+                    iceRecoveryTimer.current = null;
+                }
+            }
+        };
+
+        pc.onconnectionstatechange = () => {
+            console.log('PC connection state →', pc.connectionState);
+        };
+
+        return pc;
+    }, [teardown, setPhase]);
+
+    // ── Reconnexion WS ──────────────────────────────────────────────────────
+    const scheduleReconnect = useCallback((attempt: number) => {
+        if (!shouldReconnect.current) return;
+        const delay = getReconnectDelay(attempt);
+        console.log(`🔄 Reconnexion WS dans ${delay / 1000}s (tentative ${attempt + 1})`);
+        if (reconnectTimer.current) clearTimeout(reconnectTimer.current);
+        reconnectTimer.current = setTimeout(() => {
+            reconnectAttempt.current += 1;
+            connectWebSocket(); // eslint-disable-line
+        }, delay);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
     const connectWebSocket = useCallback(() => {
         if (!terminalId || !shouldReconnect.current) return;
 
         const url = process.env.NEXT_PUBLIC_VOIP_WS_URL || 'ws://localhost:5000';
-        console.log(`📡 VoIP WS connecting (attempt ${reconnectAttempt.current + 1}):`, url);
+        console.log(`📡 WS connexion (tentative ${reconnectAttempt.current + 1}):`, url);
         setWsStatus('connecting');
 
-        // CRITIQUE : Neutraliser TOUS les handlers de l'ancien WebSocket AVANT de créer le nouveau.
-        // Sans ça, si l'ancien ws reçoit un close frame (ex: depuis le serveur), son onclose
-        // déclenche scheduleReconnect() → nouvelle connexion alors qu'une autre est déjà active.
+        // Neutraliser l'ancien WS pour éviter les événements fantômes
         if (wsRef.current) {
             wsRef.current.onopen = null;
             wsRef.current.onclose = null;
@@ -144,17 +261,16 @@ export const useWebRTC = (terminalId: string) => {
         }
 
         let ws: WebSocket;
-        try {
-            ws = new WebSocket(url);
-        } catch (e) {
+        try { ws = new WebSocket(url); }
+        catch (e) {
             console.error('WebSocket constructor failed:', e);
-            scheduleReconnect();
+            scheduleReconnect(reconnectAttempt.current);
             return;
         }
         wsRef.current = ws;
 
         ws.onopen = () => {
-            console.log('✅ VoIP WS connected');
+            console.log('✅ WS connecté');
             reconnectAttempt.current = 0;
             setWsStatus('connected');
             setErrorMsg(null);
@@ -162,202 +278,95 @@ export const useWebRTC = (terminalId: string) => {
         };
 
         ws.onclose = () => {
-            // CRITIQUE : Vérifier que c'est bien le WS actuel qui se ferme.
-            // Si wsRef.current a déjà été remplacé par un nouveau WS, on ignore ce close
-            // pour éviter qu'un vieux WS fantôme déclenche un teardown ou une reconnexion parasite.
+            // Ignorer si ce WS a déjà été remplacé
             if (wsRef.current !== ws) {
-                console.log('👻 Ghost WS close ignored (already replaced by newer connection)');
+                console.log('👻 Ghost WS close ignoré');
                 return;
             }
-            console.log('🔌 VoIP WS closed');
+            console.log('🔌 WS fermé');
             setWsStatus('disconnected');
-            // Si on était en communication, tear down proprement
             if (useVoipStore.getState().phase !== 'IDLE') {
                 setErrorMsg('Connexion perdue. La communication a été interrompue.');
                 teardown();
             }
-            scheduleReconnect();
+            scheduleReconnect(reconnectAttempt.current);
         };
 
         ws.onerror = (e) => {
-            console.error('WebSocket error:', e);
-            // onclose sera appelé immédiatement après, qui gérera la reconnexion
+            console.error('WS error:', e);
+            // onclose sera appelé après, qui gérera la reconnexion
         };
 
         ws.onmessage = async (event) => {
             let data: any;
-            try {
-                data = JSON.parse(event.data);
-            } catch {
-                console.error('Failed to parse WS message:', event.data);
-                return;
-            }
+            try { data = JSON.parse(event.data); }
+            catch { console.error('WS message invalide:', event.data); return; }
 
-            if (data.type === 'registered') {
-                console.log(`🔖 Registered as "${data.id}"`);
+            switch (data.type) {
+                case 'registered':
+                    console.log(`🔖 Enregistré comme "${data.id}"`);
+                    break;
 
-            } else if (data.type === 'offer') {
-                console.log(`📞 Incoming call from ${data.source}`);
-                pendingCandidates.current = [];
-                incomingOfferRef.current = data;
-                setTargetId(data.source);
-                setPhase('RINGING');
-                playRingtone();
+                case 'offer':
+                    console.log(`📞 Appel entrant de ${data.source}`);
+                    pendingCandidates.current = [];
+                    incomingOfferRef.current = data;
+                    setTargetId(data.source);
+                    setPhase('RINGING');
+                    playRingTone();
+                    ringtoneIntervalRef.current = setInterval(playRingTone, 2000);
+                    break;
 
-            } else if (data.type === 'answer') {
-                if (peerConnectionRef.current) {
-                    // Annuler le timeout d'appel sortant : la réponse est arrivée
-                    if (callTimeoutRef.current) {
-                        clearTimeout(callTimeoutRef.current);
-                        callTimeoutRef.current = null;
+                case 'answer':
+                    if (peerConnectionRef.current) {
+                        if (callTimeoutRef.current) { clearTimeout(callTimeoutRef.current); callTimeoutRef.current = null; }
+                        try {
+                            await peerConnectionRef.current.setRemoteDescription(
+                                new RTCSessionDescription(data.answer)
+                            );
+                            pendingCandidates.current.forEach(c =>
+                                peerConnectionRef.current!.addIceCandidate(new RTCIceCandidate(c)).catch(console.error)
+                            );
+                            pendingCandidates.current = [];
+                            // Ne pas forcer CONNECTED ici — ontrack le fera
+                        } catch (e) {
+                            console.error('Erreur setRemoteDescription (answer):', e);
+                        }
                     }
-                    try {
-                        await peerConnectionRef.current.setRemoteDescription(
-                            new RTCSessionDescription(data.answer)
-                        );
-                        pendingCandidates.current.forEach(c =>
-                            peerConnectionRef.current!.addIceCandidate(new RTCIceCandidate(c)).catch(console.error)
-                        );
-                        pendingCandidates.current = [];
-                        setPhase('CONNECTED');
-                    } catch (e) {
-                        console.error('Failed setting remote answer:', e);
+                    break;
+
+                case 'ice-candidate':
+                    if (peerConnectionRef.current?.remoteDescription) {
+                        peerConnectionRef.current.addIceCandidate(
+                            new RTCIceCandidate(data.candidate)
+                        ).catch(console.error);
+                    } else {
+                        pendingCandidates.current.push(data.candidate);
                     }
-                }
+                    break;
 
-            } else if (data.type === 'ice-candidate') {
-                if (peerConnectionRef.current && peerConnectionRef.current.remoteDescription) {
-                    peerConnectionRef.current.addIceCandidate(
-                        new RTCIceCandidate(data.candidate)
-                    ).catch(console.error);
-                } else {
-                    // Stockage des candidats reçus AVANT d'avoir accepté l'appel
-                    pendingCandidates.current.push(data.candidate);
-                }
-
-            } else if (data.type === 'bye') {
-                console.log('👋 Raccrochage reçu du correspondant.');
-                teardown();
-
-            } else if (data.type === 'peer-unavailable') {
-                // Le destinataire n'est pas connecté au serveur
-                console.warn(`⚠️ Peer unavailable: ${data.target}`);
-                setErrorMsg(`Appareil "  ${data.target}" introuvable. Vérifiez qu'il est en ligne.`);
-                teardown();
-
-            } else if (data.type === 'peer-disconnected') {
-                // Un peer s'est déconnecté : si on était en comm avec lui, raccrocher
-                const currentTargetId = useVoipStore.getState().targetId;
-                if (data.peerId && data.peerId === currentTargetId) {
-                    console.log(`🔌 Correspondant ${data.peerId} déconnecté.`);
-                    setErrorMsg('Le correspondant a perdu la connexion.');
+                case 'bye':
+                    console.log('👋 Raccrochage reçu');
                     teardown();
-                }
-            }
-        };
-    }, [terminalId, teardown, setPhase, setTargetId]);
+                    break;
 
-    const scheduleReconnect = useCallback(() => {
-        if (!shouldReconnect.current) return;
-        if (reconnectTimer.current) clearTimeout(reconnectTimer.current);
-        const delay = getReconnectDelay(reconnectAttempt.current);
-        console.log(`🔄 Reconnexion WS dans ${delay / 1000}s...`);
-        reconnectTimer.current = setTimeout(() => {
-            reconnectAttempt.current += 1;
-            connectWebSocket();
-        }, delay);
-    }, [connectWebSocket]);
+                case 'peer-unavailable':
+                    setErrorMsg(`Appareil "${data.target}" introuvable. Vérifie qu'il est connecté.`);
+                    teardown();
+                    break;
 
-    // ── Sonnerie WebAudio ───────────────────────────────────────────────────
-    const playRingtone = () => {
-        const playRing = () => {
-            try {
-                const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
-                const osc1 = ctx.createOscillator();
-                const osc2 = ctx.createOscillator();
-                const gain = ctx.createGain();
-                osc1.type = 'sine'; osc1.frequency.setValueAtTime(1046.5, ctx.currentTime);
-                osc2.type = 'sine'; osc2.frequency.setValueAtTime(1318.51, ctx.currentTime);
-                gain.gain.setValueAtTime(0, ctx.currentTime);
-                gain.gain.linearRampToValueAtTime(0.5, ctx.currentTime + 0.1);
-                gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 1.5);
-                osc1.connect(gain); osc2.connect(gain);
-                gain.connect(ctx.destination);
-                osc1.start(); osc2.start();
-                osc1.stop(ctx.currentTime + 1.5); osc2.stop(ctx.currentTime + 1.5);
-            } catch (_) {}
-        };
-        playRing();
-        ringtoneIntervalRef.current = setInterval(playRing, 2000);
-    };
-
-    // ── Mise en place PeerConnection ────────────────────────────────────────
-    const setupPeerConnection = useCallback((target: string): RTCPeerConnection => {
-        const pc = new RTCPeerConnection(ICE_CONFIG);
-        peerConnectionRef.current = pc;
-
-        pc.onicecandidate = (e) => {
-            if (e.candidate && wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-                wsRef.current.send(JSON.stringify({
-                    type: 'ice-candidate', target, candidate: e.candidate
-                }));
-            }
-        };
-
-        pc.ontrack = (e) => {
-            if (e.streams && e.streams[0]) {
-                console.log('🔊 Flux P2P reçu');
-                setRemoteStream(e.streams[0]);
-                playStreamWebAudio(e.streams[0]);
-                setPhase('CONNECTED');
-            }
-        };
-
-        pc.oniceconnectionstatechange = () => {
-            const state = pc.iceConnectionState;
-            console.log('ICE state →', state);
-            setIceState(state);
-
-            if (state === 'failed') {
-                setErrorMsg('La connexion audio a échoué (pare-feu strict ou réseau instable).');
-                teardown();
-            } else if (state === 'disconnected') {
-                // Attendre 5s avant d'abandonner (peut être un glitch réseau temporaire)
-                if (iceRecoveryTimer.current) clearTimeout(iceRecoveryTimer.current);
-                iceRecoveryTimer.current = setTimeout(() => {
-                    const currentState = pc.iceConnectionState;
-                    if (currentState === 'disconnected' || currentState === 'failed') {
-                        console.warn('ICE disconnected trop longtemps → teardown');
-                        setErrorMsg('Connexion audio perdue.');
+                case 'peer-disconnected':
+                    if (data.peerId && data.peerId === useVoipStore.getState().targetId) {
+                        setErrorMsg('Correspondant déconnecté.');
                         teardown();
                     }
-                }, 5000);
-            } else if (state === 'connected' || state === 'completed') {
-                // Connexion rétablie : annuler le timer de récupération
-                if (iceRecoveryTimer.current) {
-                    clearTimeout(iceRecoveryTimer.current);
-                    iceRecoveryTimer.current = null;
-                }
+                    break;
             }
         };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [terminalId, teardown, setPhase, setTargetId, scheduleReconnect]);
 
-        return pc;
-    }, [teardown, setPhase]);
-
-    // ── Gestion des erreurs Mic / MediaDevices ──────────────────────────────
-    const handleWebRTCError = useCallback((err: any) => {
-        console.error('🎤 Mic/WebRTC error:', err.name, err.message);
-        if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
-            setErrorMsg('Aucun microphone détecté. Veuillez brancher un micro.');
-        } else if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-            setErrorMsg("Accès micro refusé. Autorisez le micro dans les paramètres du navigateur.");
-        } else {
-            setErrorMsg('Erreur inattendue : ' + err.message);
-        }
-        teardown();
-    }, [teardown]);
-
-    // ── Effets secondaires sur l'état mute (DTX Push-To-Talk) ──────────────
+    // ── PTT : mute/unmute local audio track ────────────────────────────────
     useEffect(() => {
         if (localStreamRef.current) {
             localStreamRef.current.getAudioTracks().forEach(track => {
@@ -368,7 +377,7 @@ export const useWebRTC = (terminalId: string) => {
         }
     }, [isMuted, targetId, setPhase]);
 
-    // ── Initialisation WS au montage ────────────────────────────────────────
+    // ── Initialisation au montage ───────────────────────────────────────────
     useEffect(() => {
         if (!terminalId) return;
         shouldReconnect.current = true;
@@ -377,30 +386,34 @@ export const useWebRTC = (terminalId: string) => {
         return () => {
             shouldReconnect.current = false;
             if (reconnectTimer.current) clearTimeout(reconnectTimer.current);
-            if (wsRef.current) wsRef.current.close();
+            if (wsRef.current) {
+                wsRef.current.onopen = null;
+                wsRef.current.onclose = null;
+                wsRef.current.onerror = null;
+                wsRef.current.onmessage = null;
+                wsRef.current.close();
+            }
             teardown();
         };
-        // Dépendance volontairement limitée à terminalId pour éviter les boucles infinies
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [terminalId]);
 
-    // ── Actions exposées ─────────────────────────────────────────────────────
+    // ── Actions publiques ───────────────────────────────────────────────────
     const acceptCall = useCallback(async () => {
-        setErrorMsg(null);
         const data = incomingOfferRef.current;
         if (!data || !wsRef.current) return;
 
-        if (ringtoneIntervalRef.current) {
-            clearInterval(ringtoneIntervalRef.current);
-            ringtoneIntervalRef.current = null;
-        }
+        if (ringtoneIntervalRef.current) { clearInterval(ringtoneIntervalRef.current); ringtoneIntervalRef.current = null; }
 
+        setErrorMsg(null);
         setPhase('SIGNALING');
         const pc = setupPeerConnection(data.source);
 
         try {
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
             localStreamRef.current = stream;
+            // Tracks activés par défaut — l'utilisateur DOIT appuyer sur PTT pour parler
+            stream.getAudioTracks().forEach(t => { t.enabled = false; });
             stream.getTracks().forEach(track => pc.addTrack(track, stream));
 
             await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
@@ -411,7 +424,7 @@ export const useWebRTC = (terminalId: string) => {
 
             const answer = await pc.createAnswer();
             await pc.setLocalDescription(answer);
-            wsRef.current.send(JSON.stringify({ type: 'answer', target: data.source, answer }));
+            wsRef.current!.send(JSON.stringify({ type: 'answer', target: data.source, answer }));
         } catch (err) {
             handleWebRTCError(err);
         }
@@ -419,26 +432,27 @@ export const useWebRTC = (terminalId: string) => {
 
     const initiateCall = useCallback(async (target: string) => {
         if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
-            setErrorMsg("Pas de connexion au serveur. Veuillez attendre la reconnexion.");
+            setErrorMsg("Pas de connexion serveur. Attends la reconnexion automatique.");
             return;
         }
         setErrorMsg(null);
         setTargetId(target);
         setPhase('INITIALIZING');
 
-        // Timeout de 30s si personne ne répond
+        // Timeout auto si pas de réponse en 30s
         callTimeoutRef.current = setTimeout(() => {
-            const currentPhase = useVoipStore.getState().phase;
-            if (currentPhase === 'SIGNALING' || currentPhase === 'INITIALIZING') {
-                console.warn('⏱️ Appel sans réponse après 30s → annulation');
-                setErrorMsg("Pas de réponse. L'appel a été annulé automatiquement.");
-                stopCall();
+            if (['SIGNALING', 'INITIALIZING'].includes(useVoipStore.getState().phase)) {
+                setErrorMsg("Pas de réponse après 30s. Appel annulé automatiquement.");
+                stopCall(); // eslint-disable-line
             }
         }, 30000);
 
         try {
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
             localStreamRef.current = stream;
+            // Tracks désactivés par défaut (PTT → on talk uniquement en maintenant)
+            stream.getAudioTracks().forEach(t => { t.enabled = false; });
+
             const pc = setupPeerConnection(target);
             stream.getTracks().forEach(track => pc.addTrack(track, stream));
 
@@ -454,9 +468,9 @@ export const useWebRTC = (terminalId: string) => {
     }, [setTargetId, setPhase, setupPeerConnection, handleWebRTCError]);
 
     const stopCall = useCallback(() => {
-        const currentTargetId = useVoipStore.getState().targetId;
-        if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN && currentTargetId) {
-            wsRef.current.send(JSON.stringify({ type: 'bye', target: currentTargetId }));
+        const currentTarget = useVoipStore.getState().targetId;
+        if (wsRef.current?.readyState === WebSocket.OPEN && currentTarget) {
+            wsRef.current.send(JSON.stringify({ type: 'bye', target: currentTarget }));
         }
         teardown();
     }, [teardown]);
