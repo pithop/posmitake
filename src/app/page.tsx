@@ -62,7 +62,7 @@ export default function Home() {
       </div>
 
       {/* Right Column: Desktop Cart (Fixed Sidebar) */}
-      <div className="hidden lg:flex w-[400px] flex-none flex-col border-l border-white/5 bg-zinc-950/50 backdrop-blur-xl relative z-40">
+      <div className="hidden lg:flex w-[300px] xl:w-[380px] 2xl:w-[400px] flex-none flex-col border-l border-white/5 bg-zinc-950/50 backdrop-blur-xl relative z-40">
         <CartSidebar />
       </div>
 
