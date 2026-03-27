@@ -36,7 +36,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
           }
           @media (min-width: 1024px) {
             html {
-              font-size: ${(uiZoomLevel / 100) * 10}px !important;
+              font-size: ${(uiZoomLevel / 100) * 13}px !important;
             }
           }
           @media (min-width: 1920px) {

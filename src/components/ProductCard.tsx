@@ -77,12 +77,12 @@ export function ProductCard({ product, onAdd, onOpenModal, isOutOfStock }: Produ
 
             {/* Content */}
             <div className="flex flex-1 flex-col p-4 relative -mt-12">
-                <h3 className="line-clamp-2 text-lg font-heading font-bold text-white leading-tight min-h-[3rem] drop-shadow-md">
+                <h3 className="line-clamp-2 text-lg lg:text-xl font-heading font-bold text-white leading-tight min-h-[3rem] drop-shadow-md">
                     {product.name}
                 </h3>
 
                 <div className="mt-3 flex items-center justify-between">
-                    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest bg-secondary/50 px-2 py-1 rounded-md backdrop-blur-sm">
+                    <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest bg-secondary/50 px-2.5 py-1 rounded-md backdrop-blur-sm">
                         {product.category}
                     </span>
                     {!isOutOfStock && (

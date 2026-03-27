@@ -231,7 +231,7 @@ export function MenuGrid() {
                                 key={cat}
                                 onClick={() => setSelectedCategory(cat)}
                                 className={cn(
-                                    "px-5 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap transition-all duration-300 border",
+                                    "px-5 py-3 rounded-xl text-base font-bold whitespace-nowrap transition-all duration-300 border",
                                     selectedCategory === cat
                                         ? "bg-primary text-primary-foreground shadow-lg shadow-primary/25 scale-105"
                                         : "bg-secondary/30 text-muted-foreground border-transparent hover:bg-secondary hover:text-foreground hover:border-white/10"
@@ -252,7 +252,7 @@ export function MenuGrid() {
                         <p className="font-medium">No products found</p>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 pb-32 lg:pb-24">
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 pb-32 lg:pb-24">
                         {filteredProducts.map((product, idx) => (
                             <div key={product.id} className="animate-fade-in" style={{ animationDelay: `${idx * 50}ms` }}>
                                 <ProductCard
