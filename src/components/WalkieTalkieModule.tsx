@@ -26,10 +26,20 @@ export const WalkieTalkieModule = () => {
         if (phase !== 'IDLE') {
             setIsExpanded(true);
         } else {
+            // CRITIQUE : Ne PAS replier le widget immédiatement s'il y a un message d'erreur.
+            // L'utilisateur DOIT voir l'erreur avant que le widget ne se ferme.
+            if (errorMsg) {
+                // Garder le widget ouvert 5 secondes pour lire l'erreur, puis fermer
+                const t = setTimeout(() => {
+                    setIsExpanded(false);
+                    setIsCalling(false);
+                }, 5000);
+                return () => clearTimeout(t);
+            }
             setIsExpanded(false);
-            setIsCalling(false); // reset anti double-clic dès que l'appel se termine
+            setIsCalling(false);
         }
-    }, [phase]);
+    }, [phase, errorMsg]);
 
     const handlePushToTalkStart = () => setIsMuted(false);
     const handlePushToTalkEnd = () => setIsMuted(true);
