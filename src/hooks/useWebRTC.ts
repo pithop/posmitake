@@ -133,6 +133,16 @@ export const useWebRTC = (terminalId: string) => {
         console.log(`📡 VoIP WS connecting (attempt ${reconnectAttempt.current + 1}):`, url);
         setWsStatus('connecting');
 
+        // CRITIQUE : Neutraliser TOUS les handlers de l'ancien WebSocket AVANT de créer le nouveau.
+        // Sans ça, si l'ancien ws reçoit un close frame (ex: depuis le serveur), son onclose
+        // déclenche scheduleReconnect() → nouvelle connexion alors qu'une autre est déjà active.
+        if (wsRef.current) {
+            wsRef.current.onopen = null;
+            wsRef.current.onclose = null;
+            wsRef.current.onerror = null;
+            wsRef.current.onmessage = null;
+        }
+
         let ws: WebSocket;
         try {
             ws = new WebSocket(url);
@@ -152,6 +162,13 @@ export const useWebRTC = (terminalId: string) => {
         };
 
         ws.onclose = () => {
+            // CRITIQUE : Vérifier que c'est bien le WS actuel qui se ferme.
+            // Si wsRef.current a déjà été remplacé par un nouveau WS, on ignore ce close
+            // pour éviter qu'un vieux WS fantôme déclenche un teardown ou une reconnexion parasite.
+            if (wsRef.current !== ws) {
+                console.log('👻 Ghost WS close ignored (already replaced by newer connection)');
+                return;
+            }
             console.log('🔌 VoIP WS closed');
             setWsStatus('disconnected');
             // Si on était en communication, tear down proprement
