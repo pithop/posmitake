@@ -45,10 +45,10 @@ export function ReceiptFromOrder({ data, isInvoice }: Props) {
                 )}
             </div>
 
-            <div style={{ borderBottom: '1px dashed #000', margin: '8px 0' }}></div>
+            <div style={{ borderBottom: '1px dashed #000', margin: '4px 0' }}></div>
 
             {/* Restaurant Info */}
-            <div className="receipt-center receipt-small" style={{ marginBottom: '12px' }}>
+            <div className="receipt-center receipt-small" style={{ marginBottom: '6px' }}>
                 <div>{settings?.address || '569 Av. Henri Mauriat, 13100 Aix-en-Provence'}</div>
                 <div>Tél: {settings?.phone || '09 72 21 38 99'}</div>
                 {settings?.siret && <div>SIRET: {settings.siret}</div>}
@@ -90,7 +90,7 @@ export function ReceiptFromOrder({ data, isInvoice }: Props) {
                 )}
             </div>
 
-            <div style={{ borderBottom: '1px dashed #000', margin: '8px 0' }}></div>
+            <div style={{ borderBottom: '1px dashed #000', margin: '4px 0' }}></div>
 
             {/* Items */}
             <div className="receipt-items">
@@ -147,7 +147,7 @@ export function ReceiptFromOrder({ data, isInvoice }: Props) {
                 })}
             </div>
 
-            <div style={{ borderBottom: '1px dashed #000', margin: '8px 0' }}></div>
+            <div style={{ borderBottom: '1px dashed #000', margin: '4px 0' }}></div>
 
             {/* Totals */}
             <div className="receipt-totals">
@@ -165,7 +165,7 @@ export function ReceiptFromOrder({ data, isInvoice }: Props) {
                 </div>
             </div>
 
-            <div style={{ borderBottom: '1px dashed #000', margin: '8px 0' }}></div>
+            <div style={{ borderBottom: '1px dashed #000', margin: '4px 0' }}></div>
 
             {/* Payments or Pending */}
             <div className="receipt-payments">
