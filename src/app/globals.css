@@ -3,6 +3,13 @@
 @theme {
   --font-sans: var(--font-inter);
   --font-heading: var(--font-outfit);
+
+  /* Explicit breakpoints for Tailwind v4 (same as Tailwind v3 defaults) */
+  --breakpoint-sm: 640px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 1024px;
+  --breakpoint-xl: 1280px;
+  --breakpoint-2xl: 1536px;
 }
 
 :root {
@@ -150,6 +157,22 @@ h6 {
 .active-press:active {
   transform: scale(0.96);
   opacity: 0.9;
+}
+
+/* =========================================
+   Desktop layout helpers (bypass Tailwind v4 breakpoint issue)
+   Uses !important to override Tailwind utility layer
+   ========================================= */
+.desktop-show { display: none !important; }
+.desktop-hide-block { display: block !important; }
+.desktop-hide-flex { display: flex !important; }
+
+@media (min-width: 1024px) {
+  .desktop-show { display: flex !important; }
+  .desktop-hide-block { display: none !important; }
+  .desktop-hide-flex { display: none !important; }
+  .desktop-header { display: flex !important; }
+  .desktop-pt0 { padding-top: 0 !important; }
 }
 
 /* =========================================

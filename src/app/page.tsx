@@ -22,7 +22,7 @@ export default function Home() {
     <main className="flex h-screen w-screen overflow-hidden bg-background text-foreground selection:bg-primary/30" suppressHydrationWarning>
 
       {/* Mobile Header */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 h-16 glass-strong z-50 flex items-center justify-between px-6 border-b border-white/5">
+      <div className="desktop-hide-flex fixed top-0 left-0 right-0 h-16 glass-strong z-50 items-center justify-between px-6 border-b border-white/5">
         <div className="font-heading font-black text-xl tracking-tighter">
           MITAKE <span className="text-primary">POS</span>
         </div>
@@ -40,8 +40,8 @@ export default function Home() {
       </div>
 
       {/* Left Column: Menu */}
-      <div className="flex-1 h-full flex flex-col relative pt-16 lg:pt-0 transition-all duration-300">
-        <div className="hidden lg:flex items-center justify-between px-8 py-6 bg-transparent">
+      <div className="flex-1 min-w-0 h-full flex flex-col relative pt-16 desktop-pt0 transition-all duration-300">
+        <div className="hidden desktop-header items-center justify-between px-8 py-6 bg-transparent">
           <div>
             <h1 className="text-3xl font-heading font-black tracking-tighter text-foreground">
               MITAKE <span className="text-primary">POS</span>
@@ -62,13 +62,13 @@ export default function Home() {
       </div>
 
       {/* Right Column: Desktop Cart (Fixed Sidebar) */}
-      <div className="hidden lg:flex w-[300px] xl:w-[380px] 2xl:w-[400px] flex-none flex-col border-l border-white/5 bg-zinc-950/50 backdrop-blur-xl relative z-40">
+      <div className="desktop-show w-[300px] xl:w-[380px] 2xl:w-[400px] flex-none flex-col border-l border-white/5 bg-zinc-950/50 backdrop-blur-xl relative z-40">
         <CartSidebar />
       </div>
 
       {/* Mobile Cart Drawer (Overlay) */}
       <div className={cn(
-        "fixed inset-y-0 right-0 z-50 w-full sm:w-[420px] lg:hidden transition-transform duration-500 cubic-bezier(0.32, 0.72, 0, 1) shadow-2xl bg-zinc-950/95 backdrop-blur-xl border-l border-white/5",
+        "desktop-hide-block fixed inset-y-0 right-0 z-50 w-full sm:w-[420px] transition-transform duration-500 cubic-bezier(0.32, 0.72, 0, 1) shadow-2xl bg-zinc-950/95 backdrop-blur-xl border-l border-white/5",
         isCartOpen ? "translate-x-0" : "translate-x-full"
       )}>
         <CartSidebar />
@@ -83,7 +83,7 @@ export default function Home() {
       {/* Overlay for mobile cart */}
       {isCartOpen && (
         <div
-          className="fixed inset-0 bg-black/80 backdrop-blur-sm z-30 lg:hidden animate-fade-in"
+          className="fixed inset-0 bg-black/80 backdrop-blur-sm z-30 desktop-hide-block animate-fade-in"
           onClick={() => setIsCartOpen(false)}
         />
       )}
