@@ -8,6 +8,7 @@ import { OrderAlertManager } from "@/components/OrderAlertManager";
 import { StockAlertManager } from "@/components/StockAlertManager";
 import { WebsiteAlertManager } from "@/components/WebsiteAlertManager";
 import { WalkieTalkieModule } from "@/components/WalkieTalkieModule";
+import { ReadyAlertManager } from "@/components/ReadyAlertManager";
 
 export function ClientLayout({ children }: { children: React.ReactNode }) {
   const { uiZoomLevel } = useSystemStore();
@@ -49,6 +50,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
       {!isDashboard && (
         <>
           <OrderAlertManager />
+          <ReadyAlertManager />
           <WebsiteAlertManager />
           <StockAlertManager />
           <WalkieTalkieModule />

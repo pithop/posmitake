@@ -1,7 +1,7 @@
 import { useSystemStore, useCartStore } from '@/store/useStore';
 import { formatPrice } from '@/lib/utils';
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { Settings, X, RotateCcw, LayoutDashboard, History, Package, Search, Save, Edit2, WifiOff, CloudUpload, SlidersHorizontal, Monitor, Smartphone, Clock, Printer, BellRing, Trash2, FileText } from 'lucide-react';
+import { Settings, X, RotateCcw, LayoutDashboard, History, Package, Search, Save, Edit2, WifiOff, CloudUpload, SlidersHorizontal, Monitor, Smartphone, Clock, Printer, BellRing, Trash2, FileText, CheckCircle } from 'lucide-react';
 import { Product, Order } from '@/types';
 import { cn } from '@/lib/utils';
 import { useQuery, usePowerSync } from '@powersync/react';
@@ -276,6 +276,39 @@ export function AdminPanel() {
         } catch (err) {
             console.error('[Delete] Erreur:', err);
             alert('Erreur lors de la suppression de la commande.');
+        }
+    };
+
+    const handleMarkReady = async (orderId: string) => {
+        if (!supabase) return;
+        const rawData = supabaseOrders.find(o => o.id === orderId);
+        if (!rawData) return;
+        try {
+            const currentDetails = rawData.payment_details || [];
+            let updatedDetails = Array.isArray(currentDetails) ? [...currentDetails] : [currentDetails];
+            
+            if (updatedDetails.length === 0 || (updatedDetails.length === 1 && Object.keys(updatedDetails[0]).length === 0)) {
+                updatedDetails = [{ is_ready: true, ready_at: new Date().toISOString() }];
+            } else {
+                const readyIndex = updatedDetails.findIndex(d => d.is_ready !== undefined);
+                if (readyIndex >= 0) {
+                    updatedDetails[readyIndex].is_ready = true;
+                    updatedDetails[readyIndex].ready_at = new Date().toISOString();
+                } else {
+                    updatedDetails[0] = { ...updatedDetails[0], is_ready: true, ready_at: new Date().toISOString() };
+                }
+            }
+
+            await supabase.from('pos_orders')
+                .update({ payment_details: updatedDetails })
+                .eq('id', orderId);
+
+            fetchOrdersFromSupabase();
+            logger.audit('REALTIME', 'ORDER_MARKED_READY', { order_id: orderId });
+        } catch (err) {
+            console.error('[Ready] Error:', err);
+            logger.error('REALTIME', 'ORDER_READY_FAILED', { order_id: orderId, error: String(err) });
+            alert('❌ Erreur lors du marquage');
         }
     };
 
@@ -674,6 +707,13 @@ export function AdminPanel() {
                                                                     <BellRing size={16} />
                                                                     {alertCount >= 2 ? 'Rappel envoyé' : 'Rappel cuisine'}
                                                                 </button>
+                                                                {/* Mark as Ready */}
+                                                                <button
+                                                                    onClick={() => handleMarkReady(order.id)}
+                                                                    className="flex items-center gap-1.5 bg-green-500 hover:bg-green-400 text-black font-bold px-4 py-2 rounded-xl transition-all active:scale-95 text-sm shadow-lg shadow-green-500/20"
+                                                                >
+                                                                    <CheckCircle size={16} /> Prête
+                                                                </button>
                                                                 {/* Encaisser */}
                                                                 <button
                                                                     onClick={() => setOnHoldPaymentOrder(order)}
@@ -803,6 +843,16 @@ export function AdminPanel() {
                                                                     className="flex items-center gap-1 bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 hover:text-amber-400 border border-amber-500/30 px-3 py-1.5 rounded-lg transition-all active:scale-95 text-xs font-bold"
                                                                 >
                                                                     <Edit2 size={14} /> Corriger
+                                                                </button>
+                                                                {/* Mark as Ready History */}
+                                                                <button
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        handleMarkReady(order.id);
+                                                                    }}
+                                                                    className="flex items-center gap-1 bg-green-500/20 hover:bg-green-500/30 text-green-400 border border-green-500/30 px-3 py-1.5 rounded-lg transition-all active:scale-95 text-xs font-bold"
+                                                                >
+                                                                    <CheckCircle size={14} /> Prête
                                                                 </button>
                                                                 <div>
                                                                     <p className="text-xl font-bold text-white">{formatPrice(order.total)}</p>
