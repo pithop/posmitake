@@ -131,6 +131,7 @@ export const useWebRTC = (terminalId: string) => {
 
     const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
+    const [micMissing, setMicMissing] = useState<boolean>(false);
     const [iceState, setIceState] = useState<string>('init');
     const [wsStatus, setWsStatus] = useState<WsStatus>('connecting');
 
@@ -406,15 +407,22 @@ export const useWebRTC = (terminalId: string) => {
         if (ringtoneIntervalRef.current) { clearInterval(ringtoneIntervalRef.current); ringtoneIntervalRef.current = null; }
 
         setErrorMsg(null);
+        setMicMissing(false);
         setPhase('SIGNALING');
         const pc = setupPeerConnection(data.source);
 
         try {
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-            localStreamRef.current = stream;
-            // Tracks activés par défaut — l'utilisateur DOIT appuyer sur PTT pour parler
-            stream.getAudioTracks().forEach(t => { t.enabled = false; });
-            stream.getTracks().forEach(track => pc.addTrack(track, stream));
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+                localStreamRef.current = stream;
+                // Tracks activés par défaut — l'utilisateur DOIT appuyer sur PTT pour parler
+                stream.getAudioTracks().forEach(t => { t.enabled = false; });
+                stream.getTracks().forEach(track => pc.addTrack(track, stream));
+            } catch (mediaErr: any) {
+                console.warn('Microphone error during acceptCall, proceeding in recvonly mode. Error:', mediaErr?.name);
+                setMicMissing(true);
+                pc.addTransceiver('audio', { direction: 'recvonly' });
+            }
 
             await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
             pendingCandidates.current.forEach(c =>
@@ -436,6 +444,7 @@ export const useWebRTC = (terminalId: string) => {
             return;
         }
         setErrorMsg(null);
+        setMicMissing(false);
         setTargetId(target);
         setPhase('INITIALIZING');
 
@@ -448,13 +457,19 @@ export const useWebRTC = (terminalId: string) => {
         }, 30000);
 
         try {
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-            localStreamRef.current = stream;
-            // Tracks désactivés par défaut (PTT → on talk uniquement en maintenant)
-            stream.getAudioTracks().forEach(t => { t.enabled = false; });
-
             const pc = setupPeerConnection(target);
-            stream.getTracks().forEach(track => pc.addTrack(track, stream));
+
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+                localStreamRef.current = stream;
+                // Tracks désactivés par défaut (PTT → on talk uniquement en maintenant)
+                stream.getAudioTracks().forEach(t => { t.enabled = false; });
+                stream.getTracks().forEach(track => pc.addTrack(track, stream));
+            } catch (mediaErr: any) {
+                console.warn('Microphone error during initiateCall, proceeding in recvonly mode. Error:', mediaErr?.name);
+                setMicMissing(true);
+                pc.addTransceiver('audio', { direction: 'recvonly' });
+            }
 
             const offer = await pc.createOffer();
             await pc.setLocalDescription(offer);
@@ -475,5 +490,5 @@ export const useWebRTC = (terminalId: string) => {
         teardown();
     }, [teardown]);
 
-    return { initiateCall, acceptCall, stopCall, remoteStream, errorMsg, clearError, iceState, wsStatus };
+    return { initiateCall, acceptCall, stopCall, remoteStream, errorMsg, clearError, iceState, wsStatus, micMissing };
 };

@@ -12,7 +12,7 @@ export const WalkieTalkieModule = () => {
     const defaultTarget = deviceId === 'tablette' ? 'caisse_ordi' : 'tablette';
 
     const { phase, isMuted, targetId, setIsMuted } = useVoipStore();
-    const { initiateCall, acceptCall, stopCall, remoteStream, errorMsg, clearError, iceState, wsStatus } = useWebRTC(terminalId);
+    const { initiateCall, acceptCall, stopCall, remoteStream, errorMsg, clearError, iceState, wsStatus, micMissing } = useWebRTC(terminalId);
 
     const [target, setTarget] = useState(defaultTarget);
     const [isExpanded, setIsExpanded] = useState(false);
@@ -121,6 +121,14 @@ export const WalkieTalkieModule = () => {
                 </div>
             )}
 
+            {/* Micro missing warning */}
+            {micMissing && (
+                <div className="bg-orange-900/40 border border-orange-700 text-orange-300 p-2 rounded-lg text-xs mb-3 flex items-center gap-2">
+                    <AlertTriangle size={12} className="shrink-0" />
+                    Aucun micro détecté. Mode écoute seule.
+                </div>
+            )}
+
             {/* Hors ligne warning */}
             {wsStatus !== 'connected' && phase === 'IDLE' && (
                 <div className="bg-yellow-900/40 border border-yellow-700 text-yellow-300 p-2 rounded-lg text-xs mb-3 flex items-center gap-2">
@@ -194,21 +202,28 @@ export const WalkieTalkieModule = () => {
             {/* CONNECTED / TRANSMITTING : Push-To-Talk */}
             {(phase === 'CONNECTED' || phase === 'TRANSMITTING') && (
                 <div className="flex flex-col gap-4">
-                    <button
-                        onMouseDown={handlePushToTalkStart}
-                        onMouseUp={handlePushToTalkEnd}
-                        onMouseLeave={handlePushToTalkEnd}
-                        onTouchStart={handlePushToTalkStart}
-                        onTouchEnd={handlePushToTalkEnd}
-                        className={`py-12 px-4 rounded-xl font-bold text-2xl text-center transition-all select-none flex flex-col items-center justify-center gap-2 border ${
-                            !isMuted
-                            ? 'bg-red-600 border-red-500 shadow-[0_0_30px_rgba(220,38,38,0.8)] text-white scale-[1.02]'
-                            : 'bg-slate-800 border-slate-600 hover:bg-slate-700 text-slate-300'
-                        }`}
-                    >
-                        <Mic size={!isMuted ? 48 : 36} className={!isMuted ? 'animate-pulse text-white' : 'text-slate-400'} />
-                        {!isMuted ? 'VOUS PARLEZ...' : 'MAINTENIR POUR PARLER'}
-                    </button>
+                    {micMissing ? (
+                        <div className="py-12 px-4 rounded-xl font-bold text-xl text-center flex flex-col items-center justify-center gap-2 border bg-slate-800 border-slate-600 text-slate-500">
+                            <Mic size={36} className="opacity-50" />
+                            ÉCOUTE SEULE<br/><span className="text-sm font-normal">Microphone indisponible</span>
+                        </div>
+                    ) : (
+                        <button
+                            onMouseDown={handlePushToTalkStart}
+                            onMouseUp={handlePushToTalkEnd}
+                            onMouseLeave={handlePushToTalkEnd}
+                            onTouchStart={handlePushToTalkStart}
+                            onTouchEnd={handlePushToTalkEnd}
+                            className={`py-12 px-4 rounded-xl font-bold text-2xl text-center transition-all select-none flex flex-col items-center justify-center gap-2 border ${
+                                !isMuted
+                                ? 'bg-red-600 border-red-500 shadow-[0_0_30px_rgba(220,38,38,0.8)] text-white scale-[1.02]'
+                                : 'bg-slate-800 border-slate-600 hover:bg-slate-700 text-slate-300'
+                            }`}
+                        >
+                            <Mic size={!isMuted ? 48 : 36} className={!isMuted ? 'animate-pulse text-white' : 'text-slate-400'} />
+                            {!isMuted ? 'VOUS PARLEZ...' : 'MAINTENIR POUR PARLER'}
+                        </button>
+                    )}
                     <button
                         onClick={stopCall}
                         className="w-full bg-red-950/50 text-red-500 border border-red-900/50 hover:bg-red-900 hover:text-white py-3 rounded-lg text-sm font-semibold transition-colors flex items-center justify-center gap-2"
