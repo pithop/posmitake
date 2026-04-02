@@ -223,11 +223,23 @@ export const useWebRTC = (terminalId: string) => {
                     clearTimeout(iceRecoveryTimer.current);
                     iceRecoveryTimer.current = null;
                 }
+                const currentPhase = useVoipStore.getState().phase;
+                if (currentPhase === 'SIGNALING' || currentPhase === 'INITIALIZING' || currentPhase === 'RINGING') {
+                    console.log('✅ ICE connecté mais aucun track reçu pour le moment -> passage en CONNECTED');
+                    setPhase('CONNECTED');
+                }
             }
         };
 
         pc.onconnectionstatechange = () => {
             console.log('PC connection state →', pc.connectionState);
+            if (pc.connectionState === 'connected') {
+                const currentPhase = useVoipStore.getState().phase;
+                if (currentPhase === 'SIGNALING' || currentPhase === 'INITIALIZING' || currentPhase === 'RINGING') {
+                    console.log('✅ PC connecté -> passage en CONNECTED');
+                    setPhase('CONNECTED');
+                }
+            }
         };
 
         return pc;
