@@ -531,77 +531,57 @@ export function AdminPanel() {
                                             pendingOrders.map(order => {
                                                 const alertCount = order.payments?.[0]?.alertCount || 1;
                                                 return (
-                                                    <div key={order.id} className="bg-zinc-900/30 border border-zinc-800 rounded-xl p-4 flex flex-col md:flex-row gap-4 justify-between items-center transition-all hover:bg-zinc-800/30">
-                                                        <div className="flex-1">
-                                                            <div className="flex items-center gap-3 mb-1 flex-wrap">
-                                                                <span className="font-mono font-bold text-white bg-zinc-800 px-2 py-1 rounded">{order.id}</span>
-                                                                <span className="text-zinc-400 text-sm font-mono">{new Date(order.timestamp).toLocaleTimeString()}</span>
+                                                    <div key={order.id} className="bg-zinc-900/40 border border-zinc-700/50 rounded-2xl p-6 flex flex-col xl:flex-row gap-6 justify-between items-start transition-all shadow-xl">
+                                                        <div className="flex-1 w-full">
+                                                            <div className="flex items-center gap-4 mb-4 flex-wrap">
+                                                                <span className="font-mono font-black text-2xl text-white bg-zinc-800 px-3 py-1.5 rounded-lg border border-zinc-700 shadow-sm">{order.id}</span>
+                                                                <span className="text-zinc-400 text-lg font-mono flex items-center pr-2"><Clock size={18} className="mr-2" />{new Date(order.timestamp).toLocaleTimeString()}</span>
                                                                 <span className={cn(
-                                                                    "text-xs font-bold px-2 py-1 rounded",
-                                                                    order.orderType === 'emporte' ? "bg-sky-500/20 text-sky-400" : "bg-amber-500/20 text-amber-400"
+                                                                    "text-base font-bold px-4 py-1.5 rounded-lg flex items-center shadow-sm",
+                                                                    order.orderType === 'emporte' ? "bg-sky-500/20 text-sky-400 border border-sky-500/30" : "bg-amber-500/20 text-amber-400 border border-amber-500/30"
                                                                 )}>
                                                                     {order.orderType === 'emporte' ? '📦 Emporté' : '🍽️ Sur Place'}
                                                                 </span>
                                                                 {order.customerName && (
-                                                                    <span className="text-xs font-bold text-yellow-400 bg-yellow-500/10 px-2 py-1 rounded">👤 {order.customerName}</span>
+                                                                    <span className="text-base font-bold text-yellow-400 bg-yellow-500/10 px-4 py-1.5 rounded-lg border border-yellow-500/20 shadow-sm flex items-center">
+                                                                        👤 {order.customerName}
+                                                                    </span>
                                                                 )}
                                                             </div>
-                                                            <div
-                                                                className={`text-sm mt-2 cursor-pointer transition-all hover:text-zinc-300 ${expandedOrderId === order.id ? 'text-zinc-300 bg-zinc-800/50 p-3 rounded-lg' : 'text-zinc-400 line-clamp-2'}`}
-                                                                onClick={() => setExpandedOrderId(expandedOrderId === order.id ? null : order.id)}
-                                                                title={expandedOrderId === order.id ? "Réduire" : "Cliquer pour voir tous les détails"}
-                                                            >
-                                                                {expandedOrderId === order.id ? (
-                                                                    <div className="flex flex-col gap-2">
-                                                                        {order.items.map((item: any, i: number) => {
-                                                                            let mods: string[] = [];
-                                                                            try {
-                                                                                if (item.options && Array.isArray(item.options)) {
-                                                                                    mods = item.options.map((m: any) => m.name);
-                                                                                } else {
-                                                                                    const sm = item.selected_modifiers || item.modifiers;
-                                                                                    if (sm) {
-                                                                                        const parsed = typeof sm === 'string' ? JSON.parse(sm) : sm;
-                                                                                        const mArr = Array.isArray(parsed) ? parsed : (parsed.mods || []);
-                                                                                        mods = mArr.map((m: any) => m.name);
-                                                                                    }
-                                                                                }
-                                                                            } catch { }
-                                                                            const baseName = item.product_name || item.name;
-                                                                            return (
-                                                                                <div key={i} className="flex flex-col bg-zinc-900/50 p-3 rounded border border-zinc-800/50">
-                                                                                    <span className="font-bold text-white text-lg">{item.quantity}x {baseName}</span>
-                                                                                    {mods.length > 0 && <span className="text-sm font-medium text-sky-300 pl-6 mt-1.5 leading-relaxed">+ {mods.join(', ')}</span>}
-                                                                                </div>
-                                                                            );
-                                                                        })}
-                                                                    </div>
-                                                                ) : (
-                                                                    order.items.map((item: any, i: number) => {
-                                                                        let mods: string[] = [];
-                                                                        try {
-                                                                            if (item.options && Array.isArray(item.options)) {
-                                                                                mods = item.options.map((m: any) => m.name);
-                                                                            } else {
-                                                                                const sm = item.selected_modifiers || item.modifiers;
-                                                                                if (sm) {
-                                                                                    const parsed = typeof sm === 'string' ? JSON.parse(sm) : sm;
-                                                                                    const mArr = Array.isArray(parsed) ? parsed : (parsed.mods || []);
-                                                                                    mods = mArr.map((m: any) => m.name);
-                                                                                }
+                                                            
+                                                            <div className="mt-4 flex flex-col gap-3">
+                                                                {order.items.map((item: any, i: number) => {
+                                                                    let mods: string[] = [];
+                                                                    try {
+                                                                        if (item.options && Array.isArray(item.options)) {
+                                                                            mods = item.options.map((m: any) => m.name);
+                                                                        } else {
+                                                                            const sm = item.selected_modifiers || item.modifiers;
+                                                                            if (sm) {
+                                                                                const parsed = typeof sm === 'string' ? JSON.parse(sm) : sm;
+                                                                                const mArr = Array.isArray(parsed) ? parsed : (parsed.mods || []);
+                                                                                mods = mArr.map((m: any) => m.name);
                                                                             }
-                                                                        } catch { }
-                                                                        const baseName = item.product_name || item.name;
-                                                                        const modStr = mods.length > 0 ? ` (+ ${mods.join(', ')})` : '';
-                                                                        return <span key={item.id || baseName + i} className="text-base font-medium">{item.quantity}x {baseName}<span className="text-sky-400">{modStr}</span>{i < order.items.length - 1 ? ', ' : ''}</span>;
-                                                                    })
-                                                                )}
+                                                                        }
+                                                                    } catch { }
+                                                                    const baseName = item.product_name || item.name;
+                                                                    return (
+                                                                        <div key={i} className="flex flex-col bg-zinc-950/60 p-4 rounded-xl border border-zinc-800/80 shadow-inner">
+                                                                            <span className="font-bold text-white text-xl md:text-2xl">{item.quantity}x {baseName}</span>
+                                                                            {mods.length > 0 && <span className="text-lg md:text-xl font-medium text-sky-400 pl-8 mt-2 leading-relaxed flex items-center"><span className="text-sky-600 mr-2">↳</span> + {mods.join(', ')}</span>}
+                                                                        </div>
+                                                                    );
+                                                                })}
                                                             </div>
                                                         </div>
-                                                        <div className="flex flex-col md:items-end gap-3 w-full md:w-auto mt-2 md:mt-0">
-                                                            <div className="font-bold text-3xl text-white font-mono">{formatPrice(order.total)}</div>
-                                                            <div className="flex items-center gap-2 flex-wrap justify-end">
-                                                                {/* Print Ticket */}
+                                                        
+                                                        <div className="flex flex-col gap-5 w-full xl:w-[420px] shrink-0 mt-4 xl:mt-0">
+                                                            <div className="flex flex-col xl:items-end text-left xl:text-right bg-zinc-950/40 p-5 rounded-2xl border border-zinc-800/50">
+                                                                <div className="font-black text-5xl text-white font-mono">{formatPrice(order.total)}</div>
+                                                                <div className="text-zinc-500 text-lg font-medium mt-1">{order.items.reduce((acc: any, item: any) => acc + item.quantity, 0)} articles</div>
+                                                            </div>
+                                                            
+                                                            <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-2 gap-3 w-full">
                                                                 <button
                                                                     onClick={() => {
                                                                         const rawData = supabaseOrders.find(o => o.id === order.id);
@@ -621,11 +601,10 @@ export function AdminPanel() {
                                                                             setTimeout(() => window.print(), 300);
                                                                         }
                                                                     }}
-                                                                    className="flex items-center gap-1.5 bg-zinc-700 hover:bg-zinc-600 text-white font-bold px-4 py-2 rounded-xl transition-all active:scale-95 text-sm"
+                                                                    className="col-span-1 flex items-center justify-center gap-2 bg-zinc-800 hover:bg-zinc-700 text-white font-bold py-3 px-2 rounded-xl transition-all active:scale-95 text-base border border-zinc-700"
                                                                 >
-                                                                    <Printer size={16} /> Ticket
+                                                                    <Printer size={18} /> Ticket
                                                                 </button>
-                                                                {/* Print Facture */}
                                                                 <button
                                                                     onClick={() => {
                                                                         const rawData = supabaseOrders.find(o => o.id === order.id);
@@ -645,27 +624,23 @@ export function AdminPanel() {
                                                                             setTimeout(() => window.print(), 300);
                                                                         }
                                                                     }}
-                                                                    className="flex items-center gap-1.5 bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 border border-blue-500/30 font-bold px-4 py-2 rounded-xl transition-all active:scale-95 text-sm"
+                                                                    className="col-span-1 flex items-center justify-center gap-2 bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 border border-blue-500/40 font-bold py-3 px-2 rounded-xl transition-all active:scale-95 text-base"
                                                                 >
-                                                                    <FileText size={16} /> Facture
+                                                                    <FileText size={18} /> Facture
                                                                 </button>
-                                                                {/* Modifier Pending */}
                                                                 <button
                                                                     onClick={() => handleEditPendingOrder(order)}
-                                                                    className="flex items-center gap-1.5 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/30 font-bold px-3 py-2 rounded-xl transition-all active:scale-95 text-sm"
-                                                                    title="Modifier la commande"
+                                                                    className="col-span-1 flex items-center justify-center gap-2 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/30 font-bold py-3 px-2 rounded-xl transition-all active:scale-95 text-base"
                                                                 >
-                                                                    <Edit2 size={16} /> Modifier
+                                                                    <Edit2 size={18} /> Modifier
                                                                 </button>
-                                                                {/* Supprimer Pending */}
                                                                 <button
                                                                     onClick={() => handleDeletePendingOrder(order.id)}
-                                                                    className="flex items-center gap-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/30 font-bold px-3 py-2 rounded-xl transition-all active:scale-95 text-sm"
-                                                                    title="Supprimer la commande en attente"
+                                                                    className="col-span-1 flex items-center justify-center gap-2 bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/30 font-bold py-3 px-2 rounded-xl transition-all active:scale-95 text-base"
                                                                 >
-                                                                    <Trash2 size={16} />
+                                                                    <Trash2 size={18} /> Suppr.
                                                                 </button>
-                                                                {/* Send Rappel */}
+
                                                                 <button
                                                                     disabled={alertCount >= 2}
                                                                     onClick={async () => {
@@ -673,7 +648,6 @@ export function AdminPanel() {
                                                                         const rawData = supabaseOrders.find(o => o.id === order.id);
                                                                         if (!rawData) return;
                                                                         try {
-                                                                            // Update order with rappel_at timestamp — this triggers postgres_changes UPDATE on tablet
                                                                             const currentDetails = rawData.payment_details || [];
                                                                             const updatedDetails = Array.isArray(currentDetails)
                                                                                 ? currentDetails.map((d: any) => ({ ...d, alertCount: 2 }))
@@ -684,11 +658,8 @@ export function AdminPanel() {
                                                                                     rappel_at: new Date().toISOString()
                                                                                 })
                                                                                 .eq('id', order.id);
-                                                                            fetchOrdersFromSupabase(); // refresh
-
-                                                                            // Register tracking for the rappel
+                                                                            fetchOrdersFromSupabase();
                                                                             registerPendingAck(order.id);
-
                                                                             logger.audit('REALTIME', 'RAPPEL_BROADCAST_SENT', { order_id: order.id });
                                                                             alert('✅ Rappel envoyé en cuisine !');
                                                                         } catch (err) {
@@ -698,26 +669,26 @@ export function AdminPanel() {
                                                                         }
                                                                     }}
                                                                     className={cn(
-                                                                        "flex items-center gap-1.5 font-bold px-4 py-2 rounded-xl transition-all active:scale-95 text-sm",
+                                                                        "col-span-2 xl:col-span-2 flex items-center justify-center gap-2 font-black py-4 rounded-xl transition-all active:scale-95 text-lg",
                                                                         alertCount >= 2
-                                                                            ? "bg-zinc-800 text-zinc-500 cursor-not-allowed"
-                                                                            : "bg-orange-500 hover:bg-orange-400 text-black shadow-lg shadow-orange-500/20"
+                                                                            ? "bg-zinc-800 text-zinc-500 border border-zinc-700 cursor-not-allowed"
+                                                                            : "bg-orange-500 hover:bg-orange-400 text-black shadow-[0_0_15px_rgba(249,115,22,0.3)]"
                                                                     )}
                                                                 >
-                                                                    <BellRing size={16} />
-                                                                    {alertCount >= 2 ? 'Rappel envoyé' : 'Rappel cuisine'}
+                                                                    <BellRing size={22} />
+                                                                    {alertCount >= 2 ? 'RAPPEL ENVOYÉ' : 'RAPPEL CUISINE'}
                                                                 </button>
-                                                                {/* Mark as Ready */}
+                                                                
                                                                 <button
                                                                     onClick={() => handleMarkReady(order.id)}
-                                                                    className="flex items-center gap-1.5 bg-green-500 hover:bg-green-400 text-black font-bold px-4 py-2 rounded-xl transition-all active:scale-95 text-sm shadow-lg shadow-green-500/20"
+                                                                    className="col-span-2 xl:col-span-2 flex items-center justify-center gap-2 bg-green-500 hover:bg-green-400 text-black font-black py-4 rounded-xl transition-all active:scale-95 text-lg shadow-[0_0_15px_rgba(34,197,94,0.3)]"
                                                                 >
-                                                                    <CheckCircle size={16} /> Prête
+                                                                    <CheckCircle size={22} /> PRÊTE
                                                                 </button>
-                                                                {/* Encaisser */}
+
                                                                 <button
                                                                     onClick={() => setOnHoldPaymentOrder(order)}
-                                                                    className="bg-emerald-500 hover:bg-emerald-400 text-black font-bold px-6 py-2.5 rounded-xl transition-all active:scale-95 shadow-lg shadow-emerald-500/20"
+                                                                    className="col-span-2 xl:col-span-2 flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-black font-black py-5 rounded-xl transition-all active:scale-95 text-xl shadow-[0_0_20px_rgba(16,185,129,0.3)]"
                                                                 >
                                                                     ENCAISSER
                                                                 </button>
@@ -752,38 +723,38 @@ export function AdminPanel() {
                                                 <div className="text-center text-zinc-500 py-10">Aucune commande pour cette date.</div>
                                             ) : (
                                                 filteredOrderHistory.map((order) => (
-                                                    <div key={order.id} className="bg-zinc-900/30 border border-zinc-800 rounded-xl overflow-hidden transition-all">
+                                                    <div key={order.id} className="bg-zinc-900/40 border border-zinc-700/50 rounded-2xl overflow-hidden transition-all shadow-md mb-4">
                                                         <div
                                                             onClick={() => setExpandedOrderId(expandedOrderId === order.id ? null : order.id)}
-                                                            className="p-4 flex justify-between items-center cursor-pointer hover:bg-zinc-800/50 transition-colors"
+                                                            className="p-5 flex justify-between items-center cursor-pointer hover:bg-zinc-800/60 transition-colors"
                                                         >
-                                                            <div>
-                                                                <div className="flex items-center space-x-3">
-                                                                    <span className="font-mono font-bold text-white bg-zinc-800 px-2 py-1 rounded">{order.id}</span>
-                                                                    <span className="text-zinc-400 text-sm">
-                                                                        {new Date(order.timestamp).toLocaleTimeString()}
+                                                            <div className="flex items-center gap-4 flex-wrap">
+                                                                <span className="font-mono font-black text-xl text-white bg-zinc-800 px-3 py-1.5 rounded-lg border border-zinc-700 shadow-sm">{order.id}</span>
+                                                                <span className="text-zinc-400 text-lg font-mono flex items-center pr-2">
+                                                                    <Clock size={16} className="mr-2" />
+                                                                    {new Date(order.timestamp).toLocaleTimeString()}
+                                                                </span>
+                                                                <span className={cn(
+                                                                    "text-base font-bold px-3 py-1.5 rounded-lg border flex items-center shadow-sm",
+                                                                    order.orderType === 'emporte'
+                                                                        ? "bg-sky-500/10 border-sky-500/20 text-sky-400"
+                                                                        : "bg-amber-500/10 border-amber-500/20 text-amber-400"
+                                                                )}>
+                                                                    {order.orderType === 'emporte' ? '📦 Emporté' : '🍽️ Sur Place'}
+                                                                </span>
+                                                                {order.customerName && (
+                                                                    <span className="text-base font-bold text-yellow-400 bg-yellow-500/10 px-3 py-1.5 rounded-lg border border-yellow-500/20 shadow-sm">
+                                                                        👤 {order.customerName}
                                                                     </span>
-                                                                    <span className={cn(
-                                                                        "text-xs font-bold px-2 py-0.5 rounded",
-                                                                        order.orderType === 'emporte'
-                                                                            ? "bg-sky-500/20 text-sky-400"
-                                                                            : "bg-amber-500/20 text-amber-400"
-                                                                    )}>
-                                                                        {order.orderType === 'emporte' ? '📦 Emporté' : '🍽️ Sur Place'}
+                                                                )}
+                                                                {order.pickupTime && (
+                                                                    <span className="text-base font-bold text-green-400 bg-green-500/10 px-3 py-1.5 rounded-lg border border-green-500/20 shadow-sm">
+                                                                        🕐 {order.pickupTime}
                                                                     </span>
-                                                                    {order.customerName && (
-                                                                        <span className="text-xs font-bold text-yellow-400 bg-yellow-500/10 px-2 py-0.5 rounded">
-                                                                            👤 {order.customerName}
-                                                                        </span>
-                                                                    )}
-                                                                    {order.pickupTime && (
-                                                                        <span className="text-xs font-bold text-green-400 bg-green-500/10 px-2 py-0.5 rounded">
-                                                                            🕐 {order.pickupTime}
-                                                                        </span>
-                                                                    )}
-                                                                </div>
+                                                                )}
                                                             </div>
-                                                            <div className="text-right flex items-center gap-3">
+                                                            <div className="text-right flex items-center gap-4">
+                                                                {/* Utility Buttons */}
                                                                 <button
                                                                     onClick={(e) => {
                                                                         e.stopPropagation();
@@ -805,11 +776,10 @@ export function AdminPanel() {
                                                                             setTimeout(() => window.print(), 300);
                                                                         }
                                                                     }}
-                                                                    className="flex items-center gap-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 px-3 py-1.5 rounded-lg transition-all active:scale-95 text-xs"
+                                                                    className="flex items-center gap-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 px-3 py-2 rounded-xl transition-all active:scale-95 text-sm font-bold border border-zinc-700"
                                                                 >
-                                                                    <Printer size={14} />
+                                                                    <Printer size={16} /> Ticket
                                                                 </button>
-                                                                {/* Facture History */}
                                                                 <button
                                                                     onClick={(e) => {
                                                                         e.stopPropagation();
@@ -831,77 +801,51 @@ export function AdminPanel() {
                                                                             setTimeout(() => window.print(), 300);
                                                                         }
                                                                     }}
-                                                                    className="flex items-center gap-1 bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 border border-blue-500/30 px-3 py-1.5 rounded-lg transition-all active:scale-95 text-xs font-bold"
+                                                                    className="flex items-center gap-1.5 bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 border border-blue-500/30 px-3 py-2 rounded-xl transition-all active:scale-95 text-sm font-bold"
                                                                 >
-                                                                    <FileText size={14} />
+                                                                    <FileText size={16} /> Facture
                                                                 </button>
                                                                 <button
                                                                     onClick={(e) => {
                                                                         e.stopPropagation();
                                                                         setOrderToCorrect(order);
                                                                     }}
-                                                                    className="flex items-center gap-1 bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 hover:text-amber-400 border border-amber-500/30 px-3 py-1.5 rounded-lg transition-all active:scale-95 text-xs font-bold"
+                                                                    className="flex items-center gap-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 hover:text-amber-400 border border-amber-500/30 px-3 py-2 rounded-xl transition-all active:scale-95 text-sm font-bold"
                                                                 >
-                                                                    <Edit2 size={14} /> Corriger
+                                                                    <Edit2 size={16} /> Corriger
                                                                 </button>
-                                                                {/* Mark as Ready History */}
                                                                 <button
                                                                     onClick={(e) => {
                                                                         e.stopPropagation();
                                                                         handleMarkReady(order.id);
                                                                     }}
-                                                                    className="flex items-center gap-1 bg-green-500/20 hover:bg-green-500/30 text-green-400 border border-green-500/30 px-3 py-1.5 rounded-lg transition-all active:scale-95 text-xs font-bold"
+                                                                    className="flex items-center gap-1.5 bg-green-500/20 hover:bg-green-500/30 text-green-400 border border-green-500/30 px-3 py-2 rounded-xl transition-all active:scale-95 text-sm font-bold"
                                                                 >
-                                                                    <CheckCircle size={14} /> Prête
+                                                                    <CheckCircle size={16} /> Prête
                                                                 </button>
-                                                                <div>
-                                                                    <p className="text-xl font-bold text-white">{formatPrice(order.total)}</p>
-                                                                    <p className="text-green-500 text-xs font-medium">Payé ({order.paymentMethod})</p>
+                                                                <div className="flex flex-col items-end min-w-[140px]">
+                                                                    <p className="text-2xl font-black text-white font-mono">{formatPrice(order.total)}</p>
+                                                                    <p className="text-green-500 text-sm font-bold uppercase tracking-wider flex items-center gap-1">
+                                                                        <span className="w-2 h-2 rounded-full bg-green-500"></span> Payé ({order.paymentMethod.replace('_', ' ')})
+                                                                    </p>
                                                                 </div>
                                                             </div>
                                                         </div>
 
                                                         {/* Order Details */}
                                                         {expandedOrderId === order.id && (
-                                                            <div className="bg-zinc-950/50 border-t border-zinc-800 p-4 space-y-3 animate-in slide-in-from-top-2 duration-200">
-                                                                {/* Customer info banner */}
-                                                                {(order.customerName || order.pickupTime) && (
-                                                                    <div className="flex gap-3 mb-3 flex-wrap">
-                                                                        {order.customerName && (
-                                                                            <div className="bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 px-3 py-1.5 rounded-lg text-sm font-bold">
-                                                                                👤 {order.customerName}
-                                                                            </div>
-                                                                        )}
-                                                                        {order.pickupTime && (
-                                                                            <div className="bg-green-500/10 border border-green-500/20 text-green-400 px-3 py-1.5 rounded-lg text-sm font-bold">
-                                                                                🕐 {order.pickupTime}
-                                                                            </div>
-                                                                        )}
-                                                                        <div className={cn(
-                                                                            "px-3 py-1.5 rounded-lg text-sm font-bold border",
-                                                                            order.orderType === 'emporte'
-                                                                                ? 'bg-sky-500/10 border-sky-500/20 text-sky-400'
-                                                                                : 'bg-amber-500/10 border-amber-500/20 text-amber-400'
-                                                                        )}>
-                                                                            {order.orderType === 'emporte' ? '📦 Emporté' : '🍽️ Sur Place'}
-                                                                        </div>
-                                                                    </div>
-                                                                )}
-
-                                                                {/* Items — use embedded items_json (instant) or fallback to fetched items */}
+                                                            <div className="bg-zinc-950/70 border-t border-zinc-800 p-6 space-y-4 animate-in slide-in-from-top-2 duration-200">
+                                                                {/* Items */}
                                                                 {(() => {
                                                                     const items = order.items.length > 0 ? order.items : expandedOrderItems;
-                                                                    if (items.length === 0) return <p className="text-zinc-400 text-sm italic">Chargement...</p>;
+                                                                    if (items.length === 0) return <p className="text-zinc-400 text-base italic">Chargement des articles...</p>;
                                                                     return items.map((item: any, idx: number) => {
                                                                         let mods: any[] = [], note = '';
                                                                         try {
-                                                                            // Website format
                                                                             if (item.options && Array.isArray(item.options)) {
                                                                                 mods = item.options;
                                                                                 note = item.comment || '';
-                                                                            }
-                                                                            // POS format
-                                                                            else {
+                                                                            } else {
                                                                                 const sm = item.selected_modifiers || item.modifiers;
                                                                                 if (sm) {
                                                                                     const parsed = typeof sm === 'string' ? JSON.parse(sm) : sm;
@@ -916,28 +860,32 @@ export function AdminPanel() {
                                                                         } catch { }
 
                                                                         return (
-                                                                            <div key={idx} className="flex justify-between items-start text-base border-b border-zinc-800/30 pb-3 last:border-0 last:pb-0">
-                                                                                <div className="flex space-x-4">
-                                                                                    <span className="font-bold text-zinc-300 text-lg">{item.quantity}x</span>
+                                                                            <div key={idx} className="flex justify-between items-start text-base border-b border-zinc-800/50 pb-5 mb-5 last:border-0 last:pb-0 last:mb-0">
+                                                                                <div className="flex space-x-6">
+                                                                                    <span className="font-black text-white text-2xl">{item.quantity}x</span>
                                                                                     <div>
-                                                                                        <p className="text-zinc-100 font-bold text-lg">{item.product_name || item.name}</p>
+                                                                                        <p className="text-white font-bold text-2xl">{item.product_name || item.name}</p>
                                                                                         {mods.length > 0 && (
-                                                                                            <div className="text-blue-300 text-sm mt-1.5 space-y-1">
+                                                                                            <div className="text-sky-300 text-lg mt-2 space-y-1.5 flex flex-col font-medium">
                                                                                                 {mods.map((m: any, mi: number) => (
-                                                                                                    <div key={mi} className="flex items-center gap-1.5">
-                                                                                                        <span className="text-blue-500 font-bold">+</span>
-                                                                                                        <span className="font-medium">{m.quantity && m.quantity > 1 ? `${m.quantity}× ` : ''}{m.name}</span>
-                                                                                                        {m.price > 0 && <span className="text-zinc-400">({formatPrice(Number(m.price) || 0)})</span>}
+                                                                                                    <div key={mi} className="flex items-center gap-2">
+                                                                                                        <span className="text-sky-600 font-bold">↳</span>
+                                                                                                        <span className="font-bold">+ {m.quantity && m.quantity > 1 ? `${m.quantity}× ` : ''}{m.name}</span>
+                                                                                                        {m.price > 0 && <span className="text-sky-400/70 ml-1">({formatPrice(Number(m.price) || 0)})</span>}
                                                                                                     </div>
                                                                                                 ))}
                                                                                             </div>
                                                                                         )}
                                                                                         {note && (
-                                                                                            <div className="text-yellow-400 text-sm mt-1 mb-1 italic bg-yellow-400/10 inline-block px-2 py-0.5 rounded">⚠️ {note}</div>
+                                                                                            <div className="text-yellow-400 text-base mt-2 mb-1 italic bg-yellow-400/10 inline-block px-3 py-1 rounded-lg border border-yellow-500/20 shadow-sm font-medium">
+                                                                                                ⚠️ Note cuisine: {note}
+                                                                                            </div>
                                                                                         )}
                                                                                     </div>
                                                                                 </div>
-                                                                                <span className="text-zinc-300 font-medium flex-shrink-0 text-lg">{formatPrice(item.total_price || (item.unit_price || item.price) * item.quantity)}</span>
+                                                                                <span className="text-zinc-300 font-bold flex-shrink-0 text-xl pt-1">
+                                                                                    {formatPrice(item.total_price || (item.unit_price || item.price) * item.quantity)}
+                                                                                </span>
                                                                             </div>
                                                                         );
                                                                     });
