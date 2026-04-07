@@ -118,7 +118,7 @@ export function PaymentModal({ isOpen, totalAmount, onClose, onConfirm, onPutOnH
 
     return createPortal(
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 backdrop-blur-3xl animate-fade-in sm:p-4">
-            <div className="w-full h-full max-w-[1240px] mx-auto flex flex-col lg:flex-row gap-0 lg:gap-4 bg-background sm:rounded-[2rem] overflow-y-auto lg:overflow-hidden shadow-2xl border border-white/5 relative">
+            <div className="w-full h-full max-w-[1240px] mx-auto flex flex-col lg:flex-row gap-0 lg:gap-4 bg-background sm:rounded-[2rem] overflow-hidden shadow-2xl border border-white/5 relative">
 
                 {/* Close Button Mobile */}
                 <button onClick={onClose} className="absolute top-4 right-4 lg:hidden p-3 bg-white/10 hover:bg-white/20 rounded-full z-[110] backdrop-blur-md transition-all">
@@ -288,7 +288,7 @@ export function PaymentModal({ isOpen, totalAmount, onClose, onConfirm, onPutOnH
                 </div>
 
                 {/* RIGHT PANE: Input & Actions */}
-                <div className="w-full lg:flex-1 flex flex-col lg:h-full relative overflow-y-auto lg:overflow-hidden p-3 lg:p-6 lg:pl-2">
+                <div className="w-full lg:flex-1 flex flex-col lg:h-full relative overflow-y-auto p-3 lg:p-6 lg:pl-2">
 
                     {/* Amount Input Screen */}
                     <div className="w-full bg-black/40 rounded-[1.5rem] p-4 lg:p-8 border border-white/10 mb-3 lg:mb-6 flex items-center justify-between shadow-inner relative overflow-hidden group shrink-0">
