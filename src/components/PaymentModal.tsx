@@ -118,7 +118,7 @@ export function PaymentModal({ isOpen, totalAmount, onClose, onConfirm, onPutOnH
 
     return createPortal(
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 backdrop-blur-3xl animate-fade-in sm:p-4">
-            <div className="w-full h-full max-w-[1240px] mx-auto flex flex-col lg:flex-row gap-0 lg:gap-4 bg-background sm:rounded-[2rem] overflow-hidden shadow-2xl border border-white/5 relative">
+            <div className="w-full h-full max-w-[1240px] mx-auto flex flex-col lg:flex-row gap-0 lg:gap-4 bg-background sm:rounded-[2rem] overflow-y-auto lg:overflow-hidden shadow-2xl border border-white/5 relative">
 
                 {/* Close Button Mobile */}
                 <button onClick={onClose} className="absolute top-4 right-4 lg:hidden p-3 bg-white/10 hover:bg-white/20 rounded-full z-[110] backdrop-blur-md transition-all">
@@ -126,22 +126,22 @@ export function PaymentModal({ isOpen, totalAmount, onClose, onConfirm, onPutOnH
                 </button>
 
                 {/* LEFT PANE: Summary */}
-                <div className="w-full lg:w-[380px] xl:w-[420px] bg-secondary/30 lg:rounded-[1.5rem] border-r lg:border border-white/5 flex flex-col h-1/2 lg:h-full shrink-0">
+                <div className="w-full lg:w-[380px] xl:w-[420px] bg-secondary/30 lg:rounded-[1.5rem] border-r lg:border border-white/5 flex flex-col lg:h-full shrink-0">
                     {/* Header */}
-                    <div className="p-6 pb-4 flex items-center justify-between">
-                        <h2 className="text-2xl font-heading font-medium tracking-tight">Checkout</h2>
+                    <div className="p-4 lg:p-6 pb-3 lg:pb-4 flex items-center justify-between">
+                        <h2 className="text-xl lg:text-2xl font-heading font-medium tracking-tight">Checkout</h2>
                         <button onClick={onClose} className="hidden lg:flex p-2 hover:bg-white/10 rounded-full transition-colors bg-white/5 border border-white/5">
                             <X size={22} className="text-muted-foreground hover:text-white" />
                         </button>
                     </div>
 
                     {/* Sur Place / Emporté Toggle */}
-                    <div className="px-5 pb-3">
+                    <div className="px-4 lg:px-5 pb-2 lg:pb-3">
                         <div className="flex rounded-2xl overflow-hidden border border-white/10 bg-black/40">
                             <button
                                 onClick={() => setOrderType('sur_place')}
                                 className={cn(
-                                    "flex-1 flex items-center justify-center gap-3 py-4 font-bold text-lg transition-all",
+                                    "flex-1 flex items-center justify-center gap-2 lg:gap-3 py-3 lg:py-4 font-bold text-base lg:text-lg transition-all",
                                     orderType === 'sur_place'
                                         ? "bg-amber-500 text-black shadow-lg"
                                         : "text-white/40 hover:text-white/70 hover:bg-white/5"
@@ -153,7 +153,7 @@ export function PaymentModal({ isOpen, totalAmount, onClose, onConfirm, onPutOnH
                             <button
                                 onClick={() => setOrderType('emporte')}
                                 className={cn(
-                                    "flex-1 flex items-center justify-center gap-3 py-4 font-bold text-lg transition-all",
+                                    "flex-1 flex items-center justify-center gap-2 lg:gap-3 py-3 lg:py-4 font-bold text-base lg:text-lg transition-all",
                                     orderType === 'emporte'
                                         ? "bg-sky-500 text-black shadow-lg"
                                         : "text-white/40 hover:text-white/70 hover:bg-white/5"
@@ -166,19 +166,19 @@ export function PaymentModal({ isOpen, totalAmount, onClose, onConfirm, onPutOnH
                     </div>
 
                     {/* Customer Name + Time */}
-                    <div className="px-5 pb-3 flex gap-2">
+                    <div className="px-4 lg:px-5 pb-2 lg:pb-3 flex gap-2">
                         <input
                             type="text"
                             placeholder="👤 Nom client"
                             value={customerName}
                             onChange={(e) => setCustomerName(e.target.value)}
-                            className="flex-1 bg-black/40 border border-white/15 rounded-xl px-3 py-3 text-white text-base font-bold placeholder-white/40 focus:outline-none focus:border-amber-500/50"
+                            className="flex-1 bg-black/40 border border-white/15 rounded-xl px-3 py-2 lg:py-3 text-white text-base font-bold placeholder-white/40 focus:outline-none focus:border-amber-500/50"
                         />
                         <input
                             type="time"
                             value={pickupTime}
                             onChange={(e) => setPickupTime(e.target.value)}
-                            className="w-[110px] bg-black/40 border border-white/15 rounded-xl px-2 py-3 text-white text-base font-mono font-black focus:outline-none focus:border-amber-500/50 text-center"
+                            className="w-[110px] bg-black/40 border border-white/15 rounded-xl px-2 py-2 lg:py-3 text-white text-base font-mono font-black focus:outline-none focus:border-amber-500/50 text-center"
                         />
                     </div>
 
@@ -213,12 +213,12 @@ export function PaymentModal({ isOpen, totalAmount, onClose, onConfirm, onPutOnH
                         </div>
                     </div>
 
-                    <div className="px-6 py-4 space-y-3 border-b border-white/5 bg-black/40">
-                        <div className="flex justify-between items-center text-base text-muted-foreground">
+                    <div className="px-4 lg:px-6 py-3 lg:py-4 space-y-2 lg:space-y-3 border-b border-white/5 bg-black/40">
+                        <div className="flex justify-between items-center text-sm lg:text-base text-muted-foreground">
                             <span>Total commande</span>
                             <span>{formatPrice(totalAmount)}</span>
                         </div>
-                        <div className="flex justify-between items-center text-3xl font-bold font-mono tracking-tight">
+                        <div className="flex justify-between items-center text-2xl lg:text-3xl font-bold font-mono tracking-tight">
                             <span className="text-muted-foreground/80">Reste</span>
                             <span className={cn(isComplete ? "text-emerald-500" : "text-white")}>
                                 {formatPrice(remaining)}
@@ -235,7 +235,7 @@ export function PaymentModal({ isOpen, totalAmount, onClose, onConfirm, onPutOnH
                     </div>
 
                     {/* Payment Lines */}
-                    <div className="h-[160px] overflow-y-auto px-5 py-3 space-y-2 no-scrollbar bg-black/40">
+                    <div className="max-h-[100px] lg:max-h-[160px] overflow-y-auto px-4 lg:px-5 py-2 lg:py-3 space-y-2 no-scrollbar bg-black/40">
                         {payments.length === 0 && (
                             <div className="h-full flex items-center justify-center text-muted-foreground/30 italic text-sm">
                                 Aucun encaissement...
@@ -267,11 +267,11 @@ export function PaymentModal({ isOpen, totalAmount, onClose, onConfirm, onPutOnH
                     </div>
 
                     {/* Footer / Confirm Action */}
-                    <div className="p-4 bg-black/60 backdrop-blur-md z-10 border-t border-white/5">
+                    <div className="p-3 lg:p-4 bg-black/60 backdrop-blur-md z-10 border-t border-white/5">
                         {isComplete ? (
                             <button
                                 onClick={handleConfirm}
-                                className="w-full py-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-xl flex items-center justify-center gap-2 transition-all animate-scale-up shadow-[0_0_40px_rgba(16,185,129,0.2)] active:scale-95"
+                                className="w-full py-3 lg:py-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-lg lg:text-xl flex items-center justify-center gap-2 transition-all animate-scale-up shadow-[0_0_40px_rgba(16,185,129,0.2)] active:scale-95"
                             >
                                 <CheckCircle2 size={28} />
                                 VALIDER LA COMMANDE
@@ -279,7 +279,7 @@ export function PaymentModal({ isOpen, totalAmount, onClose, onConfirm, onPutOnH
                         ) : (
                             <button
                                 onClick={handlePutOnHold}
-                                className="w-full py-4 rounded-xl bg-orange-500 hover:bg-orange-400 bg-opacity-20 hover:bg-opacity-30 border-2 border-orange-500/50 text-orange-400 font-bold text-lg flex items-center justify-center gap-2 transition-all active:scale-95 shadow-[0_0_30px_rgba(249,115,22,0.1)]"
+                                className="w-full py-3 lg:py-4 rounded-xl bg-orange-500 hover:bg-orange-400 bg-opacity-20 hover:bg-opacity-30 border-2 border-orange-500/50 text-orange-400 font-bold text-base lg:text-lg flex items-center justify-center gap-2 transition-all active:scale-95 shadow-[0_0_30px_rgba(249,115,22,0.1)]"
                             >
                                 ⏳ METTRE EN ATTENTE
                             </button>
@@ -288,19 +288,19 @@ export function PaymentModal({ isOpen, totalAmount, onClose, onConfirm, onPutOnH
                 </div>
 
                 {/* RIGHT PANE: Input & Actions */}
-                <div className="w-full lg:flex-1 flex flex-col h-1/2 lg:h-full relative overflow-y-auto lg:overflow-hidden p-4 lg:p-6 lg:pl-2">
+                <div className="w-full lg:flex-1 flex flex-col lg:h-full relative overflow-y-auto lg:overflow-hidden p-3 lg:p-6 lg:pl-2">
 
                     {/* Amount Input Screen */}
-                    <div className="w-full bg-black/40 rounded-[1.5rem] p-6 lg:p-8 border border-white/10 mb-6 flex items-center justify-between shadow-inner relative overflow-hidden group shrink-0">
+                    <div className="w-full bg-black/40 rounded-[1.5rem] p-4 lg:p-8 border border-white/10 mb-3 lg:mb-6 flex items-center justify-between shadow-inner relative overflow-hidden group shrink-0">
                         <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-1000"></div>
-                        <div className="text-xl lg:text-2xl text-muted-foreground font-medium relative z-10">
+                        <div className="text-lg lg:text-2xl text-muted-foreground font-medium relative z-10">
                             Montant
                         </div>
                         <div className={cn(
-                            "text-5xl lg:text-6xl font-mono font-bold tracking-tighter transition-colors flex items-center gap-2 relative z-10",
+                            "text-4xl lg:text-6xl font-mono font-bold tracking-tighter transition-colors flex items-center gap-2 relative z-10",
                             inputAmount !== '' ? "text-primary" : "text-white"
                         )}>
-                            {displayAmount.toFixed(2)} <span className="text-3xl lg:text-4xl opacity-40 font-sans tracking-normal">€</span>
+                            {displayAmount.toFixed(2)} <span className="text-2xl lg:text-4xl opacity-40 font-sans tracking-normal">€</span>
                             {inputAmount !== '' && <div className="w-2 h-12 lg:h-14 bg-primary animate-pulse rounded-full ml-2"></div>}
                         </div>
                     </div>
@@ -312,7 +312,7 @@ export function PaymentModal({ isOpen, totalAmount, onClose, onConfirm, onPutOnH
                     )}>
 
                         {/* Numpad Column */}
-                        <div className="w-full xl:w-[320px] flex flex-col gap-3 shrink-0">
+                        <div className="w-full xl:w-[320px] flex flex-col gap-2 lg:gap-3 shrink-0">
                             {/* Split Bill Express */}
                             <div className="grid grid-cols-3 gap-2">
                                 {[2, 3, 4].map(num => (
@@ -330,12 +330,12 @@ export function PaymentModal({ isOpen, totalAmount, onClose, onConfirm, onPutOnH
                             </div>
 
                             {/* Numpad */}
-                            <div className="grid grid-cols-3 gap-2 place-content-start">
+                            <div className="grid grid-cols-3 gap-1.5 lg:gap-2 place-content-start">
                                 {numpadKeys.map(key => (
                                     <button
                                         key={key}
                                         onClick={() => handleNumpad(key)}
-                                        className={cn("aspect-square bg-secondary/50 hover:bg-white/10 active:bg-white/20 border border-white/5 rounded-2xl text-2xl lg:text-3xl font-medium transition-all flex items-center justify-center font-mono hover:scale-[1.02] active:scale-95", key === 'C' ? "text-red-400" : "")}
+                                        className={cn("aspect-square bg-secondary/50 hover:bg-white/10 active:bg-white/20 border border-white/5 rounded-2xl text-xl lg:text-3xl font-medium transition-all flex items-center justify-center font-mono hover:scale-[1.02] active:scale-95", key === 'C' ? "text-red-400" : "")}
                                     >
                                         {key}
                                     </button>
@@ -344,7 +344,7 @@ export function PaymentModal({ isOpen, totalAmount, onClose, onConfirm, onPutOnH
                         </div>
 
                         {/* Payment Methods */}
-                        <div className="w-full flex-1 grid grid-cols-2 lg:grid-cols-2 gap-2 place-content-start">
+                        <div className="w-full flex-1 grid grid-cols-2 lg:grid-cols-2 gap-1.5 lg:gap-2 place-content-start">
                             {PAYMENT_METHODS.map(m => {
                                 const Icon = m.icon;
                                 return (
