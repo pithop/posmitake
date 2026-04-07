@@ -760,7 +760,7 @@
           {
             "id": "supp_oeuf",
             "name": "Supplément Oeuf",
-            "priceAdjustment": 1.00
+            "priceAdjustment": 1.50
           },
           {
             "id": "supp_spicy",
@@ -793,7 +793,7 @@
           {
             "id": "supp_oeuf",
             "name": "Supplément Oeuf",
-            "priceAdjustment": 1.00
+            "priceAdjustment": 1.50
           },
           {
             "id": "supp_spicy",
@@ -826,7 +826,7 @@
           {
             "id": "supp_oeuf",
             "name": "Supplément Oeuf",
-            "priceAdjustment": 1.00
+            "priceAdjustment": 1.50
           },
           {
             "id": "supp_spicy",
@@ -859,7 +859,7 @@
           {
             "id": "supp_oeuf",
             "name": "Supplément Oeuf",
-            "priceAdjustment": 1.00
+            "priceAdjustment": 1.50
           },
           {
             "id": "supp_spicy",
