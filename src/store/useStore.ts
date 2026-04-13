@@ -79,6 +79,7 @@ interface CartState {
 interface SystemState {
     dailyRevenue: number;
     orderIdCounter: number;
+    currentDate: string;
     deviceId: string;
     uiZoomLevel: number;
     printerName: string;
@@ -234,6 +235,7 @@ export const useSystemStore = create<SystemState>()(
         (set, get) => ({
             dailyRevenue: 0,
             orderIdCounter: 1,
+            currentDate: new Date().toISOString().split('T')[0],
             deviceId: 'caisse_ordi',
             uiZoomLevel: 100,
             printerName: '',
@@ -320,8 +322,15 @@ export const useSystemStore = create<SystemState>()(
                 const cartState = useCartStore.getState();
                 if (cartState.items.length === 0) return;
 
+                const today = new Date().toISOString().split('T')[0];
+                let currentCounter = get().orderIdCounter;
+                if (get().currentDate !== today) {
+                    currentCounter = 1;
+                    set({ currentDate: today, orderIdCounter: 1, dailyRevenue: 0 });
+                }
+
                 const isEditing = !!cartState.editingOrderId;
-                const orderId = isEditing ? cartState.editingOrderId! : `#${String(get().orderIdCounter).padStart(3, '0')}`;
+                const orderId = isEditing ? cartState.editingOrderId! : `#${String(currentCounter).padStart(3, '0')}`;
 
                 const timestamp = Date.now();
                 const total = cartState.total;
@@ -488,8 +497,15 @@ export const useSystemStore = create<SystemState>()(
                 const cartState = useCartStore.getState();
                 if (cartState.items.length === 0) return undefined;
 
+                const today = new Date().toISOString().split('T')[0];
+                let currentCounter = get().orderIdCounter;
+                if (get().currentDate !== today) {
+                    currentCounter = 1;
+                    set({ currentDate: today, orderIdCounter: 1, dailyRevenue: 0 });
+                }
+
                 const isEditing = !!cartState.editingOrderId;
-                const orderId = isEditing ? cartState.editingOrderId! : `#${String(get().orderIdCounter).padStart(3, '0')}`;
+                const orderId = isEditing ? cartState.editingOrderId! : `#${String(currentCounter).padStart(3, '0')}`;
 
                 const timestamp = Date.now();
                 const total = cartState.total;
