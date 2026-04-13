@@ -209,7 +209,7 @@ export function AdminPanel() {
         let interval: NodeJS.Timeout;
         if (isClient && supabase) {
             const checkPending = async () => {
-                const { count } = await supabase
+                const { count } = await supabase!
                     .from('pos_orders')
                     .select('*', { count: 'exact', head: true })
                     .eq('status', 'pending');
