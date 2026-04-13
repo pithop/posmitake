@@ -46,6 +46,8 @@ interface WebOrderAlert {
     order_type: string;
     created_at: string;
     customer_name?: string;
+    delivery_address?: string;
+    customer_notes?: string;
     items: any[];
 }
 
@@ -85,6 +87,15 @@ export function WebsiteAlertManager() {
         processedIds.current.add(order.id);
         const items = parseItems(order);
 
+        let delivery_address = order.delivery_address || null;
+        let customer_notes = order.customer_notes || null;
+
+        if (order.payment_details && Array.isArray(order.payment_details) && order.payment_details.length > 0) {
+            const extraData = order.payment_details[0];
+            if (extraData?.delivery_address) delivery_address = extraData.delivery_address;
+            if (extraData?.customer_notes) customer_notes = extraData.customer_notes;
+        }
+
         const alertOrder: WebOrderAlert = {
             id: order.id,
             total: Number(order.total),
@@ -92,6 +103,8 @@ export function WebsiteAlertManager() {
             order_type: order.order_type || 'emporte',
             created_at: order.created_at,
             customer_name: order.customer_name || 'Client Web',
+            delivery_address,
+            customer_notes,
             items,
         };
 
@@ -174,19 +187,21 @@ export function WebsiteAlertManager() {
 
     // THE FULL PAGE MODAL ALERTS
     if (isExpanded) {
+        const isDelivery = currentOrder.order_type === 'delivery';
+        
         return createPortal(
-            <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center p-4 sm:p-8 animate-in fade-in zoom-in duration-300 backdrop-blur-3xl bg-blue-900/90">
+            <div className={`fixed inset-0 z-[100] flex flex-col items-center justify-center p-4 sm:p-8 animate-in fade-in zoom-in duration-300 backdrop-blur-3xl ${isDelivery ? 'bg-purple-900/90' : 'bg-blue-900/90'}`}>
 
                 {/* Visual pulse effect behind */}
                 <div className="absolute inset-0 z-0 flex items-center justify-center pointer-events-none">
-                    <div className="w-[80vw] h-[80vw] rounded-full bg-blue-500/20 animate-ping blur-3xl opacity-50" />
+                    <div className={`w-[80vw] h-[80vw] rounded-full animate-ping blur-3xl opacity-50 ${isDelivery ? 'bg-purple-500/20' : 'bg-blue-500/20'}`} />
                 </div>
 
                 {/* Main Card */}
-                <div className="relative z-10 w-full max-w-4xl bg-blue-950 border-4 border-blue-400 rounded-3xl shadow-[0_0_100px_rgba(59,130,246,0.5)] flex flex-col overflow-hidden max-h-screen">
+                <div className={`relative z-10 w-full max-w-4xl border-4 rounded-3xl shadow-[0_0_100px_rgba(59,130,246,0.5)] flex flex-col overflow-hidden max-h-screen ${isDelivery ? 'bg-purple-950 border-purple-400 shadow-[0_0_100px_rgba(168,85,247,0.5)]' : 'bg-blue-950 border-blue-400'}`}>
 
                     {/* Header */}
-                    <div className="bg-blue-600 p-6 flex items-center justify-between text-white shrink-0">
+                    <div className={`p-6 flex items-center justify-between text-white shrink-0 ${isDelivery ? 'bg-purple-600' : 'bg-blue-600'}`}>
                         <div className="flex items-center gap-4">
                             <div className="p-3 bg-white/20 rounded-2xl animate-pulse">
                                 <Globe size={48} className="text-white drop-shadow-md" />
@@ -195,7 +210,7 @@ export function WebsiteAlertManager() {
                                 <h1 className="text-4xl font-black uppercase tracking-tight drop-shadow-sm flex items-center gap-3">
                                     Nouvelle Commande Web
                                 </h1>
-                                <p className="text-blue-100 font-medium text-lg mt-1">
+                                <p className={`${isDelivery ? 'text-purple-100' : 'text-blue-100'} font-medium text-lg mt-1`}>
                                     Client: <span className="font-bold text-white">{currentOrder.customer_name}</span> • {currentOrder.order_type.replace('_', ' ').toUpperCase()}
                                 </p>
                             </div>
@@ -216,6 +231,24 @@ export function WebsiteAlertManager() {
 
                     {/* Content (Scrollable) */}
                     <div className="p-8 flex-1 overflow-y-auto min-h-0 bg-zinc-900">
+                        {currentOrder.customer_notes && (
+                            <div className="mb-6 bg-yellow-400 border-4 border-yellow-500 rounded-2xl p-6 text-black shadow-lg animate-pulse">
+                                <h3 className="font-black text-2xl uppercase mb-2 flex items-center gap-2">
+                                    ⚠️ NOTES CLIENT
+                                </h3>
+                                <p className="font-bold text-xl">{currentOrder.customer_notes}</p>
+                            </div>
+                        )}
+
+                        {isDelivery && currentOrder.delivery_address && (
+                            <div className="mb-6 bg-purple-900/50 border-2 border-purple-400 rounded-2xl p-6 text-white">
+                                <h3 className="font-black text-xl uppercase mb-2 text-purple-300 flex items-center gap-2">
+                                    📍 ADRESSE DE LIVRAISON
+                                </h3>
+                                <p className="font-bold text-2xl leading-tight">{currentOrder.delivery_address}</p>
+                            </div>
+                        )}
+
                         <div className="space-y-4">
                             {currentOrder.items.map((item, i) => (
                                 <div key={i} className="flex gap-6 items-center p-4 bg-white/5 border border-white/10 rounded-2xl shadow-sm">
