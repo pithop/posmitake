@@ -205,6 +205,16 @@ export function AdminPanel() {
     // Background total pending indicator 
     const [globalPendingCount, setGlobalPendingCount] = useState(0);
 
+    // Modification Cancellation state
+    const [orderToCancel, setOrderToCancel] = useState<string | null>(null);
+    const [cancelReason, setCancelReason] = useState<string>('');
+    const cancellationReasons = [
+        "🧐 Commande de Test",
+        "👤 Annulation Client",
+        "👯 Ticket Doublon",
+        "📵 Fausse Commande (Spam)"
+    ];
+
     useEffect(() => {
         let interval: NodeJS.Timeout;
         if (isClient && supabase) {
@@ -294,6 +304,30 @@ export function AdminPanel() {
 
         return { revenue, count, byMethod, todaysOrders };
     }, [orderHistory]);
+
+    const executeCancellation = async () => {
+        if (!orderToCancel || !cancelReason) return;
+        try {
+            logger.audit('ORDER', 'ORDER_CANCELLED', { order_id: orderToCancel, reason: cancelReason });
+            const payloadReason = JSON.stringify([{ cancellation_reason: cancelReason }]);
+            // Update local SQLite
+            await powersync.execute('UPDATE pos_orders SET status = ?, payment_details = ? WHERE id = ?', ['cancelled', payloadReason, orderToCancel]);
+            
+            // Update Supabase
+            if (supabase) {
+                await supabase.from('pos_orders').update({
+                    status: 'cancelled',
+                    payment_details: [{ cancellation_reason: cancelReason }]
+                }).eq('id', orderToCancel);
+            }
+            fetchOrdersFromSupabase();
+            setOrderToCancel(null);
+            setCancelReason('');
+        } catch (err) {
+            console.error('[Cancel] Erreur:', err);
+            alert('Erreur lors de l\'annulation de la commande.');
+        }
+    };
 
     const handleDeletePendingOrder = async (orderId: string) => {
         if (!confirm(`Voulez-vous vraiment supprimer la commande en attente ${orderId} ?`)) return;
@@ -581,8 +615,36 @@ export function AdminPanel() {
                                         ) : (
                                             pendingOrders.map(order => {
                                                 const alertCount = order.payments?.[0]?.alertCount || 1;
+                                                
+                                                // Smart Timing Logic
+                                                let cardStatusStyle = "bg-zinc-900/40 border-zinc-700/50 hover:border-zinc-500/50";
+                                                if (order.pickupTime) {
+                                                    try {
+                                                        const now = new Date();
+                                                        const [hours, mins] = order.pickupTime.split(':').map(Number);
+                                                        const pickupDate = new Date();
+                                                        pickupDate.setHours(hours, mins, 0, 0);
+                                                        
+                                                        const diffMs = pickupDate.getTime() - now.getTime();
+                                                        const diffMins = Math.floor(diffMs / 60000);
+                                                        
+                                                        if (diffMins > 120) {
+                                                            // > 2 hours: Grayscale/Subtle
+                                                            cardStatusStyle = "bg-zinc-950/80 border-zinc-900 opacity-60 hover:opacity-100";
+                                                        } else if (diffMins <= 15 && diffMins > 0) {
+                                                            // < 15 mins: Orange pulse
+                                                            cardStatusStyle = "bg-orange-950/20 border-orange-500/50 shadow-[0_0_15px_rgba(249,115,22,0.15)] animate-pulse border-2";
+                                                        } else if (diffMins <= 0 && diffMins >= -600) {
+                                                            // Overdue: Red pulse (limit to 10 hours max so it doesn't pulse forever days later)
+                                                            cardStatusStyle = "bg-red-950/20 border-red-500/60 shadow-[0_0_20px_rgba(239,68,68,0.2)] animate-[pulse_1s_infinite] border-2";
+                                                        }
+                                                    } catch (e) {
+                                                        console.error("Erreur timing", e);
+                                                    }
+                                                }
+
                                                 return (
-                                                    <div key={order.id} className="bg-zinc-900/40 border border-zinc-700/50 rounded-2xl p-6 flex flex-col xl:flex-row gap-6 justify-between items-start transition-all shadow-xl">
+                                                    <div key={order.id} className={cn("rounded-2xl p-6 flex flex-col xl:flex-row gap-6 justify-between items-start transition-all shadow-xl", cardStatusStyle)}>
                                                         <div className="flex-1 w-full">
                                                             <div className="flex items-center gap-4 mb-4 flex-wrap">
                                                                 <span className="font-mono font-black text-2xl text-white bg-zinc-800 px-3 py-1.5 rounded-lg border border-zinc-700 shadow-sm">{order.id}</span>
@@ -705,10 +767,10 @@ export function AdminPanel() {
                                                                     <Edit2 size={18} /> Modifier
                                                                 </button>
                                                                 <button
-                                                                    onClick={() => handleDeletePendingOrder(order.id)}
-                                                                    className="col-span-1 flex items-center justify-center gap-2 bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/30 font-bold py-3 px-2 rounded-xl transition-all active:scale-95 text-base"
+                                                                    onClick={() => setOrderToCancel(order.id)}
+                                                                    className="col-span-1 flex items-center justify-center gap-2 bg-zinc-500/10 hover:bg-red-500/20 text-zinc-400 hover:text-red-400 border border-zinc-500/30 hover:border-red-500/50 font-bold py-3 px-2 rounded-xl transition-all active:scale-95 text-base"
                                                                 >
-                                                                    <Trash2 size={18} /> Suppr.
+                                                                    <Trash2 size={18} /> Annuler
                                                                 </button>
 
                                                                 <button
@@ -1443,6 +1505,73 @@ export function AdminPanel() {
                         setOrderToCorrect(null);
                     }}
                 />
+            )}
+
+            {/* Cancellation Modal */}
+            {orderToCancel && (
+                <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/80 backdrop-blur-md">
+                    <div className="w-full max-w-lg bg-zinc-900 border border-red-900/30 rounded-3xl p-8 shadow-2xl">
+                        <div className="flex items-center space-x-3 mb-6">
+                            <div className="w-12 h-12 rounded-full border border-red-500/20 bg-red-500/10 flex items-center justify-center">
+                                <Trash2 className="text-red-400" size={24} />
+                            </div>
+                            <div>
+                                <h3 className="text-2xl font-bold text-white leading-tight">Annuler la Commande</h3>
+                                <p className="text-zinc-400 text-sm">La commande sera marquée comme annulée sans être supprimée de la base.</p>
+                            </div>
+                        </div>
+
+                        <div className="space-y-4">
+                            <div className="grid grid-cols-2 gap-3">
+                                {cancellationReasons.map(reason => (
+                                    <button
+                                        key={reason}
+                                        onClick={() => setCancelReason(reason)}
+                                        className={cn(
+                                            "px-4 py-3 text-sm font-medium rounded-xl border text-left transition-all",
+                                            cancelReason === reason 
+                                                ? "bg-red-500/20 border-red-500/50 text-red-100" 
+                                                : "bg-black/40 border-zinc-800 text-zinc-300 hover:border-zinc-600"
+                                        )}
+                                    >
+                                        {reason}
+                                    </button>
+                                ))}
+                            </div>
+                            
+                            <div>
+                                <input
+                                    type="text"
+                                    value={cancelReason && !cancellationReasons.includes(cancelReason) ? cancelReason : ''}
+                                    readOnly={cancellationReasons.includes(cancelReason)}
+                                    onChange={(e) => setCancelReason(e.target.value)}
+                                    placeholder="Autre raison..."
+                                    className="w-full mt-2 bg-black border border-zinc-800 rounded-xl p-4 text-white placeholder-zinc-600 focus:outline-none focus:border-red-500/30 transition-colors"
+                        onClick={() => { if(cancellationReasons.includes(cancelReason)) setCancelReason(''); }}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="flex space-x-4 pt-8">
+                            <button
+                                onClick={() => {
+                                    setOrderToCancel(null);
+                                    setCancelReason('');
+                                }}
+                                className="flex-1 py-4 text-lg rounded-2xl bg-zinc-800 text-zinc-300 hover:bg-zinc-700 font-medium transition-colors"
+                            >
+                                Retour
+                            </button>
+                            <button
+                                disabled={!cancelReason}
+                                onClick={executeCancellation}
+                                className="flex-1 py-4 text-lg rounded-2xl bg-red-600 text-white hover:bg-red-500 font-bold disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                            >
+                                Confirmer Annulation
+                            </button>
+                        </div>
+                    </div>
+                </div>
             )}
         </>
     );
