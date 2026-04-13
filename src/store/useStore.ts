@@ -330,7 +330,9 @@ export const useSystemStore = create<SystemState>()(
                 }
 
                 const isEditing = !!cartState.editingOrderId;
-                const orderId = isEditing ? cartState.editingOrderId! : `#${String(currentCounter).padStart(3, '0')}`;
+                const datePrefix = today.replace(/-/g, '').slice(2);
+                const devToken = get().deviceId.substring(0, 3).toUpperCase();
+                const orderId = isEditing ? cartState.editingOrderId! : `${devToken}${datePrefix}-${String(currentCounter).padStart(3, '0')}`;
 
                 const timestamp = Date.now();
                 const total = cartState.total;
@@ -505,7 +507,9 @@ export const useSystemStore = create<SystemState>()(
                 }
 
                 const isEditing = !!cartState.editingOrderId;
-                const orderId = isEditing ? cartState.editingOrderId! : `#${String(currentCounter).padStart(3, '0')}`;
+                const datePrefix = today.replace(/-/g, '').slice(2);
+                const devToken = get().deviceId.substring(0, 3).toUpperCase();
+                const orderId = isEditing ? cartState.editingOrderId! : `${devToken}${datePrefix}-${String(currentCounter).padStart(3, '0')}`;
 
                 const timestamp = Date.now();
                 const total = cartState.total;
