@@ -73,16 +73,8 @@ export function WebsiteAlertManager() {
     }, []);
 
     const enqueueAlert = useCallback((order: any) => {
-        // ONLY accept orders from the website that are pending
         if (order.source_device !== 'website' || order.status !== 'pending') return;
         if (processedIds.current.has(order.id)) return;
-
-        // Skip older than 10 minutes just in case
-        const age = Date.now() - new Date(order.created_at).getTime();
-        if (age > 600000) {
-            processedIds.current.add(order.id);
-            return;
-        }
 
         processedIds.current.add(order.id);
         const items = parseItems(order);
@@ -136,15 +128,14 @@ export function WebsiteAlertManager() {
                     .select('*')
                     .eq('source_device', 'website')
                     .eq('status', 'pending')
-                    .gt('created_at', lastPollTime.current)
+                    // We pull all pending to catch any that were created while the tablet was offline
                     .order('created_at', { ascending: true });
 
                 if (data && data.length > 0) {
-                    lastPollTime.current = data[data.length - 1].created_at;
                     for (const order of data) enqueueAlert(order);
                 }
             } catch { }
-        }, 3000); // slightly slower poll to save network
+        }, 5000); // Polling completely catches up everything
 
         return () => {
             supabase!.removeChannel(channel);

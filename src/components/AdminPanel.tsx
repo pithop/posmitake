@@ -202,6 +202,25 @@ export function AdminPanel() {
     // Payment Correction state
     const [orderToCorrect, setOrderToCorrect] = useState<any | null>(null);
 
+    // Background total pending indicator 
+    const [globalPendingCount, setGlobalPendingCount] = useState(0);
+
+    useEffect(() => {
+        let interval: NodeJS.Timeout;
+        if (isClient && supabase) {
+            const checkPending = async () => {
+                const { count } = await supabase
+                    .from('pos_orders')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('status', 'pending');
+                if (count !== null) setGlobalPendingCount(count);
+            };
+            checkPending();
+            interval = setInterval(checkPending, 10000);
+        }
+        return () => clearInterval(interval);
+    }, [isClient]);
+
     const [selectedHistoryDate, setSelectedHistoryDate] = useState(() => {
         const d = new Date();
         const offset = d.getTimezoneOffset() * 60000;
@@ -227,13 +246,9 @@ export function AdminPanel() {
     }, [orderHistory, selectedHistoryDate]);
 
     const pendingOrders = useMemo(() => {
-        const todayStr = new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0];
         return orderHistory.filter(o => {
             if (o.status !== 'pending') return false;
-            const orderDate = new Date(o.timestamp);
-            const offset = orderDate.getTimezoneOffset() * 60000;
-            const localDateStr = new Date(orderDate.getTime() - offset).toISOString().split('T')[0];
-            return localDateStr === todayStr;
+            return true;
         }).sort((a, b) => b.timestamp - a.timestamp);
     }, [orderHistory]);
 
@@ -415,10 +430,18 @@ export function AdminPanel() {
                 onClick={() => setIsOpen(true)}
                 className="fixed bottom-6 left-6 px-5 py-3 bg-black/40 backdrop-blur-xl border border-white/10 text-white rounded-full hover:bg-white/10 hover:scale-105 active:scale-95 transition-all z-50 shadow-2xl flex items-center space-x-3 group"
             >
-                <div className="p-1.5 bg-zinc-800 rounded-full group-hover:bg-red-600 transition-colors">
+                <div className="p-1.5 bg-zinc-800 rounded-full group-hover:bg-red-600 transition-colors relative">
                     <Settings size={16} className="text-zinc-400 group-hover:text-white transition-colors" />
+                    {globalPendingCount > 0 && (
+                        <span className="absolute -top-1 -right-1 flex h-3 w-3 items-center justify-center rounded-full bg-red-600 animate-pulse border border-zinc-900"></span>
+                    )}
                 </div>
                 <span className="font-medium text-sm tracking-wide pr-1">ADMIN</span>
+                {globalPendingCount > 0 && (
+                    <span className="bg-red-500 text-white font-black text-xs px-2 py-0.5 rounded-full border border-red-700 shadow-md">
+                        {globalPendingCount}
+                    </span>
+                )}
             </button>
 
             {isOpen && (
@@ -442,12 +465,19 @@ export function AdminPanel() {
                                             activeTab === tab ? "bg-white text-black" : "text-zinc-400 hover:bg-zinc-800 hover:text-white"
                                         )}
                                     >
-                                        {tab === 'dashboard' && <LayoutDashboard size={18} />}
-                                        {tab === 'onhold' && <Clock size={18} />}
-                                        {tab === 'history' && <History size={18} />}
-                                        {tab === 'products' && <Package size={18} />}
-                                        {tab === 'settings' && <SlidersHorizontal size={18} />}
-                                        <span className="capitalize">{tab === 'settings' ? 'paramètres' : tab === 'onhold' ? 'en attente' : tab}</span>
+                                        <div className="flex items-center space-x-3 flex-1">
+                                            {tab === 'dashboard' && <LayoutDashboard size={18} />}
+                                            {tab === 'onhold' && <Clock size={18} />}
+                                            {tab === 'history' && <History size={18} />}
+                                            {tab === 'products' && <Package size={18} />}
+                                            {tab === 'settings' && <SlidersHorizontal size={18} />}
+                                            <span className="capitalize">{tab === 'settings' ? 'paramètres' : tab === 'onhold' ? 'en attente' : tab}</span>
+                                        </div>
+                                        {tab === 'onhold' && globalPendingCount > 0 && (
+                                            <span className="bg-red-500 text-white font-bold text-xs px-2 py-0.5 rounded-full ml-auto animate-pulse">
+                                                {globalPendingCount}
+                                            </span>
+                                        )}
                                     </button>
                                 ))}
                             </nav>
