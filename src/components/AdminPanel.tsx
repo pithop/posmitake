@@ -252,7 +252,7 @@ export function AdminPanel() {
             const orderDate = new Date(o.timestamp);
             const offset = orderDate.getTimezoneOffset() * 60000;
             const localDateStr = new Date(orderDate.getTime() - offset).toISOString().split('T')[0];
-            return localDateStr === selectedHistoryDate && o.status !== 'pending';
+            return localDateStr === selectedHistoryDate && o.status !== 'pending' && o.status !== 'cancelled';
         });
     }, [orderHistory, selectedHistoryDate]);
 
@@ -860,8 +860,8 @@ export function AdminPanel() {
                                                             onClick={() => setExpandedOrderId(expandedOrderId === order.id ? null : order.id)}
                                                             className="p-5 flex justify-between items-center cursor-pointer hover:bg-zinc-800/60 transition-colors"
                                                         >
-                                                            <div className="flex items-center gap-4 flex-wrap">
-                                                                <span className="font-mono font-black text-xl text-white bg-zinc-800 px-3 py-1.5 rounded-lg border border-zinc-700 shadow-sm">{order.id}</span>
+                                                            <div className="flex items-center gap-4 flex-wrap w-full">
+                                                                <span className="font-mono font-black text-xl text-white bg-zinc-800 px-3 py-1.5 rounded-lg border border-zinc-700 shadow-sm shrink-0">{order.id}</span>
                                                                 <span className="text-zinc-400 text-lg font-mono flex items-center pr-2">
                                                                     <Clock size={16} className="mr-2" />
                                                                     {new Date(order.timestamp).toLocaleTimeString()}
@@ -887,7 +887,7 @@ export function AdminPanel() {
                                                                     </span>
                                                                 )}
                                                             </div>
-                                                            <div className="text-right flex items-center gap-4">
+                                                            <div className="text-right flex items-center justify-end gap-3 flex-wrap mt-4 2xl:mt-0 w-full 2xl:w-auto">
                                                                 {/* Utility Buttons */}
                                                                 <button
                                                                     onClick={(e) => {
@@ -961,10 +961,10 @@ export function AdminPanel() {
                                                                 >
                                                                     <CheckCircle size={16} /> Prête
                                                                 </button>
-                                                                <div className="flex flex-col items-end min-w-[140px]">
-                                                                    <p className="text-2xl font-black text-white font-mono">{formatPrice(order.total)}</p>
+                                                                <div className="flex flex-col items-end min-w-[140px] pl-4 shrink-0">
+                                                                    <p className="text-2xl font-black text-white font-mono break-all">{formatPrice(order.total)}</p>
                                                                     <p className="text-green-500 text-sm font-bold uppercase tracking-wider flex items-center gap-1">
-                                                                        <span className="w-2 h-2 rounded-full bg-green-500"></span> Payé ({order.paymentMethod.replace('_', ' ')})
+                                                                        <span className="w-2 h-2 rounded-full bg-green-500 shrink-0"></span> <span className="break-words text-right">Payé ({order.paymentMethod.replace('_', ' ')})</span>
                                                                     </p>
                                                                 </div>
                                                             </div>
