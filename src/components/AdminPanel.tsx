@@ -53,6 +53,14 @@ export function AdminPanel() {
             }
         } catch { }
 
+        const paymentsArray = o.payment_details ? (typeof o.payment_details === 'string' ? JSON.parse(o.payment_details) : (Array.isArray(o.payment_details) ? o.payment_details : [o.payment_details])) : [];
+        let deliveryAddress = o.delivery_address || null;
+        let customerNotes = o.customer_notes || null;
+        if (paymentsArray.length > 0) {
+            if (paymentsArray[0]?.delivery_address) deliveryAddress = paymentsArray[0].delivery_address;
+            if (paymentsArray[0]?.customer_notes) customerNotes = paymentsArray[0].customer_notes;
+        }
+
         return {
             id: o.id,
             total: o.total,
@@ -64,7 +72,9 @@ export function AdminPanel() {
             orderType: o.order_type || 'sur_place',
             customerName: o.customer_name || '',
             pickupTime: o.pickup_time || '',
-            payments: o.payment_details ? (typeof o.payment_details === 'string' ? JSON.parse(o.payment_details) : o.payment_details) : [],
+            payments: paymentsArray,
+            deliveryAddress,
+            customerNotes
         };
     }), [supabaseOrders]);
 
@@ -537,10 +547,10 @@ export function AdminPanel() {
                                                                 <span className="font-mono font-black text-2xl text-white bg-zinc-800 px-3 py-1.5 rounded-lg border border-zinc-700 shadow-sm">{order.id}</span>
                                                                 <span className="text-zinc-400 text-lg font-mono flex items-center pr-2"><Clock size={18} className="mr-2" />{new Date(order.timestamp).toLocaleTimeString()}</span>
                                                                 <span className={cn(
-                                                                    "text-base font-bold px-4 py-1.5 rounded-lg flex items-center shadow-sm",
-                                                                    order.orderType === 'emporte' ? "bg-sky-500/20 text-sky-400 border border-sky-500/30" : "bg-amber-500/20 text-amber-400 border border-amber-500/30"
+                                                                    "text-base font-bold px-4 py-1.5 rounded-lg flex items-center shadow-sm border",
+                                                                    order.orderType === 'delivery' ? "bg-purple-500/20 text-purple-400 border-purple-500/30" : order.orderType === 'emporte' ? "bg-sky-500/20 text-sky-400 border-sky-500/30" : "bg-amber-500/20 text-amber-400 border-amber-500/30"
                                                                 )}>
-                                                                    {order.orderType === 'emporte' ? '📦 Emporté' : '🍽️ Sur Place'}
+                                                                    {order.orderType === 'delivery' ? '🛵 LIVRAISON' : order.orderType === 'emporte' ? '📦 Emporté' : '🍽️ Sur Place'}
                                                                 </span>
                                                                 {order.customerName && (
                                                                     <span className="text-base font-bold text-yellow-400 bg-yellow-500/10 px-4 py-1.5 rounded-lg border border-yellow-500/20 shadow-sm flex items-center">
@@ -548,6 +558,17 @@ export function AdminPanel() {
                                                                     </span>
                                                                 )}
                                                             </div>
+
+                                                            {order.customerNotes && (
+                                                                <div className="mt-2 mb-3 bg-yellow-400 text-black px-4 py-3 rounded-xl font-bold shadow-sm">
+                                                                    ⚠️ NOTES : {order.customerNotes}
+                                                                </div>
+                                                            )}
+                                                            {order.orderType === 'delivery' && order.deliveryAddress && (
+                                                                <div className="mt-2 mb-3 bg-purple-900/40 border border-purple-500/40 text-white px-4 py-3 rounded-xl font-bold shadow-sm">
+                                                                    📍 LIVRER À : {order.deliveryAddress}
+                                                                </div>
+                                                            )}
                                                             
                                                             <div className="mt-4 flex flex-col gap-3">
                                                                 {order.items.map((item: any, i: number) => {
@@ -595,6 +616,9 @@ export function AdminPanel() {
                                                                                 created_at: rawData.created_at,
                                                                                 source_device: rawData.source_device,
                                                                                 items: rawData.items_json || [],
+                                                                                payments: rawData.payment_details,
+                                                                                delivery_address: order.deliveryAddress,
+                                                                                customer_notes: order.customerNotes,
                                                                                 isPending: true,
                                                                             });
                                                                             logger.audit('PRINT', 'MANUAL_REPRINT_REQUESTED', { order_id: rawData.id, is_pending: true });
@@ -618,6 +642,9 @@ export function AdminPanel() {
                                                                                 created_at: rawData.created_at,
                                                                                 source_device: rawData.source_device,
                                                                                 items: rawData.items_json || [],
+                                                                                payments: rawData.payment_details,
+                                                                                delivery_address: order.deliveryAddress,
+                                                                                customer_notes: order.customerNotes,
                                                                                 isPending: true,
                                                                             });
                                                                             logger.audit('PRINT', 'MANUAL_FACTURE_REQUESTED', { order_id: rawData.id, is_pending: true });
@@ -736,11 +763,13 @@ export function AdminPanel() {
                                                                 </span>
                                                                 <span className={cn(
                                                                     "text-base font-bold px-3 py-1.5 rounded-lg border flex items-center shadow-sm",
-                                                                    order.orderType === 'emporte'
+                                                                    order.orderType === 'delivery'
+                                                                        ? "bg-purple-500/10 border-purple-500/20 text-purple-400" 
+                                                                        : order.orderType === 'emporte'
                                                                         ? "bg-sky-500/10 border-sky-500/20 text-sky-400"
                                                                         : "bg-amber-500/10 border-amber-500/20 text-amber-400"
                                                                 )}>
-                                                                    {order.orderType === 'emporte' ? '📦 Emporté' : '🍽️ Sur Place'}
+                                                                    {order.orderType === 'delivery' ? '🛵 LIVRAISON' : order.orderType === 'emporte' ? '📦 Emporté' : '🍽️ Sur Place'}
                                                                 </span>
                                                                 {order.customerName && (
                                                                     <span className="text-base font-bold text-yellow-400 bg-yellow-500/10 px-3 py-1.5 rounded-lg border border-yellow-500/20 shadow-sm">
@@ -770,6 +799,8 @@ export function AdminPanel() {
                                                                                 source_device: rawData.source_device,
                                                                                 items: rawData.items_json || [],
                                                                                 payments: rawData.payment_details,
+                                                                                delivery_address: order.deliveryAddress,
+                                                                                customer_notes: order.customerNotes,
                                                                                 isPending: false,
                                                                             });
                                                                             logger.audit('PRINT', 'MANUAL_REPRINT_REQUESTED', { order_id: rawData.id, is_pending: false });
@@ -795,6 +826,8 @@ export function AdminPanel() {
                                                                                 source_device: rawData.source_device,
                                                                                 items: rawData.items_json || [],
                                                                                 payments: rawData.payment_details,
+                                                                                delivery_address: order.deliveryAddress,
+                                                                                customer_notes: order.customerNotes,
                                                                                 isPending: false,
                                                                             });
                                                                             logger.audit('PRINT', 'MANUAL_FACTURE_REQUESTED', { order_id: rawData.id, is_pending: false });

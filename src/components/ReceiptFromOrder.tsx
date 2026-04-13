@@ -11,6 +11,8 @@ export interface OrderReceiptData {
     pickup_time?: string;
     created_at: string;
     source_device?: string;
+    delivery_address?: string; // Newly added
+    customer_notes?: string;   // Newly added
     items: any[]; // items_json from Supabase
     payments?: any[];
     isPending?: boolean; // true = "À PAYER" mode
@@ -86,6 +88,18 @@ export function ReceiptFromOrder({ data, isInvoice }: Props) {
                     <div className="receipt-row">
                         <span>Caisse:</span>
                         <span>{data.source_device}</span>
+                    </div>
+                )}
+                {data.order_type === 'delivery' && data.delivery_address && (
+                    <div className="receipt-row" style={{ marginTop: '6px' }}>
+                        <span className="receipt-bold">LIVRER À:</span>
+                        <span className="receipt-bold" style={{ textAlign: 'right', fontSize: '1.2em' }}>{data.delivery_address}</span>
+                    </div>
+                )}
+                {data.customer_notes && (
+                    <div className="receipt-row" style={{ marginTop: '6px' }}>
+                        <span className="receipt-bold" style={{textDecoration: 'underline'}}>NOTES:</span>
+                        <span className="receipt-bold" style={{ textAlign: 'right' }}>{data.customer_notes}</span>
                     </div>
                 )}
             </div>
