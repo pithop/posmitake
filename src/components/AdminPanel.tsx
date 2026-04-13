@@ -212,6 +212,7 @@ export function AdminPanel() {
                 const { count } = await supabase!
                     .from('pos_orders')
                     .select('*', { count: 'exact', head: true })
+                    .eq('source_device', 'website')
                     .eq('status', 'pending');
                 if (count !== null) setGlobalPendingCount(count);
             };
@@ -246,9 +247,19 @@ export function AdminPanel() {
     }, [orderHistory, selectedHistoryDate]);
 
     const pendingOrders = useMemo(() => {
+        const todayStr = new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0];
+        
         return orderHistory.filter(o => {
             if (o.status !== 'pending') return false;
-            return true;
+            
+            // Toujours afficher les commandes web (pour ne pas rater les futures)
+            if (o.sourceDevice === 'website') return true;
+
+            // Masquer les commandes POS (caisse) de la veille qui ont été oubliées
+            const orderDate = new Date(o.timestamp);
+            const offset = orderDate.getTimezoneOffset() * 60000;
+            const localDateStr = new Date(orderDate.getTime() - offset).toISOString().split('T')[0];
+            return localDateStr === todayStr;
         }).sort((a, b) => b.timestamp - a.timestamp);
     }, [orderHistory]);
 
