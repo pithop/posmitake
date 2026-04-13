@@ -534,7 +534,7 @@ export function AdminPanel() {
                                             <Clock className="text-orange-500" /> Commandes en Attente
                                         </h3>
                                     </div>
-                                    <div className="flex-1 overflow-y-auto p-6 space-y-4">
+                                    <div className="flex-1 overflow-y-auto overscroll-contain touch-pan-y scroll-smooth p-6 space-y-4" style={{ WebkitOverflowScrolling: 'touch' }}>
                                         {pendingOrders.length === 0 ? (
                                             <div className="text-center text-zinc-500 py-10">Aucune commande en attente.</div>
                                         ) : (
@@ -559,18 +559,20 @@ export function AdminPanel() {
                                                                 )}
                                                             </div>
 
-                                                            {order.customerNotes && (
-                                                                <div className="mt-2 mb-3 bg-yellow-400 text-black px-4 py-3 rounded-xl font-bold shadow-sm">
-                                                                    ⚠️ NOTES : {order.customerNotes}
-                                                                </div>
-                                                            )}
-                                                            {order.orderType === 'delivery' && order.deliveryAddress && (
-                                                                <div className="mt-2 mb-3 bg-purple-900/40 border border-purple-500/40 text-white px-4 py-3 rounded-xl font-bold shadow-sm">
-                                                                    📍 LIVRER À : {order.deliveryAddress}
-                                                                </div>
-                                                            )}
+                                                            <div className="flex flex-col gap-2 mt-2">
+                                                                {order.customerNotes && (
+                                                                    <div className="text-sm font-medium text-yellow-500 bg-yellow-500/10 border border-yellow-500/20 px-3 py-1.5 rounded-lg break-words">
+                                                                        ⚠️ {order.customerNotes}
+                                                                    </div>
+                                                                )}
+                                                                {order.orderType === 'delivery' && order.deliveryAddress && (
+                                                                    <div className="text-sm font-medium text-purple-300 bg-purple-500/10 border border-purple-500/20 px-3 py-1.5 rounded-lg break-words">
+                                                                        📍 {order.deliveryAddress}
+                                                                    </div>
+                                                                )}
+                                                            </div>
                                                             
-                                                            <div className="mt-4 flex flex-col gap-3">
+                                                            <div className="mt-3 flex flex-col gap-2">
                                                                 {order.items.map((item: any, i: number) => {
                                                                     let mods: string[] = [];
                                                                     try {
@@ -744,7 +746,7 @@ export function AdminPanel() {
                                             />
                                         </div>
                                     </div>
-                                    <div className="flex-1 overflow-y-auto p-6">
+                                    <div className="flex-1 overflow-y-auto overscroll-contain touch-pan-y scroll-smooth p-6" style={{ WebkitOverflowScrolling: 'touch' }}>
                                         <div className="space-y-4">
                                             {filteredOrderHistory.length === 0 ? (
                                                 <div className="text-center text-zinc-500 py-10">Aucune commande pour cette date.</div>
