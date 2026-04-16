@@ -660,6 +660,11 @@ export function AdminPanel() {
                                                                         👤 {order.customerName}
                                                                     </span>
                                                                 )}
+                                                                {order.pickupTime && (
+                                                                    <span className="text-base font-bold text-green-400 bg-green-500/10 px-4 py-1.5 rounded-lg border border-green-500/20 shadow-sm flex items-center shadow-[0_0_15px_rgba(34,197,94,0.1)]">
+                                                                        🕐 {order.pickupTime}
+                                                                    </span>
+                                                                )}
                                                             </div>
 
                                                             <div className="flex flex-col gap-2 mt-2">
