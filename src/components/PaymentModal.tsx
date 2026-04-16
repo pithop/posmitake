@@ -42,9 +42,7 @@ export function PaymentModal({ isOpen, totalAmount, onClose, onConfirm, onPutOnH
             setInputAmount('');
             setOrderType('emporte');
             setCustomerName('');
-            // Default pickup time = now (HH:MM)
-            const now = new Date();
-            setPickupTime(`${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`);
+            setPickupTime('');
         }
     }, [isOpen, totalAmount]);
 
