@@ -287,7 +287,7 @@ export function ReadyAlertManager() {
                                                 {item.quantity}
                                             </div>
                                             <h2 className="text-2xl md:text-4xl font-black text-green-900 leading-tight block truncate">
-                                                {item.product_name}
+                                                {item.product_name || item.name}
                                             </h2>
                                         </div>
                                     </div>
