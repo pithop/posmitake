@@ -8,7 +8,7 @@ import { useQuery, usePowerSync } from '@powersync/react';
 import { supabase } from '@/lib/supabase';
 import { logger } from '@/lib/logger';
 import { PaymentModal } from './PaymentModal';
-import { PaymentCorrectionModal } from './PaymentCorrectionModal';
+
 import { ReceiptFromOrder, OrderReceiptData } from './ReceiptFromOrder';
 import { createPortal } from 'react-dom';
 
@@ -1389,25 +1389,7 @@ export function AdminPanel() {
                 </div>,
                 document.body
             )}
-            {/* Payment Correction Modal */}
-            {orderToCorrect && (
-                <PaymentCorrectionModal
-                    isOpen={!!orderToCorrect}
-                    orderId={orderToCorrect.id}
-                    totalAmount={orderToCorrect.total}
-                    initialPayments={orderToCorrect.payment_details || []}
-                    onClose={() => setOrderToCorrect(null)}
-                    onSuccess={(newPayments) => {
-                        // Optimistically update the UI list
-                        setSupabaseOrders(prev => prev.map(o =>
-                            o.id === orderToCorrect.id
-                                ? { ...o, payment_method: newPayments[0]?.method || 'cash', payment_details: newPayments }
-                                : o
-                        ));
-                        setOrderToCorrect(null);
-                    }}
-                />
-            )}
+
 
             {/* Cancellation Modal */}
             {orderToCancel && (

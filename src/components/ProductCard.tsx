@@ -36,7 +36,7 @@ export function ProductCard({ product, onAdd, onOpenModal, isOutOfStock }: Produ
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
             className={`group relative flex flex-col overflow-hidden rounded-2xl bg-card border transition-all duration-300 shadow-lg shadow-black/20 touch-manipulation ${isOutOfStock
-                    ? 'border-red-500/50 opacity-60 cursor-not-allowed grayscale'
+                    ? 'border-red-500/50 opacity-50 cursor-not-allowed grayscale pointer-events-none'
                     : 'border-white/5 hover:border-primary/50 active:scale-[0.98] cursor-pointer hover:shadow-2xl hover:shadow-primary/10'
                 }`}
         >

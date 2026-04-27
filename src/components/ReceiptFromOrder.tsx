@@ -66,11 +66,10 @@ export function ReceiptFromOrder({ data, isInvoice }: Props) {
                     <span>Date:</span>
                     <span>{dateStr} {timeStr}</span>
                 </div>
-                <div className="receipt-row">
-                    <span>Type:</span>
-                    <span className="receipt-bold">
-                        {data.order_type === 'emporte' ? 'EMPORTÉ' : 'SUR PLACE'}
-                    </span>
+                <div className="receipt-row" style={{ marginTop: '8px', marginBottom: '8px', justifyContent: 'center' }}>
+                    <div style={{ backgroundColor: '#000', color: '#fff', padding: '6px 16px', fontSize: '24px', fontWeight: 900, borderRadius: '4px', textTransform: 'uppercase', letterSpacing: '2px', textAlign: 'center', width: '100%' }}>
+                        {data.order_type === 'emporte' ? '📦 EMPORTÉ' : '🍽️ SUR PLACE'}
+                    </div>
                 </div>
                 {data.customer_name && (
                     <div className="receipt-row">
@@ -137,21 +136,22 @@ export function ReceiptFromOrder({ data, isInvoice }: Props) {
                     const itemPrice = item.total_price || (item.unit_price || item.price || 0) * (item.quantity || 1);
 
                     return (
-                        <div key={idx} className="receipt-item">
-                            <div className="receipt-item-main">
-                                <span>{item.quantity}x {itemName}</span>
+                        <div key={idx} className="receipt-item" style={{ marginBottom: '12px', borderBottom: '1px dotted #ccc', paddingBottom: '8px' }}>
+                            <div className="receipt-item-main" style={{ fontSize: '22px', fontWeight: 900, display: 'flex', alignItems: 'flex-start', gap: '8px', lineHeight: '1.2' }}>
+                                <span style={{ fontSize: '28px' }}>{item.quantity}x</span>
+                                <span>{itemName}</span>
                             </div>
                             {mods.length > 0 && (
-                                <div className="receipt-mods">
+                                <div className="receipt-mods" style={{ paddingLeft: '32px', marginTop: '6px' }}>
                                     {mods.map((m: any, mi: number) => (
-                                        <div key={mi} className="receipt-mod">
+                                        <div key={mi} className="receipt-mod" style={{ fontSize: '18px', fontWeight: 700 }}>
                                             + {m.quantity && m.quantity > 1 ? `${m.quantity}× ` : ''}{m.name}
                                         </div>
                                     ))}
                                 </div>
                             )}
                             {note && (
-                                <div className="receipt-note">* NOTE: {note}</div>
+                                <div className="receipt-note" style={{ paddingLeft: '32px', marginTop: '6px', fontSize: '18px', fontStyle: 'italic', fontWeight: 700 }}>⚠ NOTE: {note}</div>
                             )}
                         </div>
                     );

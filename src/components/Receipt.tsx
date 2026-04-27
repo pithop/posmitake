@@ -57,11 +57,10 @@ export function Receipt({ data }: ReceiptProps) {
                     <span>Date:</span>
                     <span>{dateStr} {timeStr}</span>
                 </div>
-                <div className="receipt-row">
-                    <span>Type:</span>
-                    <span className="receipt-bold">
-                        {data.orderType === 'emporte' ? 'EMPORTÉ' : 'SUR PLACE'}
-                    </span>
+                <div className="receipt-row" style={{ marginTop: '8px', marginBottom: '8px', justifyContent: 'center' }}>
+                    <div style={{ backgroundColor: '#000', color: '#fff', padding: '6px 16px', fontSize: '24px', fontWeight: 900, borderRadius: '4px', textTransform: 'uppercase', letterSpacing: '2px', textAlign: 'center', width: '100%' }}>
+                        {data.orderType === 'emporte' ? '📦 EMPORTÉ' : '🍽️ SUR PLACE'}
+                    </div>
                 </div>
                 {data.customerName && (
                     <div className="receipt-row">
@@ -86,21 +85,22 @@ export function Receipt({ data }: ReceiptProps) {
             {/* Items */}
             <div className="receipt-items">
                 {data.items.map((item, idx) => (
-                    <div key={idx} className="receipt-item">
-                        <div className="receipt-item-main">
-                            <span>{item.quantity}x {item.menuItem.name}</span>
+                    <div key={idx} className="receipt-item" style={{ marginBottom: '12px', borderBottom: '1px dotted #ccc', paddingBottom: '8px' }}>
+                        <div className="receipt-item-main" style={{ fontSize: '22px', fontWeight: 900, display: 'flex', alignItems: 'flex-start', gap: '8px', lineHeight: '1.2' }}>
+                            <span style={{ fontSize: '28px' }}>{item.quantity}x</span>
+                            <span>{item.menuItem.name}</span>
                         </div>
                         {item.selectedModifiers.length > 0 && (
-                            <div className="receipt-mods">
+                            <div className="receipt-mods" style={{ paddingLeft: '32px', marginTop: '6px' }}>
                                 {item.selectedModifiers.map((m, mi) => (
-                                    <div key={mi} className="receipt-mod">
+                                    <div key={mi} className="receipt-mod" style={{ fontSize: '18px', fontWeight: 700 }}>
                                         + {m.name}
                                     </div>
                                 ))}
                             </div>
                         )}
                         {item.note && (
-                            <div className="receipt-note">⚠ {item.note}</div>
+                            <div className="receipt-note" style={{ paddingLeft: '32px', marginTop: '6px', fontSize: '18px', fontStyle: 'italic', fontWeight: 700 }}>⚠ {item.note}</div>
                         )}
                     </div>
                 ))}

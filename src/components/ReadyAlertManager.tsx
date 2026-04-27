@@ -207,9 +207,7 @@ export function ReadyAlertManager() {
                                         }`}>
                                         {currentAlert.order_type === 'emporte' ? '📦 EMPORTÉ' : '🍽️ SUR PLACE'}
                                     </span>
-                                    <span className="text-xl md:text-3xl font-black text-white">
-                                        {currentAlert.total.toFixed(2)} €
-                                    </span>
+                                    {/* Price removed for KDS */}
                                 </div>
                                 {(currentAlert.customer_name || currentAlert.pickup_time) && (
                                     <div className="mt-2 flex flex-wrap items-center gap-3">

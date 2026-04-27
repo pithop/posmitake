@@ -166,14 +166,14 @@ export function PaymentModal({ isOpen, totalAmount, onClose, onConfirm, onPutOnH
                     <div className="p-3 lg:p-4 bg-black/60 backdrop-blur-md z-10 border-t border-white/5 space-y-3">
                         <button
                             onClick={handleConfirm}
-                            className="w-full py-3 lg:py-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-lg lg:text-xl flex items-center justify-center gap-2 transition-all animate-scale-up shadow-[0_0_40px_rgba(16,185,129,0.2)] active:scale-95"
+                            className="w-full py-6 lg:py-8 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-black font-black text-2xl lg:text-3xl flex items-center justify-center gap-3 transition-all animate-scale-up shadow-[0_0_60px_rgba(16,185,129,0.4)] active:scale-95"
                         >
-                            <CheckCircle2 size={28} />
+                            <CheckCircle2 size={36} />
                             ENVOYER EN CUISINE
                         </button>
                         <button
                             onClick={handlePutOnHold}
-                            className="w-full py-3 lg:py-4 rounded-xl bg-orange-500 hover:bg-orange-400 bg-opacity-20 hover:bg-opacity-30 border-2 border-orange-500/50 text-orange-400 font-bold text-base lg:text-lg flex items-center justify-center gap-2 transition-all active:scale-95 shadow-[0_0_30px_rgba(249,115,22,0.1)]"
+                            className="w-full py-3 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white font-bold text-sm lg:text-base flex items-center justify-center gap-2 transition-all active:scale-95"
                         >
                             ⏳ METTRE EN ATTENTE
                         </button>
