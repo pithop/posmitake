@@ -178,25 +178,13 @@ export function CartSidebar() {
 
             {/* Footer / Totals */}
             <div className="p-6 bg-card/50 border-t border-white/5 backdrop-blur-xl">
-                <div className="space-y-3 mb-6">
-                    <div className="flex justify-between text-sm text-muted-foreground font-medium">
-                        <span>Subtotal</span>
-                        <span>{formatPrice(total)}</span>
-                    </div>
-                    <div className="flex justify-between items-end">
-                        <span className="text-muted-foreground text-sm font-medium">Total</span>
-                        <span className="text-3xl font-heading font-black text-foreground tracking-tight">{formatPrice(total)}</span>
-                    </div>
-                </div>
-
                 <button
                     onClick={handleCheckoutClick}
                     disabled={items.length === 0}
                     className="w-full bg-primary hover:bg-red-500 disabled:bg-secondary disabled:text-muted-foreground disabled:cursor-not-allowed text-white font-bold py-4 rounded-xl flex items-center justify-center space-x-3 text-lg shadow-lg shadow-primary/20 active:scale-[0.98] transition-all group relative overflow-hidden"
                 >
                     <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
-                    <CreditCard size={20} />
-                    <span>Checkout</span>
+                    <span>Envoyer en préparation</span>
                 </button>
             </div>
 
@@ -223,8 +211,8 @@ export function CartSidebar() {
                         <div className="text-center">
                             <div className="text-5xl mb-3">✅</div>
                             <h2 className="text-2xl font-black text-white">Commande validée</h2>
-                            <p className="text-zinc-400 mt-1">
-                                {lastReceipt?.orderId} — {formatPrice(lastReceipt?.total || 0)}
+                            <p className="text-zinc-400 mt-1 text-center font-mono">
+                                Commande N° {lastReceipt?.orderId}
                             </p>
                         </div>
 

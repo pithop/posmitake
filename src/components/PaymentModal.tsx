@@ -46,55 +46,8 @@ export function PaymentModal({ isOpen, totalAmount, onClose, onConfirm, onPutOnH
         }
     }, [isOpen, totalAmount]);
 
-    const totalPaid = payments.reduce((sum, p) => sum + p.amount, 0);
-    const remaining = Math.max(0, totalAmount - totalPaid);
-    const changedAmount = totalPaid > totalAmount ? totalPaid - totalAmount : 0;
-    const isComplete = remaining <= 0.001;
-
-    // Amount to display in the big counter
-    const displayAmount = inputAmount !== '' ? (parseFloat(inputAmount) || 0) : remaining;
-
-    const handleNumpad = (key: string) => {
-        if (isComplete) return;
-
-        if (key === 'C') {
-            setInputAmount('');
-        } else if (key === 'BACK') {
-            setInputAmount(prev => prev.slice(0, -1));
-        } else if (key === '.') {
-            if (!inputAmount.includes('.')) {
-                setInputAmount(prev => (prev === '' ? '0.' : prev + '.'));
-            }
-        } else {
-            if (inputAmount.includes('.')) {
-                const parts = inputAmount.split('.');
-                if (parts[1].length >= 2) return;
-            }
-            if (parseFloat(inputAmount + key) > 10000) return;
-            setInputAmount(prev => prev + key);
-        }
-    };
-
-    const handleAddPayment = (methodId: PaymentMethodType) => {
-        if (isComplete) return;
-
-        const amountToAdd = displayAmount;
-        if (amountToAdd <= 0) return;
-
-        setPayments([...payments, { method: methodId, amount: amountToAdd }]);
-        setInputAmount('');
-    };
-
-    const handleRemovePayment = (index: number) => {
-        const newPayments = [...payments];
-        newPayments.splice(index, 1);
-        setPayments(newPayments);
-        setInputAmount('');
-    };
-
     const handleConfirm = () => {
-        if (!isComplete) return;
-        onConfirm(payments, orderType, customerName, pickupTime);
+        onConfirm([], orderType, customerName, pickupTime);
     };
 
     const handlePutOnHold = () => {
@@ -125,9 +78,8 @@ export function PaymentModal({ isOpen, totalAmount, onClose, onConfirm, onPutOnH
 
                 {/* LEFT PANE: Summary */}
                 <div className="w-full lg:w-[380px] xl:w-[420px] bg-secondary/30 lg:rounded-[1.5rem] border-r lg:border border-white/5 flex flex-col lg:h-full shrink-0">
-                    {/* Header */}
                     <div className="p-4 lg:p-6 pb-3 lg:pb-4 flex items-center justify-between">
-                        <h2 className="text-xl lg:text-2xl font-heading font-medium tracking-tight">Checkout</h2>
+                        <h2 className="text-xl lg:text-2xl font-heading font-medium tracking-tight">Assigner la commande</h2>
                         <button onClick={onClose} className="hidden lg:flex p-2 hover:bg-white/10 rounded-full transition-colors bg-white/5 border border-white/5">
                             <X size={22} className="text-muted-foreground hover:text-white" />
                         </button>
@@ -205,179 +157,27 @@ export function PaymentModal({ isOpen, totalAmount, onClose, onConfirm, onPutOnH
                                             )}
                                         </div>
                                     </div>
-                                    <span className="font-mono text-white/90 shrink-0 ml-4 font-bold">{formatPrice(item.totalPrice)}</span>
                                 </div>
                             ))}
                         </div>
                     </div>
 
-                    <div className="px-4 lg:px-6 py-3 lg:py-4 space-y-2 lg:space-y-3 border-b border-white/5 bg-black/40">
-                        <div className="flex justify-between items-center text-sm lg:text-base text-muted-foreground">
-                            <span>Total commande</span>
-                            <span>{formatPrice(totalAmount)}</span>
-                        </div>
-                        <div className="flex justify-between items-center text-2xl lg:text-3xl font-bold font-mono tracking-tight">
-                            <span className="text-muted-foreground/80">Reste</span>
-                            <span className={cn(isComplete ? "text-emerald-500" : "text-white")}>
-                                {formatPrice(remaining)}
-                            </span>
-                        </div>
-                        {changedAmount > 0 && (
-                            <div className="flex justify-between items-center text-3xl font-bold font-mono tracking-tight pt-2 border-t border-white/10 animate-fade-in">
-                                <span className="text-emerald-400">À rendre</span>
-                                <span className="text-emerald-400">
-                                    {formatPrice(changedAmount)}
-                                </span>
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Payment Lines */}
-                    <div className="max-h-[100px] lg:max-h-[160px] overflow-y-auto px-4 lg:px-5 py-2 lg:py-3 space-y-2 no-scrollbar bg-black/40">
-                        {payments.length === 0 && (
-                            <div className="h-full flex items-center justify-center text-muted-foreground/30 italic text-sm">
-                                Aucun encaissement...
-                            </div>
-                        )}
-                        {payments.map((p, i) => {
-                            const methodDef = PAYMENT_METHODS.find(m => m.id === p.method) || PAYMENT_METHODS[0];
-                            const Icon = methodDef.icon;
-                            return (
-                                <div key={i} className="flex items-center justify-between p-5 rounded-2xl bg-white/5 border border-white/10 animate-scale-up">
-                                    <div className="flex items-center gap-4">
-                                        <div className={cn("p-3 rounded-xl border border-white/5", methodDef.color.replace('border-', 'border-').split(' ')[0])}>
-                                            <Icon size={24} className={methodDef.color.split(' ')[1]} />
-                                        </div>
-                                        <span className="font-medium text-lg">{methodDef.label}</span>
-                                    </div>
-                                    <div className="flex items-center gap-5">
-                                        <span className="font-mono font-bold text-xl">{formatPrice(p.amount)}</span>
-                                        <button
-                                            onClick={() => handleRemovePayment(i)}
-                                            className="p-3 text-muted-foreground hover:text-red-500 hover:bg-red-500/10 transition-all rounded-full"
-                                        >
-                                            <Trash2 size={22} />
-                                        </button>
-                                    </div>
-                                </div>
-                            );
-                        })}
-                    </div>
-
                     {/* Footer / Confirm Action */}
-                    <div className="p-3 lg:p-4 bg-black/60 backdrop-blur-md z-10 border-t border-white/5">
-                        {isComplete ? (
-                            <button
-                                onClick={handleConfirm}
-                                className="w-full py-3 lg:py-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-lg lg:text-xl flex items-center justify-center gap-2 transition-all animate-scale-up shadow-[0_0_40px_rgba(16,185,129,0.2)] active:scale-95"
-                            >
-                                <CheckCircle2 size={28} />
-                                VALIDER LA COMMANDE
-                            </button>
-                        ) : (
-                            <button
-                                onClick={handlePutOnHold}
-                                className="w-full py-3 lg:py-4 rounded-xl bg-orange-500 hover:bg-orange-400 bg-opacity-20 hover:bg-opacity-30 border-2 border-orange-500/50 text-orange-400 font-bold text-base lg:text-lg flex items-center justify-center gap-2 transition-all active:scale-95 shadow-[0_0_30px_rgba(249,115,22,0.1)]"
-                            >
-                                ⏳ METTRE EN ATTENTE
-                            </button>
-                        )}
+                    <div className="p-3 lg:p-4 bg-black/60 backdrop-blur-md z-10 border-t border-white/5 space-y-3">
+                        <button
+                            onClick={handleConfirm}
+                            className="w-full py-3 lg:py-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-lg lg:text-xl flex items-center justify-center gap-2 transition-all animate-scale-up shadow-[0_0_40px_rgba(16,185,129,0.2)] active:scale-95"
+                        >
+                            <CheckCircle2 size={28} />
+                            ENVOYER EN CUISINE
+                        </button>
+                        <button
+                            onClick={handlePutOnHold}
+                            className="w-full py-3 lg:py-4 rounded-xl bg-orange-500 hover:bg-orange-400 bg-opacity-20 hover:bg-opacity-30 border-2 border-orange-500/50 text-orange-400 font-bold text-base lg:text-lg flex items-center justify-center gap-2 transition-all active:scale-95 shadow-[0_0_30px_rgba(249,115,22,0.1)]"
+                        >
+                            ⏳ METTRE EN ATTENTE
+                        </button>
                     </div>
-                </div>
-
-                {/* RIGHT PANE: Input & Actions */}
-                <div className="w-full lg:flex-1 flex flex-col lg:h-full relative overflow-y-auto p-3 lg:p-6 lg:pl-2">
-
-                    {/* Amount Input Screen */}
-                    <div className="w-full bg-black/40 rounded-[1.5rem] p-4 lg:p-8 border border-white/10 mb-3 lg:mb-6 flex items-center justify-between shadow-inner relative overflow-hidden group shrink-0">
-                        <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-1000"></div>
-                        <div className="text-lg lg:text-2xl text-muted-foreground font-medium relative z-10">
-                            Montant
-                        </div>
-                        <div className={cn(
-                            "text-4xl lg:text-6xl font-mono font-bold tracking-tighter transition-colors flex items-center gap-2 relative z-10",
-                            inputAmount !== '' ? "text-primary" : "text-white"
-                        )}>
-                            {displayAmount.toFixed(2)} <span className="text-2xl lg:text-4xl opacity-40 font-sans tracking-normal">€</span>
-                            {inputAmount !== '' && <div className="w-2 h-12 lg:h-14 bg-primary animate-pulse rounded-full ml-2"></div>}
-                        </div>
-                    </div>
-
-                    {/* Interactive Grid */}
-                    <div className={cn(
-                        "flex flex-col xl:flex-row gap-4 xl:gap-8 flex-1 transition-all duration-500",
-                        isComplete && "opacity-20 pointer-events-none blur-sm scale-95"
-                    )}>
-
-                        {/* Numpad Column */}
-                        <div className="w-full xl:w-[320px] flex flex-col gap-2 lg:gap-3 shrink-0">
-                            {/* Split Bill Express */}
-                            <div className="grid grid-cols-3 gap-2">
-                                {[2, 3, 4].map(num => (
-                                    <button
-                                        key={`split-${num}`}
-                                        onClick={() => {
-                                            const splitAmount = (remaining / num).toFixed(2);
-                                            setInputAmount(splitAmount);
-                                        }}
-                                        className="py-2 bg-sky-500/10 hover:bg-sky-500/20 text-sky-400 border border-sky-500/30 rounded-xl font-bold text-lg md:text-xl flex items-center justify-center transition-all active:scale-95 shadow-[0_4px_20px_rgba(14,165,233,0.1)]"
-                                    >
-                                        ÷{num}
-                                    </button>
-                                ))}
-                            </div>
-
-                            {/* Numpad */}
-                            <div className="grid grid-cols-3 gap-1.5 lg:gap-2 place-content-start">
-                                {numpadKeys.map(key => (
-                                    <button
-                                        key={key}
-                                        onClick={() => handleNumpad(key)}
-                                        className={cn("aspect-square bg-secondary/50 hover:bg-white/10 active:bg-white/20 border border-white/5 rounded-2xl text-xl lg:text-3xl font-medium transition-all flex items-center justify-center font-mono hover:scale-[1.02] active:scale-95", key === 'C' ? "text-red-400" : "")}
-                                    >
-                                        {key}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-
-                        {/* Payment Methods */}
-                        <div className="w-full flex-1 grid grid-cols-2 lg:grid-cols-2 gap-1.5 lg:gap-2 place-content-start">
-                            {PAYMENT_METHODS.map(m => {
-                                const Icon = m.icon;
-                                return (
-                                    <button
-                                        key={m.id}
-                                        onClick={() => handleAddPayment(m.id)}
-                                        className={cn(
-                                            "aspect-square xl:aspect-auto xl:py-6 rounded-2xl border flex flex-col items-center justify-center gap-2 transition-all hover:scale-[1.02] active:scale-95 text-center px-2",
-                                            m.color
-                                        )}
-                                    >
-                                        <Icon size={32} className="mb-1" />
-                                        <span className="font-bold text-base lg:text-lg leading-tight">{m.label}</span>
-                                    </button>
-                                );
-                            })}
-                        </div>
-                    </div>
-
-                    {/* Backspace floating overlay */}
-                    {!isComplete && (
-                        <div className="absolute top-[80px] lg:top-[100px] right-12 z-20">
-                            <button
-                                onClick={() => handleNumpad('BACK')}
-                                disabled={inputAmount === ''}
-                                className={cn(
-                                    "p-6 rounded-full transition-all shadow-2xl backdrop-blur-md active:scale-90",
-                                    inputAmount === '' ? "opacity-0 scale-50 pointer-events-none" : "opacity-100 scale-100 bg-white/15 hover:bg-white/25 text-white"
-                                )}
-                            >
-                                <Delete size={32} />
-                            </button>
-                        </div>
-                    )}
-
                 </div>
             </div>
         </div>,

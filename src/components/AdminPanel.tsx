@@ -827,7 +827,7 @@ export function AdminPanel() {
                                                                     onClick={() => setOnHoldPaymentOrder(order)}
                                                                     className="col-span-2 xl:col-span-2 flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-black font-black py-5 rounded-xl transition-all active:scale-95 text-xl shadow-[0_0_20px_rgba(16,185,129,0.3)]"
                                                                 >
-                                                                    ENCAISSER
+                                                                    PRÉPARER
                                                                 </button>
                                                             </div>
                                                         </div>
@@ -1147,7 +1147,7 @@ export function AdminPanel() {
                                                 >
                                                     <Monitor size={32} className={cn("mb-4", deviceId === 'caisse_ordi' ? "text-primary" : "text-zinc-500")} />
                                                     <div className={cn("font-bold text-lg", deviceId === 'caisse_ordi' ? "text-primary" : "text-white")}>
-                                                        Caisse Principal
+                                                        Terminal Principal
                                                     </div>
                                                     <div className="text-zinc-500 text-sm mt-1">Appareil maître. Reçoit toutes les catégories de produits.</div>
                                                 </button>

@@ -38,7 +38,7 @@ export function ReceiptFromOrder({ data, isInvoice }: Props) {
             {/* Header */}
             <div className="receipt-header">
                 {isInvoice ? (
-                    <div className="receipt-logo" style={{ fontSize: '38px', marginBottom: '12px' }}>FACTURE</div>
+                    <div className="receipt-logo" style={{ fontSize: '30px', marginBottom: '12px' }}>BON DE COMMANDE</div>
                 ) : (
                     <>
                         <div className="receipt-logo">{settings?.store_name || 'MITAKE RAMEN'}</div>
@@ -86,7 +86,7 @@ export function ReceiptFromOrder({ data, isInvoice }: Props) {
                 )}
                 {data.source_device && (
                     <div className="receipt-row">
-                        <span>Caisse:</span>
+                        <span>Terminal:</span>
                         <span>{data.source_device}</span>
                     </div>
                 )}
@@ -140,15 +140,12 @@ export function ReceiptFromOrder({ data, isInvoice }: Props) {
                         <div key={idx} className="receipt-item">
                             <div className="receipt-item-main">
                                 <span>{item.quantity}x {itemName}</span>
-                                <span>{formatPrice(itemPrice)}</span>
                             </div>
                             {mods.length > 0 && (
                                 <div className="receipt-mods">
                                     {mods.map((m: any, mi: number) => (
                                         <div key={mi} className="receipt-mod">
                                             + {m.quantity && m.quantity > 1 ? `${m.quantity}× ` : ''}{m.name}
-                                            {m.price > 0 && ` (${formatPrice(Number(m.price) || 0)})`}
-                                            {m.priceAdjustment > 0 && ` (${formatPrice(Number(m.priceAdjustment) || 0)})`}
                                         </div>
                                     ))}
                                 </div>
@@ -163,48 +160,7 @@ export function ReceiptFromOrder({ data, isInvoice }: Props) {
 
             <div style={{ borderBottom: '1px dashed #000', margin: '4px 0' }}></div>
 
-            {/* Totals */}
-            <div className="receipt-totals">
-                <div className="receipt-total-line">
-                    <span className="receipt-bold receipt-large">TOTAL TTC</span>
-                    <span className="receipt-bold receipt-large">{formatPrice(data.total)}</span>
-                </div>
-                <div className="receipt-row mt-1 receipt-small">
-                    <span>Total HT</span>
-                    <span>{formatPrice(data.total / (1 + (tvaRate / 100)))}</span>
-                </div>
-                <div className="receipt-row receipt-small mb-2">
-                    <span>Dont TVA ({tvaRate}%)</span>
-                    <span>{formatPrice(data.total - (data.total / (1 + (tvaRate / 100))))}</span>
-                </div>
-            </div>
-
-            <div style={{ borderBottom: '1px dashed #000', margin: '4px 0' }}></div>
-
-            {/* Payments or Pending */}
-            <div className="receipt-payments">
-                {data.isPending ? (
-                    <div className="receipt-row mt-2">
-                        <span className="receipt-bold" style={{ fontSize: '24px' }}>À PAYER</span>
-                        <span className="receipt-bold" style={{ fontSize: '24px' }}>{formatPrice(data.total)}</span>
-                    </div>
-                ) : (
-                    data.payments && data.payments.filter((p: any) => p.method && p.method !== 'unpaid').map((p: any, i: number) => (
-                        <div key={i} className="receipt-row">
-                            <span>{p.method === 'card' ? 'CB' : p.method === 'cash' ? 'Espèces' : p.method.toUpperCase()}</span>
-                            <span>{formatPrice(p.amount)}</span>
-                        </div>
-                    ))
-                )}
-            </div>
-
-            {/* Footer */}
-            {isInvoice && (
-                <div className="receipt-invoice-details" style={{ marginTop: '20px', marginBottom: '20px', fontSize: '20px', lineHeight: '2.5', fontWeight: 900 }}>
-                    <div style={{ borderBottom: '2px dotted #000' }}>Client :</div>
-                    <div style={{ borderBottom: '2px dotted #000' }}>Entreprise :</div>
-                </div>
-            )}
+            {/* Note additionnelle si besoin */}
             <div className="receipt-footer">
                 <div style={{ borderTop: '1px dashed #000', paddingTop: '8px', marginTop: '8px' }}></div>
                 <div className="receipt-center">{settings?.footer_message_1 || 'Merci de votre visite !'}</div>

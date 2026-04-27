@@ -76,7 +76,7 @@ export function Receipt({ data }: ReceiptProps) {
                     </div>
                 )}
                 <div className="receipt-row">
-                    <span>Caisse:</span>
+                    <span>Terminal:</span>
                     <span>{data.deviceId}</span>
                 </div>
             </div>
@@ -89,14 +89,12 @@ export function Receipt({ data }: ReceiptProps) {
                     <div key={idx} className="receipt-item">
                         <div className="receipt-item-main">
                             <span>{item.quantity}x {item.menuItem.name}</span>
-                            <span>{formatPrice(item.totalPrice)}</span>
                         </div>
                         {item.selectedModifiers.length > 0 && (
                             <div className="receipt-mods">
                                 {item.selectedModifiers.map((m, mi) => (
                                     <div key={mi} className="receipt-mod">
                                         + {m.name}
-                                        {m.priceAdjustment > 0 && ` (${formatPrice(m.priceAdjustment)})`}
                                     </div>
                                 ))}
                             </div>
@@ -108,37 +106,7 @@ export function Receipt({ data }: ReceiptProps) {
                 ))}
             </div>
 
-            <div style={{ borderBottom: '1px dashed #000', margin: '4px 0' }}></div>
-
-            {/* Totals */}
-            <div className="receipt-totals">
-                <div className="receipt-total-line">
-                    <span className="receipt-bold receipt-large">TOTAL TTC</span>
-                    <span className="receipt-bold receipt-large">{formatPrice(data.total)}</span>
-                </div>
-                <div className="receipt-row mt-1 text-zinc-600 text-sm">
-                    <span>Total HT</span>
-                    <span>{formatPrice(data.total / (1 + (tvaRate / 100)))}</span>
-                </div>
-                <div className="receipt-row text-zinc-600 text-sm mb-2">
-                    <span>Dont TVA ({tvaRate}%)</span>
-                    <span>{formatPrice(data.total - (data.total / (1 + (tvaRate / 100))))}</span>
-                </div>
-            </div>
-
-            <div style={{ borderBottom: '1px dashed #000', margin: '4px 0' }}></div>
-
-            {/* Payments */}
-            <div className="receipt-payments">
-                {data.payments.map((p, i) => (
-                    <div key={i} className="receipt-row">
-                        <span>{p.method === 'card' ? 'CB' : p.method === 'cash' ? 'Espèces' : p.method.toUpperCase()}</span>
-                        <span>{formatPrice(p.amount)}</span>
-                    </div>
-                ))}
-            </div>
-
-            {/* Footer */}
+            {/* Note additionnelle */}
             <div className="receipt-footer">
                 <div style={{ borderTop: '1px dashed #000', paddingTop: '8px', marginTop: '8px' }}></div>
                 <div className="receipt-center">{settings?.footer_message_1 || 'Merci de votre visite !'}</div>
