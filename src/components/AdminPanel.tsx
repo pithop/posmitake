@@ -672,8 +672,8 @@ export function AdminPanel() {
                                                         
                                                         <div className="flex flex-col gap-5 w-full xl:w-[420px] shrink-0 mt-4 xl:mt-0">
                                                             <div className="flex flex-col xl:items-end text-left xl:text-right bg-zinc-950/40 p-5 rounded-2xl border border-zinc-800/50">
-                                                                <div className="font-black text-5xl text-white font-mono">{formatPrice(order.total)}</div>
-                                                                <div className="text-zinc-500 text-lg font-medium mt-1">{order.items.reduce((acc: any, item: any) => acc + item.quantity, 0)} articles</div>
+                                                                {/* Price removed for KDS */}
+                                                                <div className="text-zinc-400 text-xl font-bold mt-1">{order.items.reduce((acc: any, item: any) => acc + item.quantity, 0)} articles</div>
                                                             </div>
                                                             
                                                             <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-2 gap-3 w-full">
@@ -703,32 +703,7 @@ export function AdminPanel() {
                                                                 >
                                                                     <Printer size={18} /> Ticket
                                                                 </button>
-                                                                <button
-                                                                    onClick={() => {
-                                                                        const rawData = supabaseOrders.find(o => o.id === order.id);
-                                                                        if (rawData) {
-                                                                            setPrintFacture({
-                                                                                id: rawData.id,
-                                                                                total: rawData.total,
-                                                                                order_type: rawData.order_type,
-                                                                                customer_name: rawData.customer_name,
-                                                                                pickup_time: rawData.pickup_time,
-                                                                                created_at: rawData.created_at,
-                                                                                source_device: rawData.source_device,
-                                                                                items: rawData.items_json || [],
-                                                                                payments: rawData.payment_details,
-                                                                                delivery_address: order.deliveryAddress,
-                                                                                customer_notes: order.customerNotes,
-                                                                                isPending: true,
-                                                                            });
-                                                                            logger.audit('PRINT', 'MANUAL_FACTURE_REQUESTED', { order_id: rawData.id, is_pending: true });
-                                                                            setTimeout(() => window.print(), 300);
-                                                                        }
-                                                                    }}
-                                                                    className="col-span-1 flex items-center justify-center gap-2 bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 border border-blue-500/40 font-bold py-3 px-2 rounded-xl transition-all active:scale-95 text-base"
-                                                                >
-                                                                    <FileText size={18} /> Facture
-                                                                </button>
+                                                                {/* Facture button removed for KDS */}
                                                                 <button
                                                                     onClick={() => handleEditPendingOrder(order)}
                                                                     className="col-span-1 flex items-center justify-center gap-2 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/30 font-bold py-3 px-2 rounded-xl transition-all active:scale-95 text-base"
@@ -885,42 +860,7 @@ export function AdminPanel() {
                                                                 >
                                                                     <Printer size={16} /> Ticket
                                                                 </button>
-                                                                <button
-                                                                    onClick={(e) => {
-                                                                        e.stopPropagation();
-                                                                        const rawData = supabaseOrders.find(o => o.id === order.id);
-                                                                        if (rawData) {
-                                                                            setPrintFacture({
-                                                                                id: rawData.id,
-                                                                                total: rawData.total,
-                                                                                order_type: rawData.order_type,
-                                                                                customer_name: rawData.customer_name,
-                                                                                pickup_time: rawData.pickup_time,
-                                                                                created_at: rawData.created_at,
-                                                                                source_device: rawData.source_device,
-                                                                                items: rawData.items_json || [],
-                                                                                payments: rawData.payment_details,
-                                                                                delivery_address: order.deliveryAddress,
-                                                                                customer_notes: order.customerNotes,
-                                                                                isPending: false,
-                                                                            });
-                                                                            logger.audit('PRINT', 'MANUAL_FACTURE_REQUESTED', { order_id: rawData.id, is_pending: false });
-                                                                            setTimeout(() => window.print(), 300);
-                                                                        }
-                                                                    }}
-                                                                    className="flex items-center gap-1.5 bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 border border-blue-500/30 px-3 py-2 rounded-xl transition-all active:scale-95 text-sm font-bold"
-                                                                >
-                                                                    <FileText size={16} /> Facture
-                                                                </button>
-                                                                <button
-                                                                    onClick={(e) => {
-                                                                        e.stopPropagation();
-                                                                        setOrderToCorrect(order);
-                                                                    }}
-                                                                    className="flex items-center gap-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 hover:text-amber-400 border border-amber-500/30 px-3 py-2 rounded-xl transition-all active:scale-95 text-sm font-bold"
-                                                                >
-                                                                    <Edit2 size={16} /> Corriger
-                                                                </button>
+                                                                {/* Facture and Corriger buttons removed for KDS */}
                                                                 <button
                                                                     onClick={(e) => {
                                                                         e.stopPropagation();
@@ -930,12 +870,7 @@ export function AdminPanel() {
                                                                 >
                                                                     <CheckCircle size={16} /> Prête
                                                                 </button>
-                                                                <div className="flex flex-col items-end min-w-[140px] pl-4 shrink-0">
-                                                                    <p className="text-2xl font-black text-white font-mono break-all">{formatPrice(order.total)}</p>
-                                                                    <p className="text-green-500 text-sm font-bold uppercase tracking-wider flex items-center gap-1">
-                                                                        <span className="w-2 h-2 rounded-full bg-green-500 shrink-0"></span> <span className="break-words text-right">Payé ({order.paymentMethod.replace('_', ' ')})</span>
-                                                                    </p>
-                                                                </div>
+                                                                {/* Price removed for KDS */}
                                                             </div>
                                                         </div>
 
@@ -978,7 +913,7 @@ export function AdminPanel() {
                                                                                                     <div key={mi} className="flex items-center gap-2">
                                                                                                         <span className="text-sky-600 font-bold">↳</span>
                                                                                                         <span className="font-bold">+ {m.quantity && m.quantity > 1 ? `${m.quantity}× ` : ''}{m.name}</span>
-                                                                                                        {m.price > 0 && <span className="text-sky-400/70 ml-1">({formatPrice(Number(m.price) || 0)})</span>}
+                                                                                                        {/* Mod price removed for KDS */}
                                                                                                     </div>
                                                                                                 ))}
                                                                                             </div>
@@ -990,9 +925,7 @@ export function AdminPanel() {
                                                                                         )}
                                                                                     </div>
                                                                                 </div>
-                                                                                <span className="text-zinc-300 font-bold flex-shrink-0 text-xl pt-1">
-                                                                                    {formatPrice(item.total_price || (item.unit_price || item.price) * item.quantity)}
-                                                                                </span>
+                                                                                {/* Item price removed for KDS */}
                                                                             </div>
                                                                         );
                                                                     });
