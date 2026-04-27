@@ -77,7 +77,7 @@ export function PaymentModal({ isOpen, totalAmount, onClose, onConfirm, onPutOnH
                 </button>
 
                 {/* LEFT PANE: Summary */}
-                <div className="w-full lg:w-[380px] xl:w-[420px] bg-secondary/30 lg:rounded-[1.5rem] border-r lg:border border-white/5 flex flex-col lg:h-full shrink-0">
+                <div className="w-full lg:w-[600px] xl:w-[700px] mx-auto bg-secondary/30 lg:rounded-[1.5rem] border-r lg:border border-white/5 flex flex-col lg:h-[80vh] shrink-0">
                     <div className="p-4 lg:p-6 pb-3 lg:pb-4 flex items-center justify-between">
                         <h2 className="text-xl lg:text-2xl font-heading font-medium tracking-tight">Assigner la commande</h2>
                         <button onClick={onClose} className="hidden lg:flex p-2 hover:bg-white/10 rounded-full transition-colors bg-white/5 border border-white/5">

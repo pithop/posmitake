@@ -143,9 +143,7 @@ export function CartSidebar() {
                                         </div>
                                     )}
                                 </div>
-                                <p className="font-bold text-foreground text-sm whitespace-nowrap font-mono">
-                                    {formatPrice(item.totalPrice)}
-                                </p>
+                                {/* Price hidden for KDS */}
                             </div>
 
                             <div className="flex items-center justify-between mt-3 pt-3 border-t border-white/5">

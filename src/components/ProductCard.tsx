@@ -59,11 +59,6 @@ export function ProductCard({ product, onAdd, onOpenModal, isOutOfStock }: Produ
                 {/* Overlay Gradient */}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-80" />
 
-                {/* Price Tag (Floating) */}
-                <div className="absolute top-3 right-3 glass px-3 py-1.5 rounded-full text-sm font-bold text-white shadow-lg backdrop-blur-md bg-black/40 border-white/10 group-hover:bg-primary group-hover:border-primary transition-colors">
-                    {formatPrice(product.price)}
-                </div>
-
                 {/* OUT OF STOCK OVERLAY */}
                 {isOutOfStock && (
                     <div className="absolute inset-0 z-10 bg-red-900/40 flex items-center justify-center">

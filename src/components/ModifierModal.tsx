@@ -135,11 +135,7 @@ export function ModifierModal({ product, isOpen, onClose, onConfirm }: ModifierM
                                                     </div>
                                                     <div>
                                                         <span className={cn("font-medium", selected ? "text-red-100" : "text-zinc-300")}>{option.name}</span>
-                                                        {option.priceAdjustment > 0 && (
-                                                            <span className={`block text-xs font-medium ${selected ? 'text-red-300' : 'text-zinc-500'}`}>
-                                                                +{formatPrice(option.priceAdjustment)}
-                                                            </span>
-                                                        )}
+                                                        {/* Price removed as per KDS requirements */}
                                                     </div>
                                                 </button>
 
@@ -186,9 +182,7 @@ export function ModifierModal({ product, isOpen, onClose, onConfirm }: ModifierM
                         disabled={!isValid}
                         className="w-full bg-white text-black hover:bg-zinc-200 disabled:opacity-50 disabled:cursor-not-allowed font-bold py-4 rounded-xl flex items-center justify-center space-x-3 text-lg transition-all active:scale-[0.98] shadow-xl"
                     >
-                        <span>Ajouter au panier</span>
-                        <div className="w-1 h-1 rounded-full bg-zinc-400" />
-                        <span>{formatPrice(currentTotal)}</span>
+                        <span>Associer</span>
                     </button>
                 </div>
             </div>

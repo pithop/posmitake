@@ -542,48 +542,12 @@ export function AdminPanel() {
                             {activeTab === 'dashboard' && (
                                 <div className="p-8 overflow-y-auto h-full">
                                     <div className="flex justify-between items-center mb-6">
-                                        <h3 className="text-2xl font-bold text-white">Aperçu de la journée</h3>
-                                        <button
-                                            onClick={handlePrintDailySummary}
-                                            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-xl transition-colors font-bold shadow-lg shadow-blue-600/20"
-                                        >
-                                            <Printer size={18} /> Imprimer Bilan Journée
-                                        </button>
+                                        <h3 className="text-2xl font-bold text-white">Activité de la journée</h3>
                                     </div>
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                                         <div className="bg-zinc-900/50 border border-zinc-800 p-6 rounded-2xl">
-                                            <p className="text-zinc-400 text-sm font-medium">Chiffre d'Affaires</p>
-                                            <p className="text-4xl font-bold text-green-500 mt-2">{formatPrice(todayMetrics.revenue)}</p>
-                                        </div>
-                                        <div className="bg-zinc-900/50 border border-zinc-800 p-6 rounded-2xl">
-                                            <p className="text-zinc-400 text-sm font-medium">Commandes</p>
+                                            <p className="text-zinc-400 text-sm font-medium">Commandes traitées</p>
                                             <p className="text-4xl font-bold text-white mt-2">{todayMetrics.count}</p>
-                                        </div>
-                                        <div className="bg-zinc-900/50 border border-zinc-800 p-6 rounded-2xl">
-                                            <p className="text-zinc-400 text-sm font-medium">Panier Moyen</p>
-                                            <p className="text-4xl font-bold text-blue-500 mt-2">
-                                                {todayMetrics.count > 0 ? formatPrice(todayMetrics.revenue / todayMetrics.count) : formatPrice(0)}
-                                            </p>
-                                        </div>
-                                    </div>
-
-                                    <h4 className="text-xl font-bold text-white mb-4">Répartition des Paiements</h4>
-                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-                                        <div className="bg-zinc-900/50 border border-zinc-800 p-4 rounded-xl flex justify-between items-center">
-                                            <span className="text-zinc-400 font-medium">Carte Bancaire</span>
-                                            <span className="text-white font-bold">{formatPrice(todayMetrics.byMethod.carte)}</span>
-                                        </div>
-                                        <div className="bg-zinc-900/50 border border-zinc-800 p-4 rounded-xl flex justify-between items-center">
-                                            <span className="text-zinc-400 font-medium">Espèces</span>
-                                            <span className="text-white font-bold">{formatPrice(todayMetrics.byMethod.espece)}</span>
-                                        </div>
-                                        <div className="bg-zinc-900/50 border border-zinc-800 p-4 rounded-xl flex justify-between items-center">
-                                            <span className="text-zinc-400 font-medium">Ticket Resto</span>
-                                            <span className="text-white font-bold">{formatPrice(todayMetrics.byMethod.ticket_resto)}</span>
-                                        </div>
-                                        <div className="bg-zinc-900/50 border border-zinc-800 p-4 rounded-xl flex justify-between items-center">
-                                            <span className="text-zinc-400 font-medium">Chèque Vacances</span>
-                                            <span className="text-white font-bold">{formatPrice(todayMetrics.byMethod.cheque_vacance)}</span>
                                         </div>
                                     </div>
 
