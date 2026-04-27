@@ -348,13 +348,15 @@ export const useSystemStore = create<SystemState>()(
                 try {
                     const db = getPowerSyncDatabase();
 
+                    const paymentMethod = payments && payments.length > 0 ? payments[0].method : 'aucun';
+
                     // === WRITE 1: Local SQLite (PowerSync) — for local history & offline ===
                     await db.writeTransaction(async (tx) => {
                         // Upsert pos_orders (using REPLACE or INSERT OR REPLACE equivalent)
                         await tx.execute(
                             `INSERT OR REPLACE INTO pos_orders (id, total, status, payment_method, payment_details, created_at, source_device, order_type, customer_name, pickup_time)
                              VALUES (?, ?, ?, ?, ?, COALESCE((SELECT created_at FROM pos_orders WHERE id = ?), ?), ?, ?, ?, ?)`,
-                            [orderId, total, 'completed', payments[0].method, paymentDetailsJson, orderId, createdAt, deviceId, orderTypeValue, custName, pickTime]
+                            [orderId, total, 'completed', paymentMethod, paymentDetailsJson, orderId, createdAt, deviceId, orderTypeValue, custName, pickTime]
                         );
 
                         // Clear old items
@@ -404,7 +406,7 @@ export const useSystemStore = create<SystemState>()(
                                 id: orderId,
                                 total,
                                 status: 'completed',
-                                payment_method: payments[0].method,
+                                payment_method: payments && payments.length > 0 ? payments[0].method : 'aucun',
                                 payment_details: payments,
                                 source_device: deviceId,
                                 order_type: orderTypeValue,
