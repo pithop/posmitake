@@ -97,6 +97,9 @@ interface SystemState {
     payOnHoldOrder: (orderId: string, payments: Payment[], sendSecondAlert: boolean, fullOrderData: any) => Promise<void>;
     registerPendingAck: (traceId: string) => void;
     resolveAck: (traceId: string) => void;
+    ackTimeouts: { orderId: string; timestamp: number }[];
+    dismissAckTimeout: (orderId: string) => void;
+    retryAlert: (orderId: string) => Promise<void>;
 }
 
 export const useCartStore = create<CartState>()(
@@ -241,6 +244,7 @@ export const useSystemStore = create<SystemState>()(
             printerName: '',
             tvaRate: 20,
             settings: null,
+            ackTimeouts: [],
 
             setDeviceId: (id) => {
                 logger.setDeviceId(id);
@@ -255,8 +259,11 @@ export const useSystemStore = create<SystemState>()(
                 const timeout = setTimeout(() => {
                     if (pendingAcksMap.has(traceId)) {
                         logger.error('REALTIME', 'ACK_TIMEOUT', { trace_id: traceId });
-                        // alert removed to prevent bothering the cashier
                         pendingAcksMap.delete(traceId);
+                        // Push to ackTimeouts so the UI can show a toast
+                        set(state => ({
+                            ackTimeouts: [...state.ackTimeouts, { orderId: traceId, timestamp: Date.now() }]
+                        }));
                     }
                 }, 5000);
                 pendingAcksMap.set(traceId, timeout);
@@ -267,6 +274,35 @@ export const useSystemStore = create<SystemState>()(
                     clearTimeout(pendingAcksMap.get(traceId));
                     pendingAcksMap.delete(traceId);
                     logger.info('REALTIME', 'BROADCAST_ACKED', { trace_id: traceId });
+                }
+                // Also clear from ackTimeouts if it was previously timed out
+                set(state => ({
+                    ackTimeouts: state.ackTimeouts.filter(t => t.orderId !== traceId)
+                }));
+            },
+
+            dismissAckTimeout: (orderId: string) => {
+                set(state => ({
+                    ackTimeouts: state.ackTimeouts.filter(t => t.orderId !== orderId)
+                }));
+            },
+
+            retryAlert: async (orderId: string) => {
+                // Remove from timeouts list immediately
+                set(state => ({
+                    ackTimeouts: state.ackTimeouts.filter(t => t.orderId !== orderId)
+                }));
+                // Re-trigger the realtime alert by updating rappel_at
+                if (supabase) {
+                    try {
+                        await supabase.from('pos_orders')
+                            .update({ rappel_at: new Date().toISOString() })
+                            .eq('id', orderId);
+                        get().registerPendingAck(orderId);
+                        logger.audit('REALTIME', 'ACK_TIMEOUT_RETRY', { order_id: orderId });
+                    } catch (err) {
+                        logger.error('REALTIME', 'ACK_TIMEOUT_RETRY_FAILED', { order_id: orderId, error: String(err) });
+                    }
                 }
             },
 

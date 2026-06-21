@@ -24,7 +24,6 @@ interface Props {
 }
 
 export function ReceiptFromOrder({ data, isInvoice }: Props) {
-    const tvaRate = useSystemStore(state => state.tvaRate) || 20;
     const settings = useSystemStore(state => state.settings);
 
     if (!data) return null;
@@ -49,12 +48,7 @@ export function ReceiptFromOrder({ data, isInvoice }: Props) {
 
             <div style={{ borderBottom: '1px dashed #000', margin: '4px 0' }}></div>
 
-            {/* Restaurant Info */}
-            <div className="receipt-center receipt-small" style={{ marginBottom: '6px' }}>
-                <div>{settings?.address || '569 Av. Henri Mauriat, 13100 Aix-en-Provence'}</div>
-                <div>Tél: {settings?.phone || '09 72 21 38 99'}</div>
-                {settings?.siret && <div>SIRET: {settings.siret}</div>}
-            </div>
+
 
             {/* Order Info */}
             <div className="receipt-info">
