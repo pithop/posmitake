@@ -17,8 +17,11 @@ import {
     Printer,
     ShoppingBag,
     Settings,
-    Calendar
+    Calendar,
+    PowerOff,
+    ShieldAlert
 } from 'lucide-react';
+import { useSystemStore } from '@/store/useStore';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -68,6 +71,8 @@ export default function DashboardPage() {
         return new Date(d.getTime() - offset).toISOString().split('T')[0];
     });
     const [selectedLog, setSelectedLog] = useState<LogEntry | null>(null);
+    const { isMaintenanceMode, setMaintenanceMode } = useSystemStore();
+    const [showConfirmModal, setShowConfirmModal] = useState(false);
 
     const fetchLogs = async (dateStr: string) => {
         setLoading(true);
@@ -133,7 +138,37 @@ export default function DashboardPage() {
                     </div>
                 </div>
 
-                <div className="flex items-center justify-between md:justify-end gap-6 w-full md:w-auto">
+                <div className="flex items-center justify-between md:justify-end gap-3 md:gap-5 w-full md:w-auto flex-wrap">
+                    {/* Emergency 404 / Maintenance Switch */}
+                    {isMaintenanceMode ? (
+                        <div className="flex items-center gap-2.5 bg-red-950/80 border border-red-500/60 px-3 py-1.5 rounded-xl shadow-[0_0_20px_rgba(239,68,68,0.3)]">
+                            <div className="flex items-center gap-1.5">
+                                <span className="relative flex h-2 w-2">
+                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                                </span>
+                                <span className="text-red-300 font-bold text-xs uppercase tracking-wide">
+                                    Panne 404 Active
+                                </span>
+                            </div>
+                            <button
+                                onClick={() => setMaintenanceMode(false)}
+                                className="px-3 py-1 bg-emerald-500 hover:bg-emerald-400 text-black font-black text-xs rounded-lg transition-all active:scale-95"
+                            >
+                                Rétablir le POS
+                            </button>
+                        </div>
+                    ) : (
+                        <button
+                            onClick={() => setShowConfirmModal(true)}
+                            className="flex items-center gap-2 px-3.5 py-1.5 bg-red-900/30 hover:bg-red-600 text-red-400 hover:text-white border border-red-600/40 rounded-xl font-bold text-xs transition-all shadow-lg active:scale-95"
+                            title="Bascule tout le POS en écran 404 / Site en réparation"
+                        >
+                            <PowerOff size={14} />
+                            <span>Mettre le POS en 404</span>
+                        </button>
+                    )}
+
                     <div className="flex items-center gap-2 text-xs md:text-sm bg-zinc-900 px-3 py-2 rounded-lg border border-white/5 whitespace-nowrap">
                         <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                         <span className="text-emerald-500 font-medium">Live Sync Active</span>
@@ -148,6 +183,48 @@ export default function DashboardPage() {
             <main className="flex-1 flex flex-col md:flex-row overflow-hidden relative">
                 {/* Sidebar Filters */}
                 <aside className="w-full md:w-64 border-b md:border-b-0 md:border-r border-white/5 bg-zinc-900/20 p-4 md:p-6 flex flex-col sm:flex-row md:flex-col gap-4 md:gap-8 overflow-y-auto z-20">
+                    {/* Control Panel: Emergency 404 / Maintenance */}
+                    <div className={`p-4 rounded-xl border transition-all ${
+                        isMaintenanceMode 
+                            ? 'bg-red-950/40 border-red-500/50' 
+                            : 'bg-zinc-900/60 border-white/10'
+                    }`}>
+                        <div className="flex items-center justify-between mb-2">
+                            <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                                <ShieldAlert size={14} className={isMaintenanceMode ? "text-red-400" : "text-zinc-400"} />
+                                Mode Panne 404
+                            </span>
+                            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
+                                isMaintenanceMode 
+                                    ? 'bg-red-500/20 text-red-400 border border-red-500/30' 
+                                    : 'bg-zinc-800 text-zinc-400'
+                            }`}>
+                                {isMaintenanceMode ? 'ACTIF' : 'INACTIF'}
+                            </span>
+                        </div>
+                        <p className="text-[11px] text-zinc-400 leading-relaxed mb-3">
+                            {isMaintenanceMode 
+                                ? 'Tout le POS affiche "404 - Site en réparation". Alertes et sons coupés.'
+                                : 'Bascule tout le POS en fausse erreur 404 "Site en réparation". Seul ce dashboard reste accessible.'}
+                        </p>
+                        <button
+                            onClick={() => {
+                                if (isMaintenanceMode) {
+                                    setMaintenanceMode(false);
+                                } else {
+                                    setShowConfirmModal(true);
+                                }
+                            }}
+                            className={`w-full py-2 px-3 rounded-lg font-bold text-xs flex items-center justify-center gap-2 transition-all active:scale-95 ${
+                                isMaintenanceMode
+                                    ? 'bg-emerald-500 hover:bg-emerald-400 text-black shadow-lg shadow-emerald-500/20'
+                                    : 'bg-red-600 hover:bg-red-500 text-white shadow-lg shadow-red-600/20'
+                            }`}
+                        >
+                            <PowerOff size={14} />
+                            {isMaintenanceMode ? 'Rétablir le POS' : 'Déclencher la Panne 404'}
+                        </button>
+                    </div>
                     <div className="flex-1 min-w-[200px]">
                         <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 md:mb-4 flex items-center gap-2">
                             <Calendar className="w-3 h-3" /> Date
@@ -322,6 +399,44 @@ export default function DashboardPage() {
                     </div>
                 )}
             </main>
+
+            {/* Confirmation Modal */}
+            {showConfirmModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-200">
+                    <div className="w-full max-w-md bg-zinc-950 border border-red-600/40 rounded-3xl p-6 shadow-2xl space-y-4 font-sans">
+                        <div className="w-12 h-12 rounded-2xl bg-red-600/20 text-red-500 flex items-center justify-center">
+                            <AlertTriangle size={24} />
+                        </div>
+                        <div>
+                            <h3 className="text-xl font-bold text-white">Activer le mode Erreur 404 sur le POS ?</h3>
+                            <p className="text-zinc-400 text-sm mt-2 leading-relaxed">
+                                Tout le terminal POS affichera immédiatement un faux écran <strong>404 : Site en réparation / maintenance</strong>.
+                            </p>
+                            <p className="text-zinc-500 text-xs mt-2">
+                                Seule cette page <code className="text-emerald-400">/dashboard</code> restera accessible pour vous permettre de rétablir le POS à tout moment.
+                            </p>
+                        </div>
+                        <div className="flex space-x-3 pt-2">
+                            <button
+                                onClick={() => setShowConfirmModal(false)}
+                                className="flex-1 py-3 rounded-xl bg-zinc-800 text-zinc-300 hover:bg-zinc-700 font-bold transition-colors text-sm"
+                            >
+                                Annuler
+                            </button>
+                            <button
+                                onClick={() => {
+                                    setShowConfirmModal(false);
+                                    setMaintenanceMode(true);
+                                }}
+                                className="flex-1 py-3 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold transition-all shadow-lg shadow-red-600/30 flex items-center justify-center gap-2 text-sm active:scale-95"
+                            >
+                                <PowerOff size={16} />
+                                Activer la panne
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

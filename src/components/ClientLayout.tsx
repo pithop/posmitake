@@ -44,7 +44,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
   // Upon mount, it forces the user-defined native zoom!
   if (!mounted) return <>{children}</>;
 
-  if (isMaintenanceMode) {
+  if (isMaintenanceMode && !isDashboard) {
     return <MaintenanceScreen />;
   }
 
