@@ -9,9 +9,11 @@ import { StockAlertManager } from "@/components/StockAlertManager";
 import { WebsiteAlertManager } from "@/components/WebsiteAlertManager";
 import { WalkieTalkieModule } from "@/components/WalkieTalkieModule";
 import { ReadyAlertManager } from "@/components/ReadyAlertManager";
+import { MaintenanceScreen } from "@/components/MaintenanceScreen";
+import { supabase } from "@/lib/supabase";
 
 export function ClientLayout({ children }: { children: React.ReactNode }) {
-  const { uiZoomLevel } = useSystemStore();
+  const { uiZoomLevel, isMaintenanceMode, setMaintenanceMode } = useSystemStore();
   const [mounted, setMounted] = useState(false);
   const pathname = usePathname();
   const isDashboard = pathname === '/dashboard';
@@ -23,11 +25,28 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
     if (deviceId) {
       logger.setDeviceId(deviceId);
     }
-  }, []);
+
+    if (!supabase) return;
+    const channel = supabase.channel('kitchen_alerts_v3')
+      .on('broadcast', { event: 'SET_MAINTENANCE_MODE' }, (payload: any) => {
+        if (typeof payload.payload?.enabled === 'boolean') {
+          setMaintenanceMode(payload.payload.enabled);
+        }
+      })
+      .subscribe();
+
+    return () => {
+      supabase?.removeChannel(channel);
+    };
+  }, [setMaintenanceMode]);
 
   // When unmounted during SSR, style defaults to CSS. 
   // Upon mount, it forces the user-defined native zoom!
   if (!mounted) return <>{children}</>;
+
+  if (isMaintenanceMode) {
+    return <MaintenanceScreen />;
+  }
 
   return (
     <>

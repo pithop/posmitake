@@ -100,6 +100,8 @@ interface SystemState {
     ackTimeouts: { orderId: string; timestamp: number }[];
     dismissAckTimeout: (orderId: string) => void;
     retryAlert: (orderId: string) => Promise<void>;
+    isMaintenanceMode: boolean;
+    setMaintenanceMode: (enabled: boolean) => void;
 }
 
 export const useCartStore = create<CartState>()(
@@ -245,6 +247,7 @@ export const useSystemStore = create<SystemState>()(
             tvaRate: 20,
             settings: null,
             ackTimeouts: [],
+            isMaintenanceMode: false,
 
             setDeviceId: (id) => {
                 logger.setDeviceId(id);
@@ -302,6 +305,29 @@ export const useSystemStore = create<SystemState>()(
                         logger.audit('REALTIME', 'ACK_TIMEOUT_RETRY', { order_id: orderId });
                     } catch (err) {
                         logger.error('REALTIME', 'ACK_TIMEOUT_RETRY_FAILED', { order_id: orderId, error: String(err) });
+                    }
+                }
+            },
+
+            setMaintenanceMode: (enabled: boolean) => {
+                set({ isMaintenanceMode: enabled });
+                logger.audit('SYSTEM', 'MAINTENANCE_MODE_TOGGLED', { enabled });
+                if (supabase) {
+                    try {
+                        const sendChannel = supabase.channel('kitchen_alerts_v3');
+                        sendChannel.subscribe((status) => {
+                            if (status === 'SUBSCRIBED') {
+                                sendChannel.send({
+                                    type: 'broadcast',
+                                    event: 'SET_MAINTENANCE_MODE',
+                                    payload: { enabled }
+                                } as any).catch(console.error).finally(() => {
+                                    setTimeout(() => supabase?.removeChannel(sendChannel), 2000);
+                                });
+                            }
+                        });
+                    } catch (e) {
+                        console.warn('[Maintenance] Broadcast failed:', e);
                     }
                 }
             },

@@ -1,7 +1,7 @@
 import { useSystemStore, useCartStore } from '@/store/useStore';
 import { formatPrice } from '@/lib/utils';
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { Settings, X, RotateCcw, LayoutDashboard, History, Package, Search, Save, Edit2, WifiOff, CloudUpload, SlidersHorizontal, Monitor, Smartphone, Clock, Printer, BellRing, Trash2, FileText, CheckCircle } from 'lucide-react';
+import { Settings, X, RotateCcw, LayoutDashboard, History, Package, Search, Save, Edit2, WifiOff, CloudUpload, SlidersHorizontal, Monitor, Smartphone, Clock, Printer, BellRing, Trash2, FileText, CheckCircle, AlertTriangle, PowerOff } from 'lucide-react';
 import { Product, Order } from '@/types';
 import { cn } from '@/lib/utils';
 import { useQuery, usePowerSync } from '@powersync/react';
@@ -16,8 +16,9 @@ import { createPortal } from 'react-dom';
 type Tab = 'dashboard' | 'onhold' | 'history' | 'products' | 'settings';
 
 export function AdminPanel() {
-    const { dailyRevenue, resetDaily, deviceId, setDeviceId, uiZoomLevel, setUiZoomLevel, printerName, setPrinterName, payOnHoldOrder, putOnHold, tvaRate, setTvaRate, settings, fetchSettings, updateSettings, resolveAck, registerPendingAck } = useSystemStore();
+    const { dailyRevenue, resetDaily, deviceId, setDeviceId, uiZoomLevel, setUiZoomLevel, printerName, setPrinterName, payOnHoldOrder, putOnHold, tvaRate, setTvaRate, settings, fetchSettings, updateSettings, resolveAck, registerPendingAck, setMaintenanceMode } = useSystemStore();
     const { items: cartItems, loadCart } = useCartStore();
+    const [showMaintenanceConfirm, setShowMaintenanceConfirm] = useState(false);
 
     // PowerSync Data (local) — for products
     const { data: productsData = [] } = useQuery('SELECT * FROM pos_products');
@@ -562,6 +563,22 @@ export function AdminPanel() {
                                             <RotateCcw size={16} />
                                             <span>Reset Journée</span>
                                         </button>
+
+                                        <div className="mt-6 pt-6 border-t border-red-900/30">
+                                            <h5 className="text-red-400 font-bold text-sm mb-1 flex items-center gap-2">
+                                                <AlertTriangle size={16} /> Mode Panne / Erreur 404
+                                            </h5>
+                                            <p className="text-zinc-400 text-xs mb-3 leading-relaxed">
+                                                Bascule instantanément tout le POS en écran d&apos;erreur <strong>404 &quot;Site en cours de réparation&quot;</strong>.
+                                            </p>
+                                            <button
+                                                onClick={() => setShowMaintenanceConfirm(true)}
+                                                className="flex items-center space-x-2 bg-red-600 hover:bg-red-500 text-white font-bold px-4 py-2.5 rounded-xl transition-all shadow-lg shadow-red-600/20 text-sm active:scale-95"
+                                            >
+                                                <PowerOff size={16} />
+                                                <span>Activer l&apos;écran d&apos;erreur (404 / Réparation)</span>
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             )}
@@ -1335,6 +1352,45 @@ export function AdminPanel() {
                     </div>
                 </div>
             )}
+            {/* Maintenance Mode Confirmation Modal */}
+            {showMaintenanceConfirm && (
+                <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-200">
+                    <div className="w-full max-w-md bg-zinc-950 border border-red-600/40 rounded-3xl p-6 shadow-2xl space-y-4">
+                        <div className="w-12 h-12 rounded-2xl bg-red-600/20 text-red-500 flex items-center justify-center">
+                            <AlertTriangle size={24} />
+                        </div>
+                        <div>
+                            <h3 className="text-xl font-bold text-white">Activer le mode Erreur 404 / Réparation ?</h3>
+                            <p className="text-zinc-400 text-sm mt-2 leading-relaxed">
+                                Tout le terminal sera immédiatement masqué et affichera une page d&apos;erreur <strong>404 : Site en réparation / maintenance</strong>.
+                            </p>
+                            <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-3 mt-3 text-xs text-amber-300">
+                                💡 <strong>Pour déverrouiller et revenir au POS :</strong> cliquez <strong>5 fois sur le numéro 404</strong> et entrez le code PIN (par défaut : <strong>1234</strong>).
+                            </div>
+                        </div>
+                        <div className="flex space-x-3 pt-2">
+                            <button
+                                onClick={() => setShowMaintenanceConfirm(false)}
+                                className="flex-1 py-3 rounded-xl bg-zinc-800 text-zinc-300 hover:bg-zinc-700 font-bold transition-colors"
+                            >
+                                Annuler
+                            </button>
+                            <button
+                                onClick={() => {
+                                    setShowMaintenanceConfirm(false);
+                                    setIsOpen(false);
+                                    setMaintenanceMode(true);
+                                }}
+                                className="flex-1 py-3 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold transition-all shadow-lg shadow-red-600/30 flex items-center justify-center gap-2 active:scale-95"
+                            >
+                                <PowerOff size={16} />
+                                Activer la panne
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* ACK Timeout Toast — non-blocking notification */}
             <AckTimeoutToast />
         </>
